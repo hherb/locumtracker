@@ -1,13 +1,11 @@
 // swift-tools-version: 5.9
-// The swift-tools-version declares the minimum version of Swift required to build this package.
-
 import PackageDescription
 
 let package = Package(
     name: "LocumTrackerCore",
     platforms: [
-        .iOS(.v16),
-        .macOS(.v13)
+        .iOS(.v17),
+        .macOS(.v14)
     ],
     products: [
         .library(
@@ -15,19 +13,14 @@ let package = Package(
             targets: ["LocumTrackerCore"]
         ),
     ],
-    dependencies: [
-        // No external dependencies - pure functions only
-    ],
     targets: [
         .target(
             name: "LocumTrackerCore",
-            dependencies: [],
-            path: "Sources/LocumTrackerCore"
+            dependencies: []
         ),
         .testTarget(
             name: "LocumTrackerCoreTests",
-            dependencies: ["LocumTrackerCore"],
-            path: "Tests/LocumTrackerCoreTests"
+            dependencies: ["LocumTrackerCore"]
         ),
     ]
 )

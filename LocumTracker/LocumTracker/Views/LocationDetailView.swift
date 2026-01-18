@@ -75,37 +75,45 @@ struct LocationDetailView: View {
     }
 
     private var subsidySection: some View {
-        Section("Rural Subsidy") {
+        Section("WIP Doctor Stream (FPS)") {
             if location.isRuralSubsidyEligible {
-                let rate = RuralSubsidyService.getBaseRate(for: location.mmmClassification)
+                let vrPayment = RuralSubsidyService.getAnnualPayment(
+                    yearLevel: 1,
+                    mmmClassification: location.mmmClassification,
+                    registrationStatus: .vocationallyRegistered
+                )
+                let nonVRPayment = RuralSubsidyService.getAnnualPayment(
+                    yearLevel: 1,
+                    mmmClassification: location.mmmClassification,
+                    registrationStatus: .nonVocational
+                )
 
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
-                    Text("Eligible for rural subsidy")
+                    Text("Eligible for WIP incentive payments")
                 }
 
-                LabeledContent("Vocational Rate") {
-                    Text("$\(Int(rate))/hour")
+                LabeledContent("Year 1 (VR/Training)") {
+                    Text(CurrencyFormatter.format(vrPayment) + "/year")
                         .foregroundStyle(.green)
                 }
 
-                LabeledContent("Non-Vocational Rate") {
-                    let nonVocRate = rate * SubsidyConstants.nonVocationalMultiplier
-                    Text("$\(Int(nonVocRate))/hour")
+                LabeledContent("Year 1 (Non-VR)") {
+                    Text(CurrencyFormatter.format(nonVRPayment) + "/year")
                         .foregroundStyle(.green)
                 }
 
-                Text("Travel time over 1 hour also counts toward subsidy hours.")
+                Text("Requires 21+ sessions (3+ hours each) per quarter.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
                 HStack {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
-                    Text("Not eligible for rural subsidy")
+                    Text("Not eligible for WIP incentive")
                 }
-                Text("Only MMM3-7 locations qualify for rural incentive payments.")
+                Text("Only MMM3-7 locations qualify for WIP Doctor Stream payments.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -216,15 +224,19 @@ struct EditLocationSheet: View {
     }
 
     private func mmmDescription(for classification: Int) -> String {
-        let baseRate = RuralSubsidyService.getBaseRate(for: classification)
         let isEligible = RuralSubsidyService.isEligible(mmmClassification: classification)
 
         if !isEligible {
-            return classification == 1 ? "Metropolitan area - not eligible for rural subsidy"
-                : "Regional centre - not eligible for rural subsidy"
+            return classification == 1 ? "Metropolitan area - not eligible for WIP subsidy"
+                : "Regional centre - not eligible for WIP subsidy"
         }
 
-        return "$\(Int(baseRate))/hour vocational subsidy"
+        let payment = RuralSubsidyService.getAnnualPayment(
+            yearLevel: 1,
+            mmmClassification: classification,
+            registrationStatus: .vocationallyRegistered
+        )
+        return "Up to \(CurrencyFormatter.format(payment))/year (VR Year 1)"
     }
 
     private func saveChanges() {
@@ -237,10 +249,6 @@ struct EditLocationSheet: View {
 }
 
 // MARK: - Constants
-
-private enum SubsidyConstants {
-    static let nonVocationalMultiplier = 0.8
-}
 
 private enum EditConstants {
     static let classificationRange = 1...7

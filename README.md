@@ -109,22 +109,16 @@ Stop guessing — **know exactly where you stand** with your rural incentive pay
 
 ## The Rural Subsidy Problem We Solve
 
-Australia's Modified Monash Model (MMM) provides financial incentives for doctors working in rural and remote areas. But tracking compliance is a nightmare:
+The flexible incentive topup payments system is a complex nightmare and tracking compliance is timeconsuming:
 
-- You need **21 sessions per quarter** across MMM3-7 locations (a session is 3-6 hours; a typical 10-hour shift counts as 2 sessions)
-- Different locations have different subsidy rates ($15-$65/hour)
+- You need **21 sessions per quarter** across MMM3-7 locations 
+- a session is a minimum of 3 hours
+- maximum 2 sessions per day can be counted
+- Different locations have different subsidy rates 
 - Travel time rules are complex
-- Missing the quota means losing significant income
+- Missing the quota for a quarter means losing significant income that year
 
-**LocumTracker tracks all of this automatically.** Enter your sessions, and we'll tell you exactly where you stand.
-
-| MMM Level | Location Type | Vocational Rate |
-|-----------|---------------|-----------------|
-| MMM3 | Large rural towns | $0/hr (qualifying hours) |
-| MMM4 | Medium rural towns | $15/hr |
-| MMM5 | Small rural towns | $25/hr |
-| MMM6 | Remote communities | $45/hr |
-| MMM7 | Very remote communities | $65/hr |
+**LocumTracker tracks all of this automatically.** Enter your details and sessions, and we'll tell you exactly where you stand. |
 
 ---
 

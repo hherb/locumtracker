@@ -4,8 +4,9 @@ import LocumTrackerCore
 
 /// Main tab view providing navigation to all major sections of the app
 ///
-/// Provides three main tabs:
+/// Provides four main tabs:
 /// - Assignments: Manage work assignments
+/// - FPS Quota: Track WIP FPS session quota progress
 /// - Earnings: View earnings dashboard
 /// - Receipts: Track expense receipts
 struct MainTabView: View {
@@ -18,6 +19,14 @@ struct MainTabView: View {
                     Label("Assignments", systemImage: "calendar")
                 }
                 .tag(Tab.assignments)
+
+            NavigationStack {
+                QuarterlyQuotaView()
+            }
+            .tabItem {
+                Label("FPS Quota", systemImage: "chart.pie")
+            }
+            .tag(Tab.quota)
 
             NavigationStack {
                 EarningsDashboardView()
@@ -40,6 +49,7 @@ struct MainTabView: View {
     /// Available tabs in the main navigation
     enum Tab {
         case assignments
+        case quota
         case earnings
         case receipts
     }

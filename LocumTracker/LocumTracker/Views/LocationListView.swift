@@ -166,8 +166,12 @@ struct LocationRowView: View {
                 .lineLimit(1)
 
             if location.isRuralSubsidyEligible {
-                let rate = RuralSubsidyService.getBaseRate(for: location.mmmClassification)
-                Text("$\(Int(rate))/hr subsidy")
+                let payment = RuralSubsidyService.getAnnualPayment(
+                    yearLevel: 1,
+                    mmmClassification: location.mmmClassification,
+                    registrationStatus: .vocationallyRegistered
+                )
+                Text("Up to \(CurrencyFormatter.format(payment))/year")
                     .font(.caption)
                     .foregroundStyle(.green)
             }

@@ -196,12 +196,9 @@ struct AddSessionSheet: View {
             session.notes = notes
         }
 
-        // Calculate subsidy if eligible
-        if session.isSubsidyEligible {
-            let subsidyHours = session.effectiveSubsidyHours
-            let baseRate = RuralSubsidyService.getBaseRate(for: mmmClassification)
-            session.subsidyAmount = subsidyHours * baseRate
-        }
+        // Note: FPS uses annual payments based on session count, not per-session amounts.
+        // The subsidyAmount field is no longer used for FPS calculations.
+        // Sessions are tracked in QuarterlyQuota for FPS eligibility.
 
         modelContext.insert(session)
         isPresented = false

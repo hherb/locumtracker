@@ -21,7 +21,7 @@
 ### Session Recording
 - [x] Session entry view (start/end time, session type)
 - [x] Daily record view showing sessions for a day
-- [ ] Quick session timer (start/stop recording)
+- [x] ~~Quick session timer~~ (skipped - doctors record work retrospectively)
 
 ### Location Management
 - [x] Location list view
@@ -33,12 +33,12 @@
 ### Earnings Dashboard
 - [x] Summary view showing total earnings by period
 - [x] Earnings breakdown by assignment/location
-- [ ] Export earnings report
+- [x] Export earnings report
 
-### Rural Subsidy Tracking
-- [ ] Quarterly quota progress view
-- [ ] Subsidy calculation summary per session
-- [ ] MMM hours breakdown visualization
+### WIP FPS Tracking
+- [x] Quarterly quota progress view (sessions-based)
+- [x] MMM sessions breakdown by location
+- [ ] Active quarter tracker (multi-quarter history)
 
 ### Receipt Management
 - [x] Receipt list view with categories

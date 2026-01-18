@@ -1,144 +1,303 @@
 import Foundation
 
-/// Handles rural subsidy calculations for the Modified Monash Model system
+/// Registration status for WIP Doctor Stream
+public enum RegistrationStatus: String, CaseIterable, Codable, Sendable {
+    case vocationallyRegistered = "VR"
+    case onApprovedTraining = "TRAINING"
+    case nonVocational = "NON_VR"
+
+    public var description: String {
+        switch self {
+        case .vocationallyRegistered: return "Vocationally Registered"
+        case .onApprovedTraining: return "On Approved Training Pathway"
+        case .nonVocational: return "Non-Vocational"
+        }
+    }
+
+    /// Whether this status qualifies for full (100%) payment rates
+    public var qualifiesForFullRate: Bool {
+        self == .vocationallyRegistered || self == .onApprovedTraining
+    }
+}
+
+/// Handles rural subsidy calculations for the WIP Doctor Stream (FPS)
 public struct RuralSubsidyService {
 
-    // MARK: - Constants
+    // MARK: - FPS Session Constants
 
-    /// Base subsidy rates per hour by MMM classification (vocational)
-    private static let subsidyRates: [Int: Double] = [
-        3: 0.00,   // MMM3: No base subsidy
-        4: 15.00,  // MMM4: $15/hour
-        5: 25.00,  // MMM5: $25/hour
-        6: 45.00,  // MMM6: $45/hour
-        7: 65.00   // MMM7: $65/hour
-    ]
+    /// Minimum session duration in hours to count as a valid session
+    public static let minimumSessionHours: Double = 3.0
 
-    /// Travel time must exceed 1 hour to count toward subsidy
-    private static let travelTimeThresholdSeconds: TimeInterval = 3600
+    /// Maximum sessions countable per day
+    public static let maximumSessionsPerDay: Int = 2
 
-    /// Quarterly quota hours for full subsidy
-    public static let quarterlyQuotaHours: Double = 40
+    /// Minimum sessions required for an active quarter
+    public static let quarterlyMinimumSessions: Int = 21
 
-    /// Non-vocational rate multiplier (80% of vocational)
+    /// Maximum sessions counted per quarter
+    public static let quarterlyMaximumSessions: Int = 104
+
+    /// Non-vocational payment multiplier (80% of full rate)
     public static let nonVocationalMultiplier: Double = 0.8
+
+    // MARK: - Reference Period Constants
+
+    /// Active quarters required for new participants in MMM 3-5
+    public static let newParticipantMMM35RequiredQuarters: Int = 8
+
+    /// Reference period in quarters for new participants in MMM 3-5
+    public static let newParticipantMMM35ReferencePeriod: Int = 16
+
+    /// Active quarters required for new participants in MMM 6-7
+    public static let newParticipantMMM67RequiredQuarters: Int = 4
+
+    /// Reference period in quarters for new participants in MMM 6-7
+    public static let newParticipantMMM67ReferencePeriod: Int = 8
+
+    /// Active quarters required for continuing participants
+    public static let continuingRequiredQuarters: Int = 4
+
+    /// Reference period in quarters for continuing participants
+    public static let continuingReferencePeriod: Int = 8
+
+    // MARK: - Payment Matrix (VR or on approved training pathway)
+
+    /// Annual payment amounts by year level and MMM classification (VR rates)
+    private static let paymentMatrixVR: [Int: [Int: Double]] = [
+        1: [3: 4_500, 4: 7_500, 5: 12_000, 6: 25_000, 7: 47_000],
+        2: [3: 7_500, 4: 12_000, 5: 15_000, 6: 30_000, 7: 50_000],
+        3: [3: 10_000, 4: 15_000, 5: 18_000, 6: 35_000, 7: 55_000],
+        4: [3: 12_000, 4: 18_000, 5: 21_000, 6: 40_000, 7: 60_000]
+    ]
 
     // MARK: - Public Interface
 
-    /// Returns base subsidy rate for MMM classification
-    /// - Parameter mmmClassification: MMM classification (1-7)
-    /// - Returns: Base rate per hour in AUD (0 for ineligible classifications)
-    public static func getBaseRate(for mmmClassification: Int) -> Double {
-        subsidyRates[mmmClassification] ?? 0.0
-    }
-
-    /// Whether an MMM classification is eligible for rural subsidy
+    /// Whether an MMM classification is eligible for WIP subsidy
     /// - Parameter mmmClassification: MMM classification (1-7)
     /// - Returns: True if MMM 3-7
     public static func isEligible(mmmClassification: Int) -> Bool {
         (3...7).contains(mmmClassification)
     }
 
-    /// Calculates rural subsidy for a session
+    /// Validates whether a session meets FPS requirements
+    /// - Parameter durationHours: Duration of the session in hours
+    /// - Returns: True if session duration meets minimum (3 hours)
+    public static func isValidSession(durationHours: Double) -> Bool {
+        durationHours >= minimumSessionHours
+    }
+
+    /// Gets the annual payment amount for a given year level and MMM classification
     /// - Parameters:
-    ///   - durationSeconds: Session duration in seconds
-    ///   - mmmClassification: Modified Monash Model classification (1-7)
-    ///   - isVocational: Whether practitioner is vocationally registered
-    ///   - travelTimeSeconds: Optional travel time in seconds (only counts if > 1 hour)
-    /// - Returns: Subsidy calculation result
-    public static func calculateSubsidy(
-        durationSeconds: TimeInterval,
+    ///   - yearLevel: Year level (1-4, capped at 4)
+    ///   - mmmClassification: Predominant MMM classification (3-7)
+    ///   - registrationStatus: Doctor's registration status
+    /// - Returns: Annual payment amount in AUD
+    public static func getAnnualPayment(
+        yearLevel: Int,
         mmmClassification: Int,
-        isVocational: Bool,
-        travelTimeSeconds: TimeInterval? = nil
-    ) -> SubsidyCalculation {
-        guard isEligible(mmmClassification: mmmClassification) else {
-            return SubsidyCalculation(
-                sessionHours: durationSeconds / 3600,
-                travelHours: 0,
-                effectiveHours: 0,
-                baseRate: 0,
-                subsidyAmount: 0,
-                mmmClassification: mmmClassification,
-                isVocational: isVocational,
-                eligible: false
-            )
-        }
+        registrationStatus: RegistrationStatus
+    ) -> Double {
+        let cappedYearLevel = min(4, max(1, yearLevel))
+        let baseAmount = paymentMatrixVR[cappedYearLevel]?[mmmClassification] ?? 0
 
-        let baseRate = getBaseRate(for: mmmClassification)
-        let sessionHours = durationSeconds / 3600
-
-        // Travel time only counts if > 1 hour
-        let travelHours: Double
-        if let travel = travelTimeSeconds, travel > travelTimeThresholdSeconds {
-            travelHours = travel / 3600
+        if registrationStatus.qualifiesForFullRate {
+            return baseAmount
         } else {
-            travelHours = 0
+            return baseAmount * nonVocationalMultiplier
+        }
+    }
+
+    /// Calculates the year level based on payment history
+    /// - Parameters:
+    ///   - paymentsReceived: Number of WIP payments previously received
+    ///   - isNewParticipant: Whether this is a new participant
+    ///   - predominantMMM: Predominant MMM classification for initial level
+    /// - Returns: Current year level (1-4)
+    public static func calculateYearLevel(
+        paymentsReceived: Int,
+        isNewParticipant: Bool,
+        predominantMMM: Int
+    ) -> Int {
+        if isNewParticipant {
+            // New participants in MMM 3-5 start at year 2
+            let initialLevel = (3...5).contains(predominantMMM) ? 2 : 1
+            return initialLevel
         }
 
-        let effectiveHours = sessionHours + travelHours
-        let rateMultiplier = isVocational ? 1.0 : nonVocationalMultiplier
-        let subsidyAmount = effectiveHours * baseRate * rateMultiplier
+        // Continuing participants progress based on payments received
+        switch paymentsReceived {
+        case 0: return 1
+        case 1: return 2
+        case 2: return 3
+        default: return 4
+        }
+    }
 
-        return SubsidyCalculation(
-            sessionHours: sessionHours,
-            travelHours: travelHours,
-            effectiveHours: effectiveHours,
-            baseRate: baseRate,
-            subsidyAmount: subsidyAmount,
-            mmmClassification: mmmClassification,
-            isVocational: isVocational,
-            eligible: true
+    /// Checks eligibility for payment based on active quarters
+    /// - Parameters:
+    ///   - activeQuartersInPeriod: Number of active quarters in the reference period
+    ///   - isNewParticipant: Whether this is a new participant
+    ///   - predominantMMM: Predominant MMM classification
+    /// - Returns: Eligibility result with details
+    public static func checkEligibility(
+        activeQuartersInPeriod: Int,
+        isNewParticipant: Bool,
+        predominantMMM: Int
+    ) -> EligibilityResult {
+        let requiredQuarters: Int
+        let referencePeriod: Int
+
+        if isNewParticipant {
+            if (3...5).contains(predominantMMM) {
+                requiredQuarters = newParticipantMMM35RequiredQuarters
+                referencePeriod = newParticipantMMM35ReferencePeriod
+            } else {
+                requiredQuarters = newParticipantMMM67RequiredQuarters
+                referencePeriod = newParticipantMMM67ReferencePeriod
+            }
+        } else {
+            requiredQuarters = continuingRequiredQuarters
+            referencePeriod = continuingReferencePeriod
+        }
+
+        let isEligible = activeQuartersInPeriod >= requiredQuarters
+        let quartersNeeded = max(0, requiredQuarters - activeQuartersInPeriod)
+
+        return EligibilityResult(
+            isEligible: isEligible,
+            activeQuarters: activeQuartersInPeriod,
+            requiredQuarters: requiredQuarters,
+            referencePeriodQuarters: referencePeriod,
+            quartersNeeded: quartersNeeded
         )
     }
 
-    /// Calculates total subsidy from hours breakdown by MMM classification
-    /// - Parameters:
-    ///   - hoursByMMM: Dictionary mapping MMM classification to hours worked
-    ///   - isVocational: Whether vocational rates apply
-    /// - Returns: Total subsidy amount
-    public static func calculateTotalSubsidy(
-        hoursByMMM: [Int: Double],
-        isVocational: Bool
-    ) -> Double {
-        let rateMultiplier = isVocational ? 1.0 : nonVocationalMultiplier
-        return hoursByMMM.reduce(0.0) { total, entry in
-            let (mmm, hours) = entry
-            return total + (hours * getBaseRate(for: mmm) * rateMultiplier)
-        }
+    /// Validates session counts for a day
+    /// - Parameter sessionsOnDate: Number of sessions recorded for a single date
+    /// - Returns: Number of valid sessions (capped at 2)
+    public static func validSessionsForDay(_ sessionsOnDate: Int) -> Int {
+        min(sessionsOnDate, maximumSessionsPerDay)
+    }
+
+    /// Calculates counted sessions for a quarter (capped at 104)
+    /// - Parameter rawSessions: Total sessions before capping
+    /// - Returns: Counted sessions for quota purposes
+    public static func countedSessionsForQuarter(_ rawSessions: Int) -> Int {
+        min(rawSessions, quarterlyMaximumSessions)
+    }
+
+    /// Checks if a quarter is active (meets minimum sessions)
+    /// - Parameter sessions: Number of valid sessions in the quarter
+    /// - Returns: True if quarter is active (>=21 sessions)
+    public static func isActiveQuarter(sessions: Int) -> Bool {
+        sessions >= quarterlyMinimumSessions
     }
 }
 
 // MARK: - Supporting Types
 
-/// Result of subsidy calculation for a single session
-public struct SubsidyCalculation: Codable, Sendable {
-    public let sessionHours: Double
-    public let travelHours: Double
-    public let effectiveHours: Double
-    public let baseRate: Double
-    public let subsidyAmount: Double
-    public let mmmClassification: Int
-    public let isVocational: Bool
-    public let eligible: Bool
+/// Result of eligibility check
+public struct EligibilityResult: Codable, Sendable {
+    public let isEligible: Bool
+    public let activeQuarters: Int
+    public let requiredQuarters: Int
+    public let referencePeriodQuarters: Int
+    public let quartersNeeded: Int
 
     public init(
-        sessionHours: Double,
-        travelHours: Double,
-        effectiveHours: Double,
-        baseRate: Double,
-        subsidyAmount: Double,
-        mmmClassification: Int,
-        isVocational: Bool,
-        eligible: Bool
+        isEligible: Bool,
+        activeQuarters: Int,
+        requiredQuarters: Int,
+        referencePeriodQuarters: Int,
+        quartersNeeded: Int
     ) {
-        self.sessionHours = sessionHours
-        self.travelHours = travelHours
-        self.effectiveHours = effectiveHours
-        self.baseRate = baseRate
-        self.subsidyAmount = subsidyAmount
+        self.isEligible = isEligible
+        self.activeQuarters = activeQuarters
+        self.requiredQuarters = requiredQuarters
+        self.referencePeriodQuarters = referencePeriodQuarters
+        self.quartersNeeded = quartersNeeded
+    }
+
+    public var progressDescription: String {
+        if isEligible {
+            return "Eligible for payment"
+        } else {
+            return "\(quartersNeeded) more active quarter\(quartersNeeded == 1 ? "" : "s") needed"
+        }
+    }
+}
+
+/// Session validation result
+public struct SessionValidation: Codable, Sendable {
+    public let isValid: Bool
+    public let durationHours: Double
+    public let mmmClassification: Int
+    public let validationErrors: [String]
+
+    public init(
+        isValid: Bool,
+        durationHours: Double,
+        mmmClassification: Int,
+        validationErrors: [String]
+    ) {
+        self.isValid = isValid
+        self.durationHours = durationHours
         self.mmmClassification = mmmClassification
-        self.isVocational = isVocational
-        self.eligible = eligible
+        self.validationErrors = validationErrors
+    }
+
+    /// Creates a validation result for a session
+    public static func validate(
+        durationHours: Double,
+        mmmClassification: Int
+    ) -> SessionValidation {
+        var errors: [String] = []
+
+        if durationHours < RuralSubsidyService.minimumSessionHours {
+            errors.append("Session must be at least 3 hours (was \(String(format: "%.1f", durationHours)) hours)")
+        }
+
+        if !RuralSubsidyService.isEligible(mmmClassification: mmmClassification) {
+            errors.append("Location must be MMM 3-7 (was MMM\(mmmClassification))")
+        }
+
+        return SessionValidation(
+            isValid: errors.isEmpty,
+            durationHours: durationHours,
+            mmmClassification: mmmClassification,
+            validationErrors: errors
+        )
+    }
+}
+
+/// Payment calculation result
+public struct PaymentCalculation: Codable, Sendable {
+    public let isEligible: Bool
+    public let paymentAmount: Double
+    public let yearLevel: Int
+    public let predominantMMM: Int
+    public let registrationStatus: RegistrationStatus
+    public let multiplier: Double
+    public let activeQuarters: Int
+    public let reason: String?
+
+    public init(
+        isEligible: Bool,
+        paymentAmount: Double,
+        yearLevel: Int,
+        predominantMMM: Int,
+        registrationStatus: RegistrationStatus,
+        multiplier: Double,
+        activeQuarters: Int,
+        reason: String?
+    ) {
+        self.isEligible = isEligible
+        self.paymentAmount = paymentAmount
+        self.yearLevel = yearLevel
+        self.predominantMMM = predominantMMM
+        self.registrationStatus = registrationStatus
+        self.multiplier = multiplier
+        self.activeQuarters = activeQuarters
+        self.reason = reason
     }
 }

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 LocumTracker is a work tracking application for Australian locum (deputy) doctors. It handles invoicing, receipt management, and rural subsidy compliance tracking under the Modified Monash Model (MMM) system.
 
-**Current Status**: Core business logic package is complete and tested (29 passing tests). Storage and UI packages are scaffolded but minimal.
+**Current Status**: Core business logic package is complete and tested (43 passing tests). iOS app has basic UI for assignments, sessions, locations, receipts, and earnings tracking.
 
 ## Build and Test Commands
 
@@ -58,18 +58,26 @@ The codebase uses a modular Swift Package architecture:
 
 ## Domain Concepts
 
-### Rural Subsidy System (MMM)
+### WIP Doctor Stream - Flexible Payment System (FPS)
 
-Modified Monash Model classifications (1-7) determine subsidy eligibility:
+The app tracks eligibility for the Workforce Incentive Program (WIP) Doctor Stream using the Flexible Payment System (FPS). See `doc/llm/wip_doctor_stream_fps_rules.md` for full documentation.
+
+**MMM Classification:**
 - MMM1-2: Metropolitan/regional - not eligible
-- MMM3-7: Rural/remote - eligible for hourly subsidies
+- MMM3-7: Rural/remote - eligible for WIP payments
 
-Subsidy rates per hour (vocational):
-- MMM3: $0, MMM4: $15, MMM5: $25, MMM6: $45, MMM7: $65
-- Non-vocational: 80% of above rates
-- Travel time credits: Only travel >1 hour counts toward subsidy
+**Session Requirements:**
+- Minimum 3 continuous hours to count as a valid session
+- Maximum 2 sessions per day counted
+- 21 sessions minimum per quarter for an "active quarter"
+- Maximum 104 sessions counted per quarter (excess doesn't carry over)
 
-Quarterly quota: Minimum 21 sessions across MMM3-7 locations required for full subsidy payment. A session is 3-6 hours; typical 10-hour shifts count as 2 sessions.
+**Payment Structure (Annual, not hourly):**
+- Year 1 VR rates: MMM3=$4,500, MMM4=$7,500, MMM5=$12,000, MMM6=$25,000, MMM7=$47,000
+- Non-VR (not on training pathway): 80% of VR rates
+- New participants in MMM3-5 require 8 active quarters in 16 quarters
+- New participants in MMM6-7 require 4 active quarters in 8 quarters
+- Continuing participants require 4 active quarters in 8 quarters
 
 ### Rate Structures
 

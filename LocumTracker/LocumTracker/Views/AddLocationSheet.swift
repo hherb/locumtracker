@@ -52,23 +52,26 @@ struct AddLocationSheet: View {
 
     /// Returns a human-readable description of the MMM classification
     /// - Parameter classification: The MMM level (1-7)
-    /// - Returns: Description including eligibility and subsidy rate
+    /// - Returns: Description including eligibility and WIP FPS payment info
     private func mmmDescription(for classification: Int) -> String {
-        let baseRate = RuralSubsidyService.getBaseRate(for: classification)
         let isEligible = RuralSubsidyService.isEligible(mmmClassification: classification)
 
         switch classification {
         case 1:
-            return "Metropolitan area - not eligible for rural subsidy"
+            return "Metropolitan area - not eligible for WIP subsidy"
         case 2:
-            return "Regional centre - not eligible for rural subsidy"
-        case 3:
-            return "Large rural town - eligible for rural subsidy"
-        case 4, 5, 6, 7:
+            return "Regional centre - not eligible for WIP subsidy"
+        case 3, 4, 5, 6, 7:
             let areaName = areaDescription(for: classification)
-            return "\(areaName) - $\(Int(baseRate))/hour subsidy"
+            let annualPayment = RuralSubsidyService.getAnnualPayment(
+                yearLevel: 1,
+                mmmClassification: classification,
+                registrationStatus: .vocationallyRegistered
+            )
+            let formattedPayment = NumberFormatter.localizedString(from: NSNumber(value: annualPayment), number: .currency)
+            return "\(areaName) - \(formattedPayment)/year (Year 1 VR)"
         default:
-            return isEligible ? "Eligible for rural subsidy" : "Not eligible for rural subsidy"
+            return isEligible ? "Eligible for WIP subsidy" : "Not eligible for WIP subsidy"
         }
     }
 

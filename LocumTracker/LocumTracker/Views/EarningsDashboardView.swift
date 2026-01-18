@@ -38,6 +38,9 @@ struct EarningsDashboardView: View {
     @Query(sort: \Receipt.date, order: .reverse) private var receipts: [Receipt]
 
     @State private var selectedPeriod: EarningsPeriod = .month
+    @State private var showingExportOptions = false
+    @State private var exportedFileURL: URL?
+    @State private var showingShareSheet = false
 
     /// Filtered daily records based on selected period
     private var filteredRecords: [DailyRecord] {
@@ -106,6 +109,82 @@ struct EarningsDashboardView: View {
         }.sorted { $0.earnings > $1.earnings }
     }
 
+    /// Total subsidy earnings for the period
+    private var totalSubsidies: Double {
+        filteredSessions.compactMap(\.subsidyAmount).reduce(0, +)
+    }
+
+    /// Generates the earnings report for export
+    private func generateReport() -> EarningsReport {
+        let periodStart = selectedPeriod.startDate()
+        let periodEnd = Date()
+
+        // Build report rows from sessions
+        let rows: [EarningsReportRow] = filteredSessions.compactMap { session in
+            // Find the assignment and location for this session
+            guard let dailyRecord = filteredRecords.first(where: { $0.id == session.dailyRecordId }),
+                  let assignment = assignments.first(where: { $0.id == dailyRecord.assignmentId }),
+                  let location = locations.first(where: { $0.id == assignment.locationId }) else {
+                return nil
+            }
+
+            // Calculate session earnings based on rate structure
+            let earnings: Double
+            if assignment.rateStructure == .hourlyRate, let hourlyRate = assignment.hourlyRate {
+                earnings = session.durationHours * hourlyRate
+            } else if let dailyRate = assignment.dailyRate {
+                // For daily rate, estimate based on proportion of day
+                let dayFraction = session.durationHours / 8.0
+                earnings = dayFraction * dailyRate
+            } else {
+                earnings = 0
+            }
+
+            return EarningsReportRow(
+                date: session.startTime,
+                locationName: location.name,
+                mmmClassification: session.mmmClassification,
+                sessionType: session.sessionType.description,
+                hoursWorked: session.durationHours,
+                earnings: earnings,
+                subsidyAmount: session.subsidyAmount,
+                notes: session.notes
+            )
+        }.sorted { $0.date < $1.date }
+
+        let effectiveRate = totalHoursWorked > 0 ? totalEarnings / totalHoursWorked : 0
+
+        let summary = EarningsReportSummary(
+            periodStart: periodStart,
+            periodEnd: periodEnd,
+            totalEarnings: totalEarnings,
+            totalSubsidies: totalSubsidies,
+            totalExpenses: totalExpenses,
+            netEarnings: netEarnings,
+            totalHoursWorked: totalHoursWorked,
+            effectiveHourlyRate: effectiveRate
+        )
+
+        return EarningsReport(generatedAt: Date(), summary: summary, rows: rows)
+    }
+
+    /// Exports the report to a temporary file and returns the URL
+    private func exportReport(format: ExportFormat) -> URL? {
+        let report = generateReport()
+        guard let content = EarningsExportService.export(report, format: format) else { return nil }
+
+        let filename = EarningsExportService.suggestedFilename(for: report, format: format)
+        let tempDir = FileManager.default.temporaryDirectory
+        let fileURL = tempDir.appendingPathComponent(filename)
+
+        do {
+            try content.write(to: fileURL, atomically: true, encoding: .utf8)
+            return fileURL
+        } catch {
+            return nil
+        }
+    }
+
     var body: some View {
         List {
             periodSelector
@@ -123,6 +202,38 @@ struct EarningsDashboardView: View {
         .navigationTitle("Earnings")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
+        #endif
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button {
+                        if let url = exportReport(format: .csv) {
+                            exportedFileURL = url
+                            showingShareSheet = true
+                        }
+                    } label: {
+                        Label("Export CSV", systemImage: "tablecells")
+                    }
+                    Button {
+                        if let url = exportReport(format: .json) {
+                            exportedFileURL = url
+                            showingShareSheet = true
+                        }
+                    } label: {
+                        Label("Export JSON", systemImage: "curlybraces")
+                    }
+                } label: {
+                    Label("Export", systemImage: "square.and.arrow.up")
+                }
+                .disabled(filteredSessions.isEmpty)
+            }
+        }
+        #if os(iOS)
+        .sheet(isPresented: $showingShareSheet) {
+            if let url = exportedFileURL {
+                ShareSheet(activityItems: [url])
+            }
+        }
         #endif
     }
 
@@ -374,6 +485,27 @@ struct LocationEarningsRow: View {
         MMMColors.color(for: location.mmmClassification)
     }
 }
+
+// MARK: - Share Sheet
+
+#if os(iOS)
+import UIKit
+
+/// UIKit wrapper for sharing files via UIActivityViewController
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    let applicationActivities: [UIActivity]? = nil
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(
+            activityItems: activityItems,
+            applicationActivities: applicationActivities
+        )
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+#endif
 
 // MARK: - Constants
 

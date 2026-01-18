@@ -21,10 +21,7 @@ This directory contains concise information for LLM context during development.
 ## Business Logic Rules
 
 ### Rural Subsidy Calculations
-- MMM4: $15/hour, MMM5: $25/hour, MMM6: $45/hour, MMM7: $65/hour
-- Vocational: 100% rate, Non-vocational: 80% rate
-- Travel time >1 hour counts toward subsidy hours
-- Quarterly quota: 40 hours across MMM3-7 locations
+https://www.health.gov.au/sites/default/files/2025-12/flexible-payment-system-application-form_0.docx
 
 ### Rate Structures
 - Default: Fixed daily rates (majority of placements)

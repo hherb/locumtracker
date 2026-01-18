@@ -152,15 +152,6 @@ public enum SubsidyRates {
 
 ## Business Logic Examples
 
-### Subsidy Calculation
-```swift
-let subsidy = RuralSubsidyService.calculateSessionSubsidy(
-    duration: 3600, // 1 hour
-    mmmClassification: 5, // MMM5
-    isVocational: true
-)
-// Returns: $25.00 subsidy
-```
 
 ### Quarterly Progress
 ```swift

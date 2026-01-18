@@ -7,50 +7,28 @@ This document provides context for understanding the Australian rural subsidy sy
 The Modified Monash Model (MMM) classifies locations from MMM1 (metropolitan) to MMM7 (very remote) for rural subsidy eligibility.
 
 ### MMM Classifications
-- **MMM1**: Major cities (≥1 million population)
-- **MMM2**: Regional cities (50,000-1 million population)  
-- **MMM3**: Large rural towns (15,000-50,000 population)
-- **MMM4**: Medium rural towns (5,000-15,000 population)
-- **MMM5**: Small rural towns (1,000-5,000 population)
-- **MMM6**: Remote communities (<1,000 population, >1 hour from major service)
-- **MMM7**: Very remote communities (<1,000 population, >2 hours from major service)
+- **MMM1**: Major cities 
+- **MMM2**: Regional cities  
+- **MMM3**: Large rural towns
+- **MMM4**: Medium rural towns
+- **MMM5**: Small rural towns
+- **MMM6**: Remote communities 
+- **MMM7**: Very remote communities 
 
 ### Example Locations in App
 - **Cooktown QLD 4895**: MMM6 classification
 - **Dorrigo NSW 2453**: MMM5 classification
 
-## Rural Subsidy Payment Rates
-
-### Base Rates per Hour (2024 rates)
-- **MMM3**: $0.00 per hour (no base subsidy)
-- **MMM4**: $15.00 per hour
-- **MMM5**: $25.00 per hour
-- **MMM6**: $45.00 per hour
-- **MMM7**: $65.00 per hour
-
-### Vocational Status Multipliers
-- **Vocational Doctors**: 100% of base rate
-- **Non-Vocational Doctors**: 80% of base rate
 
 ### Quarterly Quota Requirements
-- **Target**: 40 hours across MMM3-7 locations per quarter
+- **Target**: minimum 21 sessions (minimum 3 hrs / session)  MMM3-7 locations per quarter
 - **Quota Deadlines**: March 31, June 30, September 30, December 31
 - **Forfeiture**: Entire quarterly payment forfeited if quota not met
 
-## Travel Time Credits
-
-### Eligibility Rules
-- **Travel Time Threshold**: Must exceed 1 hour (3600 seconds) to count
-- **Documentation**: Travel time must be recorded and justifiable
-- **Calculation**: Travel hours added to session hours for subsidy calculation
 
 ## Workforce Incentive Program (WIP) Doctor Stream
+https://www.health.gov.au/sites/default/files/2025-12/flexible-payment-system-application-form_0.docx
 
-### Additional Financial Support
-- **Practice Incentives**: Payments for established practices in MMM4-7 areas
-- **Relocation Support**: Financial assistance for doctors moving to rural areas
-- **Training Grants**: Support for professional development in rural medicine
-- **Infrastructure Support**: Programs supporting rural healthcare facilities
 
 ### Eligibility Information
 - **Full Documentation**: Available at https://www.doctorconnect.health/post/rural-doctor-incentives

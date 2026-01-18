@@ -19,7 +19,7 @@ LocumTracker is designed to solve two critical problems for medical practitioner
 
 ### Rural Subsidy Compliance
 - **MMM Classification Tracking**: Modified Monash Model (MMM1-MMM7) for locations
-- **Quarterly Quota Monitoring**: 40 hours across MMM3-7 locations
+- **Quarterly Quota Monitoring**: min 21 sessions across MMM3-7 locations
 - **Real-Time Progress**: Daily quota status to prevent forfeiture
 - **Subsidy Calculations**: Vocational vs non-vocational rate variations
 - **Travel Time Credits**: Automatic subsidy calculation for long travel times
@@ -69,19 +69,19 @@ Packages/
 ## Rural Subsidy System
 
 ### Modified Monash Model (MMM)
-- **MMM1**: Major cities (≥1 million population)
-- **MMM2**: Regional cities (50,000-1 million population)
-- **MMM3**: Large rural towns (15,000-50, population)
-- **MMM4**: Medium rural towns (5,000-15,000 population)
-- **MMM5**: Small rural towns (1,000-5,000 population)
-- **MMM6**: Remote communities (<1,000 population, >1 hour from major service)
-- **MMM7**: Very remote communities (<1,000 population, >2 hours from major service)
+- **MMM1**: Major cities 
+- **MMM2**: Regional cities 
+- **MMM3**: Large rural towns
+- **MMM4**: Medium rural towns 
+- **MMM5**: Small rural towns
+- **MMM6**: Remote communities
+- **MMM7**: Very remote communities
 
 ### Subsidy Calculations
-- **Base Rates**: $0-65/hour depending on MMM classification (MMM4: $15, MMM5: $25, MMM6: $45, MMM7: $65)
-- **Vocational Bonus**: 100% for vocational doctors, 80% for non-vocational
-- **Travel Credits**: Travel time >1 hour counts toward subsidy hours
-- **Quarterly Quota**: 40 hours across MMM3-7 locations required for full subsidy
+- **Base Rates**: 
+- **Vocational Bonus**: 
+- **Travel Credits**: 
+- **Quarterly Quota**:
 
 ### Example Locations
 - **Cooktown QLD 4895**: MMM6 classification

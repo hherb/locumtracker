@@ -43,6 +43,13 @@ The codebase uses a modular Swift Package architecture:
 - iOS app with camera integration for receipt capture
 - macOS app with advanced reporting
 
+### Planned Features
+
+- **LLM-powered receipt OCR**: Automatic extraction of merchant, amount, date, and category from receipt images
+- **Android app**: Full feature parity with iOS
+- **Cross-platform desktop**: Python/PySide6 implementation for Windows and Linux
+- **Accounting exports**: Integration with MYOB, Xero, QuickBooks, and spreadsheet formats (CSV/Excel)
+
 ### Key Patterns
 
 - **Pure functions**: All business logic in Core services uses pure functions without side effects
@@ -62,7 +69,7 @@ Subsidy rates per hour (vocational):
 - Non-vocational: 80% of above rates
 - Travel time credits: Only travel >1 hour counts toward subsidy
 
-Quarterly quota: 40 hours across MMM3-7 locations required for full subsidy payment.
+Quarterly quota: Minimum 21 sessions across MMM3-7 locations required for full subsidy payment. A session is 3-6 hours; typical 10-hour shifts count as 2 sessions.
 
 ### Rate Structures
 

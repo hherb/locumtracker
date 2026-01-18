@@ -1,0 +1,195 @@
+import SwiftUI
+import SwiftData
+import LocumTrackerCore
+
+/// Sheet view for editing an existing assignment
+struct EditAssignmentSheet: View {
+    @Environment(\.modelContext) private var modelContext
+    @Binding var isPresented: Bool
+    @Bindable var assignment: Assignment
+    let locations: [Location]
+
+    @State private var selectedLocationId: UUID
+    @State private var rateStructure: RateStructure
+    @State private var dailyRate: Double
+    @State private var hourlyRate: Double
+    @State private var onCallRate: Double
+    @State private var callOutRate: Double
+    @State private var startDate: Date
+    @State private var endDate: Date
+    @State private var status: AssignmentStatus
+
+    init(isPresented: Binding<Bool>, assignment: Assignment, locations: [Location]) {
+        self._isPresented = isPresented
+        self.assignment = assignment
+        self.locations = locations
+
+        // Initialize state from assignment
+        _selectedLocationId = State(initialValue: assignment.locationId)
+        _rateStructure = State(initialValue: assignment.rateStructure)
+        _dailyRate = State(initialValue: assignment.dailyRate ?? EditDefaults.dailyRate)
+        _hourlyRate = State(initialValue: assignment.hourlyRate ?? EditDefaults.hourlyRate)
+        _onCallRate = State(initialValue: assignment.onCallRate ?? EditDefaults.onCallRate)
+        _callOutRate = State(initialValue: assignment.callOutRate ?? EditDefaults.callOutRate)
+        _startDate = State(initialValue: assignment.startDate)
+        _endDate = State(initialValue: assignment.endDate)
+        _status = State(initialValue: assignment.status)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                locationSection
+                rateSection
+                dateSection
+                statusSection
+            }
+            .navigationTitle("Edit Assignment")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        isPresented = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        saveChanges()
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - View Components
+
+    private var locationSection: some View {
+        Section("Location") {
+            Picker("Location", selection: $selectedLocationId) {
+                ForEach(locations) { location in
+                    Text(location.name).tag(location.id)
+                }
+            }
+        }
+    }
+
+    private var rateSection: some View {
+        Section("Rate Structure") {
+            Picker("Rate Type", selection: $rateStructure) {
+                Text("Daily Rate").tag(RateStructure.dailyRate)
+                Text("Hourly Rate").tag(RateStructure.hourlyRate)
+            }
+            .pickerStyle(.segmented)
+
+            if rateStructure == .dailyRate {
+                rateInputRow(label: "Daily Rate", value: $dailyRate)
+            } else {
+                rateInputRow(label: "Hourly Rate", value: $hourlyRate)
+                rateInputRow(label: "On-Call Rate", value: $onCallRate)
+                rateInputRow(label: "Call-Out Rate", value: $callOutRate)
+            }
+        }
+    }
+
+    private var dateSection: some View {
+        Section("Dates") {
+            DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
+            DatePicker("End Date", selection: $endDate, displayedComponents: .date)
+        }
+    }
+
+    private var statusSection: some View {
+        Section("Status") {
+            Picker("Status", selection: $status) {
+                ForEach(AssignmentStatus.allCases, id: \.self) { status in
+                    Text(status.description).tag(status)
+                }
+            }
+        }
+    }
+
+    /// Creates a row for rate input with currency formatting
+    private func rateInputRow(label: String, value: Binding<Double>) -> some View {
+        HStack {
+            Text(label)
+            Spacer()
+            TextField("Rate", value: value, format: .currency(code: CurrencyConstants.currencyCode))
+                .multilineTextAlignment(.trailing)
+                #if os(iOS)
+                .keyboardType(.decimalPad)
+                #endif
+        }
+    }
+
+    // MARK: - Actions
+
+    private func saveChanges() {
+        assignment.locationId = selectedLocationId
+        assignment.rateStructure = rateStructure
+        assignment.startDate = startDate
+        assignment.endDate = endDate
+        assignment.status = status
+        assignment.updatedAt = Date()
+
+        if rateStructure == .dailyRate {
+            assignment.dailyRate = dailyRate
+            assignment.hourlyRate = nil
+            assignment.onCallRate = nil
+            assignment.callOutRate = nil
+        } else {
+            assignment.dailyRate = nil
+            assignment.hourlyRate = hourlyRate
+            assignment.onCallRate = onCallRate > 0 ? onCallRate : nil
+            assignment.callOutRate = callOutRate > 0 ? callOutRate : nil
+        }
+
+        isPresented = false
+    }
+}
+
+// MARK: - Constants
+
+private enum EditDefaults {
+    static let dailyRate: Double = 400.0
+    static let hourlyRate: Double = 100.0
+    static let onCallRate: Double = 25.0
+    static let callOutRate: Double = 50.0
+}
+
+private enum CurrencyConstants {
+    static let currencyCode = "AUD"
+}
+
+// MARK: - Preview
+
+#Preview {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let schema = Schema([Location.self, Assignment.self])
+    let container = try! ModelContainer(for: schema, configurations: config)
+
+    let location = Location(
+        name: "Cooktown Hospital",
+        address: "123 Main St, Cooktown QLD",
+        mmmClassification: 6
+    )
+    container.mainContext.insert(location)
+
+    let secondsPerDay: TimeInterval = 86400
+    let assignment = Assignment(
+        locationId: location.id,
+        rateStructure: .dailyRate,
+        dailyRate: 450.0,
+        startDate: Date(),
+        endDate: Date().addingTimeInterval(7 * secondsPerDay)
+    )
+    container.mainContext.insert(assignment)
+
+    return EditAssignmentSheet(
+        isPresented: .constant(true),
+        assignment: assignment,
+        locations: [location]
+    )
+    .modelContainer(container)
+}

@@ -14,6 +14,7 @@ struct ContentView: View {
 
     @State private var showingAddAssignment = false
     @State private var showingAddLocation = false
+    @State private var showingLocationList = false
 
     var body: some View {
         NavigationSplitView {
@@ -26,9 +27,28 @@ struct ContentView: View {
                 .sheet(isPresented: $showingAddAssignment) {
                     AddAssignmentSheet(isPresented: $showingAddAssignment, locations: locations)
                 }
+                .sheet(isPresented: $showingLocationList) {
+                    NavigationStack {
+                        LocationListView()
+                            .toolbar {
+                                ToolbarItem(placement: .cancellationAction) {
+                                    Button("Done") {
+                                        showingLocationList = false
+                                    }
+                                }
+                            }
+                    }
+                }
         } detail: {
-            Text("Select an assignment")
-                .foregroundStyle(.secondary)
+            if let selectedAssignment = assignments.first {
+                AssignmentDetailView(assignment: selectedAssignment, locations: locations)
+            } else {
+                Text("Select an assignment")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .navigationDestination(for: Assignment.self) { assignment in
+            AssignmentDetailView(assignment: assignment, locations: locations)
         }
     }
 
@@ -89,6 +109,12 @@ struct ContentView: View {
                 Label("Add Assignment", systemImage: "calendar.badge.plus")
             }
             .disabled(locations.isEmpty)
+
+            Divider()
+
+            Button(action: { showingLocationList = true }) {
+                Label("Manage Locations", systemImage: "map")
+            }
         } label: {
             Label("Add", systemImage: "plus")
         }

@@ -1,13 +1,55 @@
 import SwiftUI
 import SwiftData
 import LocumTrackerCore
-import LocumTrackerUI
 
-/// Main content view displaying the list of assignments
+/// Main tab view providing navigation to all major sections of the app
 ///
-/// Provides navigation to assignment details and actions to add new
-/// locations and assignments. Uses SwiftData for persistence.
-struct ContentView: View {
+/// Provides three main tabs:
+/// - Assignments: Manage work assignments
+/// - Earnings: View earnings dashboard
+/// - Receipts: Track expense receipts
+struct MainTabView: View {
+    @State private var selectedTab: Tab = .assignments
+
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            AssignmentsTab()
+                .tabItem {
+                    Label("Assignments", systemImage: "calendar")
+                }
+                .tag(Tab.assignments)
+
+            NavigationStack {
+                EarningsDashboardView()
+            }
+            .tabItem {
+                Label("Earnings", systemImage: "chart.bar")
+            }
+            .tag(Tab.earnings)
+
+            NavigationStack {
+                ReceiptListView()
+            }
+            .tabItem {
+                Label("Receipts", systemImage: "receipt")
+            }
+            .tag(Tab.receipts)
+        }
+    }
+
+    /// Available tabs in the main navigation
+    enum Tab {
+        case assignments
+        case earnings
+        case receipts
+    }
+}
+
+/// Tab content for assignments
+///
+/// Displays a list of assignments with ability to add, edit, and delete.
+/// Also provides access to location management.
+struct AssignmentsTab: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Assignment.startDate, order: .reverse) private var assignments: [Assignment]
     @Query private var locations: [Location]
@@ -17,54 +59,46 @@ struct ContentView: View {
     @State private var showingLocationList = false
 
     var body: some View {
-        NavigationSplitView {
-            assignmentList
-                .navigationTitle("Assignments")
-                .toolbar { toolbarContent }
-                .sheet(isPresented: $showingAddLocation) {
-                    AddLocationSheet(isPresented: $showingAddLocation)
+        NavigationStack {
+            List {
+                if assignments.isEmpty {
+                    emptyStateView
+                } else {
+                    ForEach(assignments) { assignment in
+                        NavigationLink(value: assignment) {
+                            AssignmentRowView(assignment: assignment, locations: locations)
+                        }
+                    }
+                    .onDelete(perform: deleteAssignments)
                 }
-                .sheet(isPresented: $showingAddAssignment) {
-                    AddAssignmentSheet(isPresented: $showingAddAssignment, locations: locations)
-                }
-                .sheet(isPresented: $showingLocationList) {
-                    NavigationStack {
-                        LocationListView()
-                            .toolbar {
-                                ToolbarItem(placement: .cancellationAction) {
-                                    Button("Done") {
-                                        showingLocationList = false
-                                    }
+            }
+            .navigationTitle("Assignments")
+            .navigationDestination(for: Assignment.self) { assignment in
+                AssignmentDetailView(assignment: assignment, locations: locations)
+            }
+            .toolbar { toolbarContent }
+            .sheet(isPresented: $showingAddLocation) {
+                AddLocationSheet(isPresented: $showingAddLocation)
+            }
+            .sheet(isPresented: $showingAddAssignment) {
+                AddAssignmentSheet(isPresented: $showingAddAssignment, locations: locations)
+            }
+            .sheet(isPresented: $showingLocationList) {
+                NavigationStack {
+                    LocationListView()
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Done") {
+                                    showingLocationList = false
                                 }
                             }
-                    }
+                        }
                 }
-        } detail: {
-            Text("Select an assignment")
-                .foregroundStyle(.secondary)
+            }
         }
     }
 
     // MARK: - View Components
-
-    @ViewBuilder
-    private var assignmentList: some View {
-        List {
-            if assignments.isEmpty {
-                emptyStateView
-            } else {
-                ForEach(assignments) { assignment in
-                    NavigationLink(value: assignment) {
-                        AssignmentRowView(assignment: assignment, locations: locations)
-                    }
-                }
-                .onDelete(perform: deleteAssignments)
-            }
-        }
-        .navigationDestination(for: Assignment.self) { assignment in
-            AssignmentDetailView(assignment: assignment, locations: locations)
-        }
-    }
 
     private var emptyStateView: some View {
         ContentUnavailableView {
@@ -118,7 +152,7 @@ struct ContentView: View {
 
     // MARK: - Actions
 
-    /// Deletes assignments at the specified offsets
+    /// Deletes assignments at the specified index offsets
     /// - Parameter offsets: The index set of assignments to delete
     private func deleteAssignments(offsets: IndexSet) {
         for index in offsets {
@@ -159,6 +193,14 @@ struct ContentView: View {
     )
     container.mainContext.insert(assignment)
 
-    return ContentView()
+    let receipt = Receipt(
+        amount: 85.50,
+        category: .meals,
+        date: Date(),
+        receiptDescription: "Lunch at hospital"
+    )
+    container.mainContext.insert(receipt)
+
+    return MainTabView()
         .modelContainer(container)
 }

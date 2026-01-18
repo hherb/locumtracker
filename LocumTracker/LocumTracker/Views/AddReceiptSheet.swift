@@ -1,0 +1,294 @@
+import SwiftUI
+import SwiftData
+import LocumTrackerCore
+import LocumTrackerUI
+
+#if canImport(UIKit)
+import UIKit
+#endif
+
+/// Sheet view for adding a new receipt
+///
+/// Provides a form for entering receipt details including amount, category,
+/// description, date, optional assignment link, and image capture.
+struct AddReceiptSheet: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Assignment.startDate, order: .reverse) private var assignments: [Assignment]
+
+    /// Binding to control sheet presentation
+    @Binding var isPresented: Bool
+
+    @State private var amount: Double = 0
+    @State private var amountText: String = ""
+    @State private var category: ExpenseCategory = .other
+    @State private var date: Date = Date()
+    @State private var receiptDescription: String = ""
+    @State private var selectedAssignmentId: UUID?
+    @State private var imageData: Data?
+    @State private var showingImagePicker = false
+    @State private var showingCamera = false
+
+    /// Whether the form has valid input for saving
+    private var isValidInput: Bool {
+        amount > 0 && !receiptDescription.isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                amountSection
+                categorySection
+                detailsSection
+                assignmentSection
+                imageSection
+            }
+            .navigationTitle("Add Receipt")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        isPresented = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        saveReceipt()
+                    }
+                    .disabled(!isValidInput)
+                }
+            }
+            #if os(iOS)
+            .sheet(isPresented: $showingImagePicker) {
+                ImagePicker(imageData: $imageData, sourceType: .photoLibrary)
+            }
+            .sheet(isPresented: $showingCamera) {
+                ImagePicker(imageData: $imageData, sourceType: .camera)
+            }
+            #endif
+        }
+    }
+
+    // MARK: - View Components
+
+    private var amountSection: some View {
+        Section("Amount") {
+            HStack {
+                Text("$")
+                    .foregroundStyle(.secondary)
+                TextField("0.00", text: $amountText)
+                    #if os(iOS)
+                    .keyboardType(.decimalPad)
+                    #endif
+                    .onChange(of: amountText) { _, newValue in
+                        amount = Double(newValue) ?? 0
+                    }
+            }
+        }
+    }
+
+    private var categorySection: some View {
+        Section("Category") {
+            Picker("Category", selection: $category) {
+                ForEach(ExpenseCategory.allCases, id: \.self) { cat in
+                    Label(cat.description, systemImage: cat.iconName)
+                        .tag(cat)
+                }
+            }
+            #if os(iOS)
+            .pickerStyle(.navigationLink)
+            #endif
+
+            if category.isTaxDeductible {
+                Label("Tax Deductible", systemImage: "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+            }
+        }
+    }
+
+    private var detailsSection: some View {
+        Section("Details") {
+            TextField("Description", text: $receiptDescription)
+
+            DatePicker(
+                "Date",
+                selection: $date,
+                displayedComponents: .date
+            )
+        }
+    }
+
+    private var assignmentSection: some View {
+        Section("Link to Assignment (Optional)") {
+            Picker("Assignment", selection: $selectedAssignmentId) {
+                Text("None").tag(nil as UUID?)
+                ForEach(assignments) { assignment in
+                    Text(formatAssignmentDateRange(assignment))
+                        .tag(assignment.id as UUID?)
+                }
+            }
+            #if os(iOS)
+            .pickerStyle(.navigationLink)
+            #endif
+        }
+    }
+
+    private var imageSection: some View {
+        Section("Receipt Image") {
+            if let imgData = imageData {
+                imagePreviewView(for: imgData)
+            } else {
+                imagePickerButtons
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func imagePreviewView(for data: Data) -> some View {
+        VStack {
+            #if os(iOS)
+            if let uiImage = UIImage(data: data) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxHeight: ImageConstants.maxPreviewHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: ImageConstants.cornerRadius))
+            }
+            #else
+            if let nsImage = NSImage(data: data) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxHeight: ImageConstants.maxPreviewHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: ImageConstants.cornerRadius))
+            }
+            #endif
+
+            Button("Remove Image", role: .destructive) {
+                imageData = nil
+            }
+            .font(.caption)
+        }
+    }
+
+    @ViewBuilder
+    private var imagePickerButtons: some View {
+        #if os(iOS)
+        HStack {
+            Button {
+                showingCamera = true
+            } label: {
+                Label("Take Photo", systemImage: "camera")
+            }
+
+            Spacer()
+
+            Button {
+                showingImagePicker = true
+            } label: {
+                Label("Choose Photo", systemImage: "photo")
+            }
+        }
+        #else
+        Text("Image capture available on iOS")
+            .foregroundStyle(.secondary)
+            .font(.caption)
+        #endif
+    }
+
+    // MARK: - Helpers
+
+    /// Formats an assignment's date range for display
+    /// - Parameter assignment: The assignment to format
+    /// - Returns: A formatted date range string
+    private func formatAssignmentDateRange(_ assignment: Assignment) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        return "\(formatter.string(from: assignment.startDate)) - \(formatter.string(from: assignment.endDate))"
+    }
+
+    // MARK: - Actions
+
+    /// Saves the receipt to the model context and dismisses the sheet
+    private func saveReceipt() {
+        let receipt = Receipt(
+            amount: amount,
+            category: category,
+            date: date,
+            receiptDescription: receiptDescription,
+            assignmentId: selectedAssignmentId,
+            imageData: imageData
+        )
+
+        modelContext.insert(receipt)
+        isPresented = false
+    }
+}
+
+// MARK: - Image Picker
+
+#if os(iOS)
+/// UIKit image picker wrapper for SwiftUI
+///
+/// Wraps UIImagePickerController to provide camera and photo library access.
+struct ImagePicker: UIViewControllerRepresentable {
+    /// Binding to store the selected image data
+    @Binding var imageData: Data?
+
+    /// The source type for the picker (camera or photo library)
+    let sourceType: UIImagePickerController.SourceType
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = sourceType
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    /// Coordinator for handling image picker delegate callbacks
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: ImagePicker
+
+        init(_ parent: ImagePicker) {
+            self.parent = parent
+        }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.imageData = image.jpegData(compressionQuality: ImageConstants.compressionQuality)
+            }
+            picker.dismiss(animated: true)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
+        }
+    }
+}
+#endif
+
+// MARK: - Constants
+
+private enum ImageConstants {
+    static let maxPreviewHeight: CGFloat = 200
+    static let cornerRadius: CGFloat = 8
+    static let compressionQuality: CGFloat = 0.7
+}
+
+// MARK: - Preview
+
+#Preview {
+    AddReceiptSheet(isPresented: .constant(true))
+        .modelContainer(for: [Receipt.self, Assignment.self], inMemory: true)
+}

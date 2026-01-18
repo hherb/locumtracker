@@ -31,8 +31,8 @@
 ## Phase 3: Business Features
 
 ### Earnings Dashboard
-- [ ] Summary view showing total earnings by period
-- [ ] Earnings breakdown by assignment/location
+- [x] Summary view showing total earnings by period
+- [x] Earnings breakdown by assignment/location
 - [ ] Export earnings report
 
 ### Rural Subsidy Tracking
@@ -41,9 +41,9 @@
 - [ ] MMM hours breakdown visualization
 
 ### Receipt Management
-- [ ] Receipt list view with categories
-- [ ] Camera integration for receipt capture (iOS)
-- [ ] Receipt detail view with image preview
+- [x] Receipt list view with categories
+- [x] Camera integration for receipt capture (iOS)
+- [x] Receipt detail view with image preview
 
 ## Phase 4: Data & Sync
 

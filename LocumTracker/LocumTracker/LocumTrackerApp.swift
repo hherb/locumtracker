@@ -43,7 +43,11 @@ struct LocumTrackerApp: App {
 
     var body: some Scene {
         WindowGroup {
+            #if os(iOS)
+            MainTabView()
+            #else
             ContentView()
+            #endif
         }
         .modelContainer(sharedModelContainer)
 

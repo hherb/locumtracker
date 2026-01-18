@@ -39,16 +39,16 @@ public enum ExpenseCategory: String, CaseIterable, Codable {
 /// Represents expense receipts for reimbursement and tax purposes
 @Model
 public final class Receipt {
-    public var id: UUID
+    public var id: UUID = UUID()
     public var dailyRecordId: UUID?
     public var assignmentId: UUID?
-    public var amount: Double
-    public var category: ExpenseCategory
+    public var amount: Double = 0
+    public var category: ExpenseCategory = ExpenseCategory.other
     public var imageData: Data?
-    public var date: Date
-    public var receiptDescription: String
-    public var createdAt: Date
-    public var updatedAt: Date
+    public var date: Date = Date()
+    public var receiptDescription: String = ""
+    public var createdAt: Date = Date()
+    public var updatedAt: Date = Date()
 
     public init(
         id: UUID = UUID(),

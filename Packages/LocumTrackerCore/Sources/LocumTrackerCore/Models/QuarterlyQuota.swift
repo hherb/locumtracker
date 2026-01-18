@@ -22,18 +22,18 @@ public enum WarningLevel: String, CaseIterable, Codable {
 /// Monitors MMM3-7 hours to ensure 40-hour quarterly quota is met
 @Model
 public final class QuarterlyQuota {
-    public var id: UUID
-    public var practitionerId: UUID
-    public var quarterDate: Date
-    public var mmm3Hours: Double
-    public var mmm4Hours: Double
-    public var mmm5Hours: Double
-    public var mmm6Hours: Double
-    public var mmm7Hours: Double
-    public var totalHours: Double
-    public var targetHours: Double
-    public var quotaMet: Bool
-    public var lastUpdated: Date
+    public var id: UUID = UUID()
+    public var practitionerId: UUID = UUID()
+    public var quarterDate: Date = Date()
+    public var mmm3Hours: Double = 0
+    public var mmm4Hours: Double = 0
+    public var mmm5Hours: Double = 0
+    public var mmm6Hours: Double = 0
+    public var mmm7Hours: Double = 0
+    public var totalHours: Double = 0
+    public var targetHours: Double = 40
+    public var quotaMet: Bool = false
+    public var lastUpdated: Date = Date()
 
     public init(
         id: UUID = UUID(),

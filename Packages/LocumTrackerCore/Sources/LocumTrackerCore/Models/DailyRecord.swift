@@ -4,14 +4,14 @@ import SwiftData
 /// Container for daily work sessions and earnings
 @Model
 public final class DailyRecord {
-    public var id: UUID
-    public var assignmentId: UUID
-    public var date: Date
-    public var totalEarnings: Double
+    public var id: UUID = UUID()
+    public var assignmentId: UUID = UUID()
+    public var date: Date = Date()
+    public var totalEarnings: Double = 0
     public var subsidyEarnings: Double?
     public var notes: String?
-    public var createdAt: Date
-    public var updatedAt: Date
+    public var createdAt: Date = Date()
+    public var updatedAt: Date = Date()
 
     public init(
         id: UUID = UUID(),

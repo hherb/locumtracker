@@ -9,20 +9,35 @@ import LocumTrackerStorage
 /// the main window scene. On macOS, also provides a Settings scene.
 @main
 struct LocumTrackerApp: App {
-    /// Shared model container with CloudKit sync enabled
+    /// Shared model container - tries CloudKit first, falls back to local storage
     var sharedModelContainer: ModelContainer = {
         let schema = Schema(LocumTrackerSchema.models)
 
-        let modelConfiguration = ModelConfiguration(
+        // Try CloudKit-enabled configuration first
+        let cloudKitConfig = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
             cloudKitDatabase: .private(LocumTrackerStorage.cloudKitContainerID)
         )
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(for: schema, configurations: [cloudKitConfig])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            print("CloudKit ModelContainer failed: \(error)")
+            print("Falling back to local-only storage...")
+
+            // Fall back to local-only storage
+            let localConfig = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: false,
+                cloudKitDatabase: .none
+            )
+
+            do {
+                return try ModelContainer(for: schema, configurations: [localConfig])
+            } catch {
+                fatalError("Could not create ModelContainer: \(error)")
+            }
         }
     }()
 

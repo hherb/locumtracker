@@ -19,17 +19,17 @@ public enum SessionType: String, CaseIterable, Codable {
 /// Represents a work session within a daily record
 @Model
 public final class Session {
-    public var id: UUID
-    public var dailyRecordId: UUID
-    public var startTime: Date
-    public var endTime: Date
-    public var sessionType: SessionType
-    public var mmmClassification: Int
+    public var id: UUID = UUID()
+    public var dailyRecordId: UUID = UUID()
+    public var startTime: Date = Date()
+    public var endTime: Date = Date()
+    public var sessionType: SessionType = SessionType.regular
+    public var mmmClassification: Int = 1
     public var travelTime: TimeInterval?
     public var subsidyAmount: Double?
     public var notes: String?
-    public var createdAt: Date
-    public var updatedAt: Date
+    public var createdAt: Date = Date()
+    public var updatedAt: Date = Date()
 
     public init(
         id: UUID = UUID(),

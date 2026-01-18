@@ -32,16 +32,16 @@ public enum MMMClassification: Int, CaseIterable, Codable {
 /// Represents a physical location where locum work is performed
 @Model
 public final class Location {
-    public var id: UUID
-    public var name: String
-    public var address: String
-    public var mmmClassification: Int
+    public var id: UUID = UUID()
+    public var name: String = ""
+    public var address: String = ""
+    public var mmmClassification: Int = 1
     public var latitude: Double?
     public var longitude: Double?
-    public var effectiveFrom: Date
+    public var effectiveFrom: Date = Date()
     public var effectiveTo: Date?
-    public var createdAt: Date
-    public var updatedAt: Date
+    public var createdAt: Date = Date()
+    public var updatedAt: Date = Date()
 
     public init(
         id: UUID = UUID(),

@@ -53,21 +53,21 @@ public struct PaymentDetails: Codable, Sendable {
 /// User profile and professional details for locum practitioners
 @Model
 public final class LocumProfile {
-    public var id: UUID
-    public var firstName: String
-    public var lastName: String
-    public var email: String
+    public var id: UUID = UUID()
+    public var firstName: String = ""
+    public var lastName: String = ""
+    public var email: String = ""
     public var abn: String?
-    public var gstRegistered: Bool
-    public var isVocational: Bool
-    public var defaultDailyRate: Double
-    public var defaultHourlyRate: Double
+    public var gstRegistered: Bool = false
+    public var isVocational: Bool = true
+    public var defaultDailyRate: Double = 0
+    public var defaultHourlyRate: Double = 0
     public var defaultOnCallRate: Double?
     public var defaultCallOutRate: Double?
     public var providerNumber: String?
     public var specialty: String?
-    public var createdAt: Date
-    public var updatedAt: Date
+    public var createdAt: Date = Date()
+    public var updatedAt: Date = Date()
 
     // Store payment details as JSON since SwiftData doesn't support nested Codable structs directly
     public var paymentDetailsJSON: Data?

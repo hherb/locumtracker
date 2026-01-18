@@ -34,18 +34,18 @@ public enum AssignmentStatus: String, CaseIterable, Codable {
 /// Represents a work assignment or contract with a healthcare facility
 @Model
 public final class Assignment {
-    public var id: UUID
-    public var locationId: UUID
-    public var rateStructure: RateStructure
+    public var id: UUID = UUID()
+    public var locationId: UUID = UUID()
+    public var rateStructure: RateStructure = RateStructure.dailyRate
     public var dailyRate: Double?
     public var hourlyRate: Double?
     public var onCallRate: Double?
     public var callOutRate: Double?
-    public var startDate: Date
-    public var endDate: Date
-    public var status: AssignmentStatus
-    public var createdAt: Date
-    public var updatedAt: Date
+    public var startDate: Date = Date()
+    public var endDate: Date = Date()
+    public var status: AssignmentStatus = AssignmentStatus.planned
+    public var createdAt: Date = Date()
+    public var updatedAt: Date = Date()
 
     public init(
         id: UUID = UUID(),

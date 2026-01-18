@@ -2,31 +2,31 @@
 
 ## Immediate (Xcode Setup Required)
 
-- [ ] Add local package dependencies in Xcode (File > Add Package Dependencies > Add Local)
+- [x] Add local package dependencies in Xcode (File > Add Package Dependencies > Add Local)
   - `Packages/LocumTrackerCore`
   - `Packages/LocumTrackerStorage`
   - `Packages/LocumTrackerUI`
-- [ ] Enable iCloud capability in Signing & Capabilities
+- [x] Enable iCloud capability in Signing & Capabilities
   - Check CloudKit
   - Add container: `iCloud.com.hherb.locumtracker`
-- [ ] Build and run to verify setup
+- [x] Build and run to verify setup
 
 ## Phase 2: Core UI Features
 
 ### Assignment Management
-- [ ] Assignment detail view with edit capability
-- [ ] Delete confirmation dialog
-- [ ] Assignment status transitions (planned → active → completed)
+- [x] Assignment detail view with edit capability
+- [x] Delete confirmation dialog
+- [x] Assignment status transitions (planned → active → completed)
 
 ### Session Recording
-- [ ] Session entry view (start/end time, session type)
-- [ ] Daily record view showing sessions for a day
+- [x] Session entry view (start/end time, session type)
+- [x] Daily record view showing sessions for a day
 - [ ] Quick session timer (start/stop recording)
 
 ### Location Management
-- [ ] Location list view
-- [ ] Location detail/edit view
-- [ ] Location search/filter by MMM classification
+- [x] Location list view
+- [x] Location detail/edit view
+- [x] Location search/filter by MMM classification
 
 ## Phase 3: Business Features
 

@@ -2,6 +2,8 @@ import Foundation
 import SwiftData
 import LocumTrackerCore
 
+// MARK: - Module Configuration
+
 /// LocumTrackerStorage module
 /// Provides SwiftData persistence and CloudKit integration
 public enum LocumTrackerStorage {
@@ -30,3 +32,37 @@ public enum LocumTrackerSchema {
         ]
     }
 }
+
+// MARK: - Public API Summary
+//
+// This module provides:
+//
+// ## Protocols
+// - Repository: Generic repository protocol for CRUD operations
+// - QueryBuilder: Protocol for building type-safe queries
+//
+// ## Repositories
+// - SessionRepository: CRUD operations for Session model
+// - AssignmentRepository: CRUD operations for Assignment model
+// - DailyRecordRepository: CRUD operations for DailyRecord model
+// - LocationRepository: CRUD operations for Location model
+// - ReceiptRepository: CRUD operations for Receipt model
+// - LocumProfileRepository: CRUD operations for LocumProfile model
+// - QuarterlyQuotaRepository: CRUD operations for QuarterlyQuota model
+//
+// ## Query Builders
+// - SessionQueryBuilder: Fluent query builder for sessions
+// - ReceiptQueryBuilder: Fluent query builder for receipts
+// - AssignmentQueryBuilder: Fluent query builder for assignments
+// - DailyRecordQueryBuilder: Fluent query builder for daily records
+//
+// ## CloudKit
+// - CloudKitSyncStatus: Observable sync status tracker
+// - CloudKitSyncMonitor: Monitors CloudKit sync events
+// - CloudKitSyncStatusView: SwiftUI component for sync status
+// - CloudKitSyncStatusDetailView: Detailed SwiftUI sync status view
+//
+// ## Aggregates
+// - FPSQuarterlyDataProvider: Cross-model queries for WIP FPS calculations
+// - FPSSessionData: Session with related entities
+// - QuotaSummary: Quarterly quota calculation results

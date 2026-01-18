@@ -48,9 +48,9 @@
 ## Phase 4: Data & Sync
 
 ### LocumTrackerStorage Package
-- [ ] Repository pattern for CRUD operations
-- [ ] Query builders for common filters
-- [ ] CloudKit sync status indicator
+- [x] Repository pattern for CRUD operations
+- [x] Query builders for common filters
+- [x] CloudKit sync status indicator
 
 ### Profile & Settings
 - [x] LocumProfile setup/edit view

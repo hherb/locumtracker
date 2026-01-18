@@ -38,7 +38,7 @@
 ### WIP FPS Tracking
 - [x] Quarterly quota progress view (sessions-based)
 - [x] MMM sessions breakdown by location
-- [ ] Active quarter tracker (multi-quarter history)
+- [x] Active quarter tracker (multi-quarter history)
 
 ### Receipt Management
 - [x] Receipt list view with categories
@@ -53,10 +53,10 @@
 - [ ] CloudKit sync status indicator
 
 ### Profile & Settings
-- [ ] LocumProfile setup/edit view
-- [ ] ABN validation in profile form
-- [ ] GST registration toggle
-- [ ] Default rate configuration
+- [x] LocumProfile setup/edit view
+- [x] ABN validation in profile form
+- [x] GST registration toggle
+- [x] Default rate configuration
 
 ## Technical Debt
 

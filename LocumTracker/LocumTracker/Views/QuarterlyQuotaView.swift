@@ -107,6 +107,7 @@ struct QuarterlyQuotaView: View {
                 warningsSection
             }
             paymentInfoSection
+            quarterHistoryLinkSection
         }
         .navigationTitle("FPS Quota")
         #if os(iOS)
@@ -291,6 +292,26 @@ struct QuarterlyQuotaView: View {
             } else {
                 Text("Record sessions to see potential payments")
                     .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var quarterHistoryLinkSection: some View {
+        Section {
+            NavigationLink {
+                ActiveQuarterHistoryView()
+            } label: {
+                HStack {
+                    Image(systemName: "calendar.badge.clock")
+                        .foregroundStyle(.blue)
+                    VStack(alignment: .leading) {
+                        Text("Quarter History")
+                            .font(.headline)
+                        Text("Track eligibility across multiple quarters")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
         }
     }

@@ -84,21 +84,12 @@ struct QuarterlyQuotaView: View {
 
     /// Current quarter string
     private var quarterString: String {
-        let calendar = Calendar.current
-        let month = calendar.component(.month, from: Date())
-        let quarter = (month - 1) / 3 + 1
-        let year = calendar.component(.year, from: Date())
-        return "\(year) Q\(quarter)"
+        FPSQuarterService.quarterString(for: Date())
     }
 
     /// Days remaining in quarter
     private var daysRemaining: Int {
-        let calendar = Calendar.current
-        guard let quarterInterval = calendar.dateInterval(of: .quarter, for: Date()) else {
-            return 0
-        }
-        let components = calendar.dateComponents([.day], from: Date(), to: quarterInterval.end)
-        return max(0, components.day ?? 0)
+        FPSQuarterService.daysRemaining(from: Date())
     }
 
     var body: some View {
@@ -196,14 +187,11 @@ struct QuarterlyQuotaView: View {
     }
 
     private var progressColor: Color {
-        if quotaMet {
-            return .green
-        } else if progressPercentage >= 75 {
-            return .blue
-        } else if progressPercentage >= 50 {
-            return .orange
-        } else {
-            return .red
+        switch FPSQuarterService.progressColorName(percentage: progressPercentage, quotaMet: quotaMet) {
+        case "green": return .green
+        case "blue": return .blue
+        case "orange": return .orange
+        default: return .red
         }
     }
 

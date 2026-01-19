@@ -93,4 +93,50 @@ public extension TimeInterval {
             return "\(m)m"
         }
     }
+
+    /// Formats travel time as "Xh Ym travel" or "Xm travel"
+    var travelTimeFormatted: String {
+        let totalMinutes = Int(self / 60)
+        if totalMinutes >= 60 {
+            let hours = totalMinutes / 60
+            let mins = totalMinutes % 60
+            return mins > 0 ? "\(hours)h \(mins)m travel" : "\(hours)h travel"
+        }
+        return "\(totalMinutes)m travel"
+    }
+}
+
+public extension Date {
+
+    /// Calculates the number of days in a date range (inclusive of both start and end)
+    /// - Parameters:
+    ///   - start: Start date
+    ///   - end: End date
+    /// - Returns: Number of days including both start and end dates
+    static func daysInRange(from start: Date, to end: Date) -> Int {
+        let calendar = Calendar.current
+        let days = calendar.dateComponents([.day], from: start, to: end).day ?? 0
+        return days + 1 // Include both start and end days
+    }
+
+    /// Formats a date range as a string using short date format
+    /// - Parameters:
+    ///   - start: Start date
+    ///   - end: End date
+    /// - Returns: Formatted string like "01/01/2026 - 15/01/2026"
+    static func rangeText(from start: Date, to end: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        return "\(formatter.string(from: start)) - \(formatter.string(from: end))"
+    }
+
+    /// Formats a duration text based on the number of days between two dates
+    /// - Parameters:
+    ///   - start: Start date
+    ///   - end: End date
+    /// - Returns: Formatted string like "1 day" or "5 days"
+    static func durationText(from start: Date, to end: Date) -> String {
+        let days = daysInRange(from: start, to: end)
+        return days == 1 ? "1 day" : "\(days) days"
+    }
 }

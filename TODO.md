@@ -77,3 +77,9 @@
   - Created Localizable.xcstrings String Catalog with 80+ UI strings
   - Strings organized with comments for translator context
   - Ready for translation to additional languages
+- [x] Add unit tests for extracted view logic
+  - Created FPSQuarterService with 42 tests (quarter calculations, session counting, progress tracking)
+  - Created EarningsAggregationService with 24 tests (period filtering, percentage/rate calculations)
+  - Added DateExtensionsTests with 30 tests (duration formatting, date ranges, travel time)
+  - Extended RuralSubsidyService with MMM descriptions and 4 new tests
+  - Total: 143 unit tests in LocumTrackerCore (up from 43)

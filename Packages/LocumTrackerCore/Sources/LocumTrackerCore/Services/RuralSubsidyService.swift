@@ -192,6 +192,32 @@ public struct RuralSubsidyService {
     public static func isActiveQuarter(sessions: Int) -> Bool {
         sessions >= quarterlyMinimumSessions
     }
+
+    // MARK: - MMM Classification Descriptions
+
+    /// Returns a human-readable description for an MMM classification
+    /// - Parameter classification: MMM classification (1-7)
+    /// - Returns: Description string (e.g., "Large rural" for MMM 3)
+    public static func mmmDescription(_ classification: Int) -> String {
+        switch classification {
+        case 1: return "Metropolitan"
+        case 2: return "Regional"
+        case 3: return "Large rural"
+        case 4: return "Medium rural"
+        case 5: return "Small rural"
+        case 6: return "Remote"
+        case 7: return "Very remote"
+        default: return ""
+        }
+    }
+
+    /// Returns a short description for eligible MMM classifications (3-7 only)
+    /// - Parameter classification: MMM classification
+    /// - Returns: Short description or empty string if not eligible
+    public static func eligibleMMMDescription(_ classification: Int) -> String {
+        guard isEligible(mmmClassification: classification) else { return "" }
+        return mmmDescription(classification)
+    }
 }
 
 // MARK: - Supporting Types

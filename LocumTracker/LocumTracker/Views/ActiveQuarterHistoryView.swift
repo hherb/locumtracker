@@ -244,20 +244,12 @@ struct ActiveQuarterHistoryView: View {
 
     /// Gets the quarter identifier string for a date
     private func quarterIdentifier(for date: Date) -> String {
-        let calendar = Calendar.current
-        let year = calendar.component(.year, from: date)
-        let month = calendar.component(.month, from: date)
-        let quarter = (month - 1) / 3 + 1
-        return "\(year)-Q\(quarter)"
+        FPSQuarterService.quarterIdentifier(for: date)
     }
 
     /// Gets the start of the quarter for a date
     private func quarterStartDate(for date: Date) -> Date {
-        let calendar = Calendar.current
-        guard let interval = calendar.dateInterval(of: .quarter, for: date) else {
-            return date
-        }
-        return interval.start
+        FPSQuarterService.quarterStartDate(for: date)
     }
 
     /// Counts valid sessions for a quarter, enforcing 2 per day limit
@@ -270,25 +262,12 @@ struct ActiveQuarterHistoryView: View {
             sessionsPerDay[day, default: 0] += 1
         }
 
-        // Apply per-day cap of 2 sessions
-        let totalValidSessions = sessionsPerDay.values.reduce(0) { sum, count in
-            sum + min(count, RuralSubsidyService.maximumSessionsPerDay)
-        }
-
-        // Apply quarterly cap of 104 sessions
-        return RuralSubsidyService.countedSessionsForQuarter(totalValidSessions)
+        return FPSQuarterService.countSessionsForQuarter(sessionsPerDay)
     }
 
     /// MMM classification description
     private func mmmDescription(_ mmm: Int) -> String {
-        switch mmm {
-        case 3: return "Large rural"
-        case 4: return "Medium rural"
-        case 5: return "Small rural"
-        case 6: return "Remote"
-        case 7: return "Very remote"
-        default: return ""
-        }
+        RuralSubsidyService.eligibleMMMDescription(mmm)
     }
 
     /// Requirements description based on current settings

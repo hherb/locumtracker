@@ -3,31 +3,7 @@ import SwiftData
 import LocumTrackerCore
 import LocumTrackerUI
 
-/// Time period options for earnings filtering
-enum EarningsPeriod: String, CaseIterable {
-    case week = "This Week"
-    case month = "This Month"
-    case quarter = "This Quarter"
-    case year = "This Year"
-    case all = "All Time"
-
-    /// Returns the start date for this period
-    func startDate(from referenceDate: Date = Date()) -> Date {
-        let calendar = Calendar.current
-        switch self {
-        case .week:
-            return calendar.date(byAdding: .day, value: -7, to: referenceDate) ?? referenceDate
-        case .month:
-            return calendar.date(byAdding: .month, value: -1, to: referenceDate) ?? referenceDate
-        case .quarter:
-            return calendar.date(byAdding: .month, value: -3, to: referenceDate) ?? referenceDate
-        case .year:
-            return calendar.date(byAdding: .year, value: -1, to: referenceDate) ?? referenceDate
-        case .all:
-            return Date.distantPast
-        }
-    }
-}
+// Note: EarningsPeriod is now imported from LocumTrackerCore
 
 /// Dashboard view displaying earnings summary and breakdown
 struct EarningsDashboardView: View {
@@ -298,7 +274,7 @@ struct EarningsDashboardView: View {
                             .foregroundStyle(.secondary)
                         Text(CurrencyFormatter.format(netEarnings))
                             .font(.headline)
-                            .foregroundStyle(netEarnings >= 0 ? .primary : .red)
+                            .foregroundColor(netEarnings >= 0 ? .primary : .red)
                     }
                 }
                 .padding(.vertical, SummaryConstants.cardPadding)

@@ -214,4 +214,35 @@ final class RuralSubsidyServiceTests: XCTestCase {
         XCTAssertTrue(RegistrationStatus.onApprovedTraining.qualifiesForFullRate)
         XCTAssertFalse(RegistrationStatus.nonVocational.qualifiesForFullRate)
     }
+
+    // MARK: - MMM Description Tests
+
+    func testMMMDescription_AllClassifications() {
+        XCTAssertEqual(RuralSubsidyService.mmmDescription(1), "Metropolitan")
+        XCTAssertEqual(RuralSubsidyService.mmmDescription(2), "Regional")
+        XCTAssertEqual(RuralSubsidyService.mmmDescription(3), "Large rural")
+        XCTAssertEqual(RuralSubsidyService.mmmDescription(4), "Medium rural")
+        XCTAssertEqual(RuralSubsidyService.mmmDescription(5), "Small rural")
+        XCTAssertEqual(RuralSubsidyService.mmmDescription(6), "Remote")
+        XCTAssertEqual(RuralSubsidyService.mmmDescription(7), "Very remote")
+    }
+
+    func testMMMDescription_InvalidClassification_ReturnsEmpty() {
+        XCTAssertEqual(RuralSubsidyService.mmmDescription(0), "")
+        XCTAssertEqual(RuralSubsidyService.mmmDescription(8), "")
+        XCTAssertEqual(RuralSubsidyService.mmmDescription(-1), "")
+    }
+
+    func testEligibleMMMDescription_EligibleClassifications() {
+        XCTAssertEqual(RuralSubsidyService.eligibleMMMDescription(3), "Large rural")
+        XCTAssertEqual(RuralSubsidyService.eligibleMMMDescription(4), "Medium rural")
+        XCTAssertEqual(RuralSubsidyService.eligibleMMMDescription(5), "Small rural")
+        XCTAssertEqual(RuralSubsidyService.eligibleMMMDescription(6), "Remote")
+        XCTAssertEqual(RuralSubsidyService.eligibleMMMDescription(7), "Very remote")
+    }
+
+    func testEligibleMMMDescription_IneligibleClassifications() {
+        XCTAssertEqual(RuralSubsidyService.eligibleMMMDescription(1), "")
+        XCTAssertEqual(RuralSubsidyService.eligibleMMMDescription(2), "")
+    }
 }

@@ -57,6 +57,7 @@ struct AddAssignmentSheet: View {
                     Text(location.name).tag(location.id as UUID?)
                 }
             }
+            .accessibilityIdentifier("locationPicker")
         }
     }
 
@@ -67,11 +68,12 @@ struct AddAssignmentSheet: View {
                 Text("Hourly Rate").tag(RateStructure.hourlyRate)
             }
             .pickerStyle(.segmented)
+            .accessibilityIdentifier("rateTypePicker")
 
             if rateStructure == .dailyRate {
-                rateInputRow(label: "Daily Rate", value: $dailyRate)
+                rateInputRow(label: "Daily Rate", value: $dailyRate, identifier: "dailyRateField")
             } else {
-                rateInputRow(label: "Hourly Rate", value: $hourlyRate)
+                rateInputRow(label: "Hourly Rate", value: $hourlyRate, identifier: "hourlyRateField")
             }
         }
     }
@@ -79,7 +81,9 @@ struct AddAssignmentSheet: View {
     private var dateSection: some View {
         Section("Dates") {
             DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
+                .accessibilityIdentifier("startDatePicker")
             DatePicker("End Date", selection: $endDate, displayedComponents: .date)
+                .accessibilityIdentifier("endDatePicker")
         }
     }
 
@@ -87,13 +91,15 @@ struct AddAssignmentSheet: View {
     /// - Parameters:
     ///   - label: The label text for the row
     ///   - value: Binding to the rate value
+    ///   - identifier: Accessibility identifier for the text field
     /// - Returns: A view containing the label and text field
-    private func rateInputRow(label: String, value: Binding<Double>) -> some View {
+    private func rateInputRow(label: String, value: Binding<Double>, identifier: String) -> some View {
         HStack {
             Text(label)
             Spacer()
             TextField("Rate", value: value, format: .currency(code: CurrencyDefaults.currencyCode))
                 .multilineTextAlignment(.trailing)
+                .accessibilityIdentifier(identifier)
                 #if os(iOS)
                 .keyboardType(.decimalPad)
                 #endif

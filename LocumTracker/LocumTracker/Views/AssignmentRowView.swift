@@ -24,6 +24,24 @@ struct AssignmentRowView: View {
             dateRow
         }
         .padding(.vertical, ViewConstants.rowVerticalPadding)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityDescription)
+        .accessibilityIdentifier("assignmentRow_\(assignment.id)")
+    }
+
+    /// Combined accessibility description for the entire row
+    private var accessibilityDescription: String {
+        let locationName = location?.name ?? "Unknown Location"
+        let mmmInfo = location.map { "MMM\($0.mmmClassification)" } ?? ""
+        let rateInfo: String
+        if assignment.rateStructure == .dailyRate, let dailyRate = assignment.dailyRate {
+            rateInfo = "\(CurrencyFormatter.format(dailyRate)) per day"
+        } else if assignment.rateStructure == .hourlyRate, let hourlyRate = assignment.hourlyRate {
+            rateInfo = "\(CurrencyFormatter.format(hourlyRate)) per hour"
+        } else {
+            rateInfo = assignment.rateStructure.description
+        }
+        return "\(locationName), \(assignment.status.description), \(mmmInfo), \(rateInfo), \(formattedDateRange)"
     }
 
     // MARK: - View Components
@@ -117,6 +135,8 @@ struct StatusBadge: View {
             .background(statusColor.opacity(BadgeConstants.backgroundOpacity))
             .foregroundStyle(statusColor)
             .clipShape(Capsule())
+            .accessibilityLabel("Status: \(status.description)")
+            .accessibilityIdentifier("statusBadge_\(status.rawValue)")
     }
 
     /// Color associated with the assignment status
@@ -146,6 +166,8 @@ struct MMMBadge: View {
             .background(mmmColor.opacity(BadgeConstants.backgroundOpacity))
             .foregroundStyle(mmmColor)
             .clipShape(Capsule())
+            .accessibilityLabel(accessibilityDescription)
+            .accessibilityIdentifier("mmmBadge_\(classification)")
     }
 
     /// Color associated with the MMM classification level
@@ -158,6 +180,20 @@ struct MMMBadge: View {
         case 6: return .orange       // Remote community
         case 7: return .red          // Very remote community
         default: return .gray
+        }
+    }
+
+    /// Human-readable description of the MMM classification for VoiceOver
+    private var accessibilityDescription: String {
+        switch classification {
+        case 1: return "Modified Monash Model 1: Metropolitan area, not eligible for rural subsidy"
+        case 2: return "Modified Monash Model 2: Regional centre, not eligible for rural subsidy"
+        case 3: return "Modified Monash Model 3: Large rural town, eligible for rural subsidy"
+        case 4: return "Modified Monash Model 4: Medium rural town, eligible for rural subsidy"
+        case 5: return "Modified Monash Model 5: Small rural town, eligible for rural subsidy"
+        case 6: return "Modified Monash Model 6: Remote community, eligible for rural subsidy"
+        case 7: return "Modified Monash Model 7: Very remote community, eligible for rural subsidy"
+        default: return "Modified Monash Model \(classification)"
         }
     }
 }

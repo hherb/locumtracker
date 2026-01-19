@@ -123,6 +123,7 @@ struct SessionRowView: View {
                 Image(systemName: "clock")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
                 Text(timeRangeText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -132,6 +133,7 @@ struct SessionRowView: View {
                     Image(systemName: "car")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
                     Text(formatTravelTime(travelTime))
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -143,6 +145,7 @@ struct SessionRowView: View {
                     Image(systemName: "dollarsign.circle")
                         .font(.caption2)
                         .foregroundStyle(.green)
+                        .accessibilityHidden(true)
                     Text("Subsidy: \(CurrencyFormatter.format(subsidy))")
                         .font(.caption)
                         .foregroundStyle(.green)
@@ -157,6 +160,28 @@ struct SessionRowView: View {
             }
         }
         .padding(.vertical, RowConstants.rowVerticalPadding)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityDescription)
+        .accessibilityIdentifier("sessionRow_\(session.id)")
+    }
+
+    /// Combined accessibility description for the entire row
+    private var accessibilityDescription: String {
+        var parts = [
+            "\(session.sessionType.description) session",
+            session.durationFormatted,
+            timeRangeText
+        ]
+        if let travelTime = session.travelTime, travelTime > 0 {
+            parts.append(formatTravelTime(travelTime))
+        }
+        if session.isSubsidyEligible, let subsidy = session.subsidyAmount {
+            parts.append("Subsidy: \(CurrencyFormatter.format(subsidy))")
+        }
+        if let notes = session.notes, !notes.isEmpty {
+            parts.append("Notes: \(notes)")
+        }
+        return parts.joined(separator: ", ")
     }
 
     private var timeRangeText: String {
@@ -208,6 +233,8 @@ struct SessionTypeBadge: View {
             .background(typeColor.opacity(BadgeConstants.backgroundOpacity))
             .foregroundStyle(typeColor)
             .clipShape(Capsule())
+            .accessibilityLabel("Session type: \(type.description)")
+            .accessibilityIdentifier("sessionTypeBadge_\(type.rawValue)")
     }
 
     private var typeColor: Color {

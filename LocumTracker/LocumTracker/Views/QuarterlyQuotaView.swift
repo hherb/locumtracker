@@ -10,6 +10,11 @@ struct QuarterlyQuotaView: View {
     @Query(sort: \Location.name) private var locations: [Location]
     @Query(sort: \Assignment.startDate, order: .reverse) private var assignments: [Assignment]
 
+    /// Scaled metrics for Dynamic Type support
+    @ScaledMetric(relativeTo: .title) private var ringSize: CGFloat = 180
+    @ScaledMetric(relativeTo: .title) private var countFontSize: CGFloat = 48
+    @ScaledMetric(relativeTo: .body) private var ringLineWidth: CGFloat = 16
+
     /// Sessions in the current quarter that meet FPS requirements (3+ hours, MMM 3-7)
     private var currentQuarterSessions: [Session] {
         let calendar = Calendar.current
@@ -130,21 +135,21 @@ struct QuarterlyQuotaView: View {
                     Circle()
                         .stroke(
                             Color.gray.opacity(ProgressConstants.ringBackgroundOpacity),
-                            lineWidth: ProgressConstants.ringLineWidth
+                            lineWidth: ringLineWidth
                         )
 
                     Circle()
                         .trim(from: 0, to: min(1, progressPercentage / 100))
                         .stroke(
                             progressColor,
-                            style: StrokeStyle(lineWidth: ProgressConstants.ringLineWidth, lineCap: .round)
+                            style: StrokeStyle(lineWidth: ringLineWidth, lineCap: .round)
                         )
                         .rotationEffect(.degrees(-90))
                         .animation(.easeInOut, value: progressPercentage)
 
                     VStack(spacing: ProgressConstants.labelSpacing) {
                         Text("\(countedSessions)")
-                            .font(.system(size: ProgressConstants.countFontSize, weight: .bold))
+                            .font(.system(size: countFontSize, weight: .bold))
                         Text("of \(QuarterlyQuota.minimumSessions)")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
@@ -153,8 +158,12 @@ struct QuarterlyQuotaView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                .frame(width: ProgressConstants.ringSize, height: ProgressConstants.ringSize)
+                .frame(width: ringSize, height: ringSize)
                 .padding(.vertical)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(progressAccessibilityLabel)
+                .accessibilityValue("\(Int(progressPercentage)) percent complete")
+                .accessibilityIdentifier("fpsProgressRing")
 
                 // Status message
                 statusMessage
@@ -164,14 +173,26 @@ struct QuarterlyQuotaView: View {
         }
     }
 
+    /// Accessibility label for the progress ring
+    private var progressAccessibilityLabel: String {
+        if quotaMet {
+            return "FPS session quota for \(quarterString): \(countedSessions) of \(QuarterlyQuota.minimumSessions) sessions, quota met"
+        } else {
+            return "FPS session quota for \(quarterString): \(countedSessions) of \(QuarterlyQuota.minimumSessions) sessions, \(QuarterlyQuota.minimumSessions - countedSessions) more needed"
+        }
+    }
+
     private var statusMessage: some View {
         HStack {
             Image(systemName: quotaMet ? "checkmark.circle.fill" : "clock.badge.exclamationmark")
                 .foregroundStyle(quotaMet ? .green : .orange)
+                .accessibilityHidden(true)
             Text(quotaMet ? "Quarter quota met!" : "\(QuarterlyQuota.minimumSessions - countedSessions) more sessions needed")
                 .font(.headline)
                 .foregroundStyle(quotaMet ? .green : .primary)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("fpsStatusMessage")
     }
 
     private var progressColor: Color {
@@ -218,6 +239,7 @@ struct QuarterlyQuotaView: View {
             ForEach([3, 4, 5, 6, 7], id: \.self) { mmm in
                 let count = sessionsByMMM[mmm] ?? 0
                 if count > 0 {
+                    let percentage = Double(count) / Double(max(1, countedSessions)) * 100
                     HStack {
                         MMMBadge(classification: mmm)
                         Spacer()
@@ -226,7 +248,7 @@ struct QuarterlyQuotaView: View {
 
                         // Progress bar
                         GeometryReader { geometry in
-                            let percentage = Double(count) / Double(max(1, countedSessions))
+                            let barPercentage = Double(count) / Double(max(1, countedSessions))
                             ZStack(alignment: .leading) {
                                 RoundedRectangle(cornerRadius: BreakdownConstants.barCornerRadius)
                                     .fill(Color.gray.opacity(BreakdownConstants.barBackgroundOpacity))
@@ -234,11 +256,15 @@ struct QuarterlyQuotaView: View {
 
                                 RoundedRectangle(cornerRadius: BreakdownConstants.barCornerRadius)
                                     .fill(MMMColors.color(for: mmm))
-                                    .frame(width: geometry.size.width * percentage, height: BreakdownConstants.barHeight)
+                                    .frame(width: geometry.size.width * barPercentage, height: BreakdownConstants.barHeight)
                             }
                         }
                         .frame(width: BreakdownConstants.barWidth, height: BreakdownConstants.barHeight)
+                        .accessibilityHidden(true)
                     }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("MMM\(mmm): \(count) session\(count == 1 ? "" : "s"), \(Int(percentage)) percent of total")
+                    .accessibilityIdentifier("mmmBreakdownRow_\(mmm)")
                 }
             }
         }
@@ -249,6 +275,7 @@ struct QuarterlyQuotaView: View {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading) {
                     Text("\(daysExceedingLimit) day\(daysExceedingLimit == 1 ? "" : "s") with >2 sessions")
                         .font(.subheadline)
@@ -257,6 +284,9 @@ struct QuarterlyQuotaView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Warning: \(daysExceedingLimit) day\(daysExceedingLimit == 1 ? "" : "s") with more than 2 sessions. Only 2 sessions per day are counted for FPS")
+            .accessibilityIdentifier("fpsWarning")
         } header: {
             Text("Warnings")
         }

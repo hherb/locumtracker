@@ -1,0 +1,273 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Assignments" : {
+      "comment" : "Tab bar title for assignments list"
+    },
+    "FPS Quota" : {
+      "comment" : "Tab bar title for FPS session quota tracking"
+    },
+    "Earnings" : {
+      "comment" : "Tab bar title for earnings dashboard"
+    },
+    "Receipts" : {
+      "comment" : "Tab bar title for receipts list"
+    },
+    "Settings" : {
+      "comment" : "Tab bar title for profile settings"
+    },
+    "Add Assignment" : {
+      "comment" : "Navigation title for add assignment sheet"
+    },
+    "Add Location" : {
+      "comment" : "Navigation title for add location sheet"
+    },
+    "Add Session" : {
+      "comment" : "Navigation title for add session sheet"
+    },
+    "Add Receipt" : {
+      "comment" : "Navigation title for add receipt sheet"
+    },
+    "Cancel" : {
+      "comment" : "Button to cancel an action"
+    },
+    "Save" : {
+      "comment" : "Button to save changes"
+    },
+    "Delete" : {
+      "comment" : "Button to delete an item"
+    },
+    "Edit" : {
+      "comment" : "Button to edit an item"
+    },
+    "Location" : {
+      "comment" : "Section header for location selection"
+    },
+    "Rate Structure" : {
+      "comment" : "Section header for rate configuration"
+    },
+    "Daily Rate" : {
+      "comment" : "Rate type option"
+    },
+    "Hourly Rate" : {
+      "comment" : "Rate type option"
+    },
+    "Dates" : {
+      "comment" : "Section header for date selection"
+    },
+    "Start Date" : {
+      "comment" : "Label for start date picker"
+    },
+    "End Date" : {
+      "comment" : "Label for end date picker"
+    },
+    "Personal Information" : {
+      "comment" : "Section header in profile settings"
+    },
+    "Tax Details" : {
+      "comment" : "Section header in profile settings"
+    },
+    "Professional Status" : {
+      "comment" : "Section header in profile settings"
+    },
+    "Default Rates" : {
+      "comment" : "Section header in profile settings"
+    },
+    "First Name" : {
+      "comment" : "Text field placeholder for first name"
+    },
+    "Last Name" : {
+      "comment" : "Text field placeholder for last name"
+    },
+    "Email" : {
+      "comment" : "Text field placeholder for email"
+    },
+    "ABN" : {
+      "comment" : "Text field placeholder for Australian Business Number"
+    },
+    "GST Registered" : {
+      "comment" : "Toggle label for GST registration status"
+    },
+    "Vocationally Registered (VR)" : {
+      "comment" : "Toggle label for vocational registration status"
+    },
+    "Provider Number" : {
+      "comment" : "Text field placeholder for provider number"
+    },
+    "Specialty" : {
+      "comment" : "Text field placeholder for medical specialty"
+    },
+    "ABN must be 11 digits" : {
+      "comment" : "ABN validation message for short input"
+    },
+    "Invalid ABN - please check the number" : {
+      "comment" : "ABN validation message for invalid checksum"
+    },
+    "Valid ABN" : {
+      "comment" : "ABN validation message for valid input"
+    },
+    "Summary" : {
+      "comment" : "Section header in earnings dashboard"
+    },
+    "Total Earnings" : {
+      "comment" : "Label in earnings summary"
+    },
+    "Hours Worked" : {
+      "comment" : "Label in earnings summary"
+    },
+    "Expenses" : {
+      "comment" : "Label in earnings summary"
+    },
+    "Net Earnings" : {
+      "comment" : "Label in earnings summary"
+    },
+    "Effective Hourly Rate" : {
+      "comment" : "Label in earnings summary"
+    },
+    "By Assignment" : {
+      "comment" : "Section header for earnings breakdown"
+    },
+    "By Location" : {
+      "comment" : "Section header for earnings breakdown"
+    },
+    "No Earnings Data" : {
+      "comment" : "Empty state title in earnings dashboard"
+    },
+    "Quarter Summary" : {
+      "comment" : "Section header in FPS quota view"
+    },
+    "Valid Sessions" : {
+      "comment" : "Label in FPS quota summary"
+    },
+    "Counted Sessions" : {
+      "comment" : "Label in FPS quota summary"
+    },
+    "Days Remaining" : {
+      "comment" : "Label in FPS quota summary"
+    },
+    "Predominant MMM" : {
+      "comment" : "Label in FPS quota summary"
+    },
+    "Sessions by MMM" : {
+      "comment" : "Section header for MMM breakdown"
+    },
+    "Warnings" : {
+      "comment" : "Section header for FPS warnings"
+    },
+    "Potential Annual Payment" : {
+      "comment" : "Section header for payment estimates"
+    },
+    "Quarter History" : {
+      "comment" : "Navigation link title and view title"
+    },
+    "Your Status" : {
+      "comment" : "Section header in quarter history"
+    },
+    "New Participant" : {
+      "comment" : "Toggle label for new participant status"
+    },
+    "Total Expenses" : {
+      "comment" : "Label in receipts summary"
+    },
+    "No Receipts" : {
+      "comment" : "Empty state title in receipts list"
+    },
+    "No Sessions" : {
+      "comment" : "Empty state title in sessions list"
+    },
+    "No Assignments" : {
+      "comment" : "Empty state title in assignments list"
+    },
+    "Details" : {
+      "comment" : "Section header for item details"
+    },
+    "Amount" : {
+      "comment" : "Label for currency amount"
+    },
+    "Category" : {
+      "comment" : "Label for expense category"
+    },
+    "Date" : {
+      "comment" : "Label for date field"
+    },
+    "Description" : {
+      "comment" : "Label for description field"
+    },
+    "Notes" : {
+      "comment" : "Label for notes field"
+    },
+    "Set Up Profile" : {
+      "comment" : "Navigation title for new profile setup"
+    },
+    "Profile Saved" : {
+      "comment" : "Alert title after saving profile"
+    },
+    "Your profile has been saved successfully." : {
+      "comment" : "Alert message after saving profile"
+    },
+    "OK" : {
+      "comment" : "Generic OK button"
+    },
+    "This Week" : {
+      "comment" : "Period filter option"
+    },
+    "This Month" : {
+      "comment" : "Period filter option"
+    },
+    "This Quarter" : {
+      "comment" : "Period filter option"
+    },
+    "This Year" : {
+      "comment" : "Period filter option"
+    },
+    "All Time" : {
+      "comment" : "Period filter option"
+    },
+    "Export CSV" : {
+      "comment" : "Export menu option"
+    },
+    "Export JSON" : {
+      "comment" : "Export menu option"
+    },
+    "Export" : {
+      "comment" : "Export button label"
+    },
+    "Filter" : {
+      "comment" : "Filter button label"
+    },
+    "All Categories" : {
+      "comment" : "Filter option for all categories"
+    },
+    "Clear Filters" : {
+      "comment" : "Button to clear search filters"
+    },
+    "Search receipts" : {
+      "comment" : "Search placeholder in receipts list"
+    },
+    "WIP Doctor Stream (FPS)" : {
+      "comment" : "Section header for WIP subsidy info"
+    },
+    "Eligible for WIP incentive payments" : {
+      "comment" : "Status message for eligible locations"
+    },
+    "Not eligible for WIP incentive" : {
+      "comment" : "Status message for ineligible locations"
+    },
+    "sessions" : {
+      "comment" : "Unit label for session count"
+    },
+    "Quarter quota met!" : {
+      "comment" : "Success message when FPS quota is met"
+    },
+    "%lld more sessions needed" : {
+      "comment" : "Message showing sessions remaining for quota"
+    },
+    "Active" : {
+      "comment" : "Status label for active quarter"
+    },
+    "No eligible sessions" : {
+      "comment" : "Status for quarter with no FPS-eligible sessions"
+    }
+  },
+  "version" : "1.0"
+}

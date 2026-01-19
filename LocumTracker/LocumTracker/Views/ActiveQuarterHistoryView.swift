@@ -16,6 +16,9 @@ struct ActiveQuarterHistoryView: View {
     /// Predominant MMM classification affects requirements for new participants
     @State private var predominantMMM: Int = 5
 
+    /// Scaled metric for Dynamic Type support on eligibility dots
+    @ScaledMetric(relativeTo: .body) private var dotSize: CGFloat = 16
+
     // MARK: - Computed Properties
 
     /// Sessions grouped by quarter
@@ -117,9 +120,10 @@ struct ActiveQuarterHistoryView: View {
                     ForEach(0..<requiredActiveQuarters, id: \.self) { index in
                         Circle()
                             .fill(index < activeQuarterCount ? Color.green : Color.gray.opacity(EligibilityConstants.inactiveDotOpacity))
-                            .frame(width: EligibilityConstants.dotSize, height: EligibilityConstants.dotSize)
+                            .frame(width: dotSize, height: dotSize)
                     }
                 }
+                .accessibilityHidden(true)
 
                 // Status text
                 Text("\(activeQuarterCount) of \(requiredActiveQuarters) active quarters")
@@ -133,6 +137,7 @@ struct ActiveQuarterHistoryView: View {
                 HStack {
                     Image(systemName: eligibilityResult.isEligible ? "checkmark.seal.fill" : "clock.badge.exclamationmark")
                         .foregroundStyle(eligibilityResult.isEligible ? .green : .orange)
+                        .accessibilityHidden(true)
                     Text(eligibilityResult.progressDescription)
                         .font(.headline)
                         .foregroundStyle(eligibilityResult.isEligible ? .green : .primary)
@@ -141,7 +146,16 @@ struct ActiveQuarterHistoryView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(eligibilityAccessibilityLabel)
+            .accessibilityIdentifier("eligibilityStatus")
         }
+    }
+
+    /// Accessibility label for eligibility section
+    private var eligibilityAccessibilityLabel: String {
+        let status = eligibilityResult.isEligible ? "Eligible" : "Not yet eligible"
+        return "\(status). \(activeQuarterCount) of \(requiredActiveQuarters) active quarters in \(referenceQuarterCount)-quarter reference period. \(eligibilityResult.progressDescription)"
     }
 
     private var settingsSection: some View {
@@ -203,10 +217,27 @@ struct ActiveQuarterHistoryView: View {
                     Image(systemName: quarter.isActive ? "checkmark.circle.fill" : "circle")
                         .foregroundStyle(quarter.isActive ? .green : .gray)
                         .font(.title3)
+                        .accessibilityHidden(true)
                 }
                 .padding(.vertical, QuarterRowConstants.verticalPadding)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(quarterAccessibilityLabel(for: quarter))
+                .accessibilityIdentifier("quarterHistoryRow_\(quarter.identifier)")
             }
         }
+    }
+
+    /// Accessibility label for a quarter row
+    private func quarterAccessibilityLabel(for quarter: QuarterInfo) -> String {
+        let status: String
+        if quarter.isActive {
+            status = "Active quarter"
+        } else if quarter.sessions > 0 {
+            status = "\(QuarterlyQuota.minimumSessions - quarter.sessions) more sessions needed"
+        } else {
+            status = "No eligible sessions"
+        }
+        return "\(quarter.displayName), \(quarter.sessions) sessions, \(status)"
     }
 
     // MARK: - Helper Methods

@@ -60,7 +60,20 @@
 
 ## Technical Debt
 
-- [ ] Add unit tests for ViewModels (if introduced)
-- [ ] Add UI tests for critical flows
-- [ ] Accessibility audit (VoiceOver, Dynamic Type)
-- [ ] Localization preparation
+- [x] ~~Add unit tests for ViewModels~~ (N/A - app uses SwiftUI+SwiftData patterns without ViewModels)
+- [x] Add UI tests for critical flows
+  - Tab navigation tests
+  - Earnings dashboard period selection
+  - Receipts list and add sheet tests
+  - FPS Quota view and Quarter History navigation
+  - Profile settings form fields and ABN validation
+- [x] Accessibility audit (VoiceOver, Dynamic Type)
+  - Added accessibility labels to all badges (StatusBadge, MMMBadge, SessionTypeBadge, CategoryBadge)
+  - Added accessibility to data visualization views (progress rings, earnings summaries)
+  - Added accessibility identifiers to form fields for UI testing
+  - Added @ScaledMetric for Dynamic Type support on progress indicators
+  - Hidden decorative icons from VoiceOver
+- [x] Localization preparation
+  - Created Localizable.xcstrings String Catalog with 80+ UI strings
+  - Strings organized with comments for translator context
+  - Ready for translation to additional languages

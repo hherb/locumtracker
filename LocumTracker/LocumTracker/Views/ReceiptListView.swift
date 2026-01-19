@@ -225,6 +225,7 @@ struct ReceiptRowView: View {
                         Image(systemName: "paperclip")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
                     }
                 }
             }
@@ -236,6 +237,9 @@ struct ReceiptRowView: View {
                 .fontWeight(.medium)
         }
         .padding(.vertical, RowConstants.rowVerticalPadding)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityDescription)
+        .accessibilityIdentifier("receiptRow_\(receipt.id)")
     }
 
     private var categoryIconView: some View {
@@ -245,6 +249,17 @@ struct ReceiptRowView: View {
             .frame(width: RowConstants.iconSize, height: RowConstants.iconSize)
             .background(receipt.category.color.opacity(RowConstants.iconBackgroundOpacity))
             .clipShape(RoundedRectangle(cornerRadius: RowConstants.iconCornerRadius))
+            .accessibilityHidden(true)
+    }
+
+    /// Combined accessibility description for the entire row
+    private var accessibilityDescription: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        let dateString = formatter.string(from: receipt.date)
+        let attachmentInfo = receipt.hasImage ? ", has attachment" : ""
+        return "\(receipt.receiptDescription), \(receipt.category.description), \(CurrencyFormatter.format(receipt.amount)), \(dateString)\(attachmentInfo)"
     }
 }
 
@@ -266,6 +281,8 @@ struct CategoryBadge: View {
             .background(category.color.opacity(BadgeConstants.backgroundOpacity))
             .foregroundStyle(category.color)
             .clipShape(Capsule())
+            .accessibilityLabel("Category: \(category.description)")
+            .accessibilityIdentifier("categoryBadge_\(category.rawValue)")
     }
 }
 

@@ -87,18 +87,21 @@ struct ProfileSettingsView: View {
         Section("Personal Information") {
             TextField("First Name", text: $firstName)
                 .textContentType(.givenName)
+                .accessibilityIdentifier("firstNameField")
                 #if os(iOS)
                 .textInputAutocapitalization(.words)
                 #endif
 
             TextField("Last Name", text: $lastName)
                 .textContentType(.familyName)
+                .accessibilityIdentifier("lastNameField")
                 #if os(iOS)
                 .textInputAutocapitalization(.words)
                 #endif
 
             TextField("Email", text: $email)
                 .textContentType(.emailAddress)
+                .accessibilityIdentifier("emailField")
                 #if os(iOS)
                 .textInputAutocapitalization(.never)
                 .keyboardType(.emailAddress)
@@ -111,6 +114,7 @@ struct ProfileSettingsView: View {
             // ABN field with validation
             VStack(alignment: .leading, spacing: FormConstants.fieldSpacing) {
                 TextField("ABN", text: $abn)
+                    .accessibilityIdentifier("abnField")
                     #if os(iOS)
                     .keyboardType(.numberPad)
                     #endif
@@ -123,6 +127,7 @@ struct ProfileSettingsView: View {
             }
 
             Toggle("GST Registered", isOn: $gstRegistered)
+                .accessibilityIdentifier("gstToggle")
 
             if gstRegistered {
                 Text("GST (10%) will be added to invoices")
@@ -147,32 +152,39 @@ struct ProfileSettingsView: View {
             HStack {
                 Image(systemName: "info.circle")
                     .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
                 Text("ABN must be 11 digits")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            .accessibilityIdentifier("abnValidation_tooShort")
         case .invalid:
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.red)
+                    .accessibilityHidden(true)
                 Text("Invalid ABN - please check the number")
                     .font(.caption)
                     .foregroundStyle(.red)
             }
+            .accessibilityIdentifier("abnValidation_invalid")
         case .valid:
             HStack {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
+                    .accessibilityHidden(true)
                 Text("Valid ABN")
                     .font(.caption)
                     .foregroundStyle(.green)
             }
+            .accessibilityIdentifier("abnValidation_valid")
         }
     }
 
     private var professionalStatusSection: some View {
         Section {
             Toggle("Vocationally Registered (VR)", isOn: $isVocational)
+                .accessibilityIdentifier("vocationalToggle")
 
             if !isVocational {
                 Text("Non-VR receives 80% of WIP FPS payment rates")
@@ -181,8 +193,10 @@ struct ProfileSettingsView: View {
             }
 
             TextField("Provider Number", text: $providerNumber)
+                .accessibilityIdentifier("providerNumberField")
 
             TextField("Specialty", text: $specialty)
+                .accessibilityIdentifier("specialtyField")
         } header: {
             Text("Professional Status")
         } footer: {
@@ -197,6 +211,7 @@ struct ProfileSettingsView: View {
                 Spacer()
                 TextField("$0", value: $defaultDailyRate, format: .currency(code: "AUD"))
                     .multilineTextAlignment(.trailing)
+                    .accessibilityIdentifier("defaultDailyRateField")
                     #if os(iOS)
                     .keyboardType(.decimalPad)
                     #endif
@@ -208,6 +223,7 @@ struct ProfileSettingsView: View {
                 Spacer()
                 TextField("$0", value: $defaultHourlyRate, format: .currency(code: "AUD"))
                     .multilineTextAlignment(.trailing)
+                    .accessibilityIdentifier("defaultHourlyRateField")
                     #if os(iOS)
                     .keyboardType(.decimalPad)
                     #endif
@@ -219,6 +235,7 @@ struct ProfileSettingsView: View {
                 Spacer()
                 TextField("$0", value: $defaultOnCallRate, format: .currency(code: "AUD"))
                     .multilineTextAlignment(.trailing)
+                    .accessibilityIdentifier("defaultOnCallRateField")
                     #if os(iOS)
                     .keyboardType(.decimalPad)
                     #endif
@@ -230,6 +247,7 @@ struct ProfileSettingsView: View {
                 Spacer()
                 TextField("$0", value: $defaultCallOutRate, format: .currency(code: "AUD"))
                     .multilineTextAlignment(.trailing)
+                    .accessibilityIdentifier("defaultCallOutRateField")
                     #if os(iOS)
                     .keyboardType(.decimalPad)
                     #endif

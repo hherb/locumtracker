@@ -275,6 +275,9 @@ struct EarningsDashboardView: View {
                     }
                 }
                 .padding(.vertical, SummaryConstants.cardPadding)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Total earnings: \(CurrencyFormatter.format(totalEarnings)), Hours worked: \(String(format: "%.1f", totalHoursWorked)) hours")
+                .accessibilityIdentifier("earningsSummaryMain")
 
                 Divider()
 
@@ -299,6 +302,9 @@ struct EarningsDashboardView: View {
                     }
                 }
                 .padding(.vertical, SummaryConstants.cardPadding)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Expenses: \(CurrencyFormatter.format(totalExpenses)), Net earnings: \(CurrencyFormatter.format(netEarnings))")
+                .accessibilityIdentifier("earningsSummaryNet")
 
                 // Effective hourly rate
                 if totalHoursWorked > 0 {
@@ -314,6 +320,9 @@ struct EarningsDashboardView: View {
                             .fontWeight(.semibold)
                     }
                     .padding(.vertical, SummaryConstants.cardPadding)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Effective hourly rate: \(CurrencyFormatter.format(totalEarnings / totalHoursWorked)) per hour")
+                    .accessibilityIdentifier("earningsSummaryRate")
                 }
             }
         }
@@ -409,8 +418,12 @@ struct AssignmentEarningsRow: View {
                 }
             }
             .frame(height: RowConstants.barHeight)
+            .accessibilityHidden(true)
         }
         .padding(.vertical, RowConstants.rowPadding)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(location?.name ?? "Unknown Location"), \(dateRangeText), \(CurrencyFormatter.format(earnings)), \(String(format: "%.1f", percentage)) percent of total")
+        .accessibilityIdentifier("assignmentEarningsRow_\(assignment.id)")
     }
 
     private var dateRangeText: String {
@@ -477,8 +490,12 @@ struct LocationEarningsRow: View {
                 }
             }
             .frame(height: RowConstants.barHeight)
+            .accessibilityHidden(true)
         }
         .padding(.vertical, RowConstants.rowPadding)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(location.name), MMM\(location.mmmClassification), \(CurrencyFormatter.format(earnings)), \(String(format: "%.1f", percentage)) percent of total")
+        .accessibilityIdentifier("locationEarningsRow_\(location.id)")
     }
 
     private var locationColor: Color {

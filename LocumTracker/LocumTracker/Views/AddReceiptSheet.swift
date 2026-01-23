@@ -83,30 +83,27 @@ struct AddReceiptSheet: View {
         }
         #if os(iOS)
         .fullScreenCover(isPresented: $showingCamera) {
-            ImagePicker(imageData: $imageData, isPresented: $showingCamera, sourceType: .camera)
+            ReceiptImagePicker(
+                imageData: $imageData,
+                sourceType: .camera,
+                onDismiss: { showingCamera = false }
+            )
         }
-        .sheet(item: $presentedSheet) { sheet in
+        .fullScreenCover(item: $presentedSheet) { sheet in
             switch sheet {
             case .photoLibrary:
-                PhotoLibraryPicker(imageData: $imageData, presentedSheet: $presentedSheet)
+                ReceiptImagePicker(
+                    imageData: $imageData,
+                    sourceType: .photoLibrary,
+                    onDismiss: { presentedSheet = nil }
+                )
             case .fullImage:
-                if let imgData = imageData {
-                    FullImageView(imageData: imgData)
-                }
+                FullImageView(imageData: imageData ?? Data())
             case .cropImage:
-                if let imgData = imageData, let uiImage = UIImage(data: imgData) {
-                    ImageCropView(
-                        originalImage: uiImage,
-                        onCrop: { croppedImage in
-                            let resizedImage = resizeImage(croppedImage, maxDimension: ImageConstants.maxStoredImageDimension)
-                            imageData = resizedImage.jpegData(compressionQuality: ImageConstants.compressionQuality)
-                            presentedSheet = nil
-                        },
-                        onCancel: {
-                            presentedSheet = nil
-                        }
-                    )
-                }
+                ReceiptCropWrapper(
+                    imageData: $imageData,
+                    onDismiss: { presentedSheet = nil }
+                )
             }
         }
         #endif
@@ -180,7 +177,12 @@ struct AddReceiptSheet: View {
     private var imageSection: some View {
         Section("Receipt Image") {
             if let imgData = imageData {
-                imagePreviewView(for: imgData)
+                ReceiptImagePreview(
+                    imageData: imgData,
+                    onDelete: { imageData = nil },
+                    onCrop: { presentedSheet = .cropImage },
+                    onTap: { presentedSheet = .fullImage }
+                )
             } else {
                 imagePickerButtons
             }
@@ -188,62 +190,10 @@ struct AddReceiptSheet: View {
     }
 
     @ViewBuilder
-    private func imagePreviewView(for data: Data) -> some View {
-        VStack {
-            #if os(iOS)
-            if let uiImage = UIImage(data: data) {
-                Button {
-                    presentedSheet = .fullImage
-                } label: {
-                    VStack {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: ImageConstants.maxPreviewHeight)
-                            .clipShape(RoundedRectangle(cornerRadius: ImageConstants.cornerRadius))
-
-                        Text("Tap to view full size")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-            #else
-            if let nsImage = NSImage(data: data) {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxHeight: ImageConstants.maxPreviewHeight)
-                    .clipShape(RoundedRectangle(cornerRadius: ImageConstants.cornerRadius))
-            }
-            #endif
-
-            HStack(spacing: 20) {
-                Button(role: .destructive) {
-                    imageData = nil
-                } label: {
-                    Label("Delete", systemImage: "trash")
-                }
-
-                #if os(iOS)
-                Button {
-                    presentedSheet = .cropImage
-                } label: {
-                    Label("Crop", systemImage: "crop")
-                }
-                #endif
-            }
-            .font(.subheadline)
-            .padding(.top, 8)
-        }
-    }
-
-    @ViewBuilder
     private var imagePickerButtons: some View {
         #if os(iOS)
         HStack {
-            if ImagePicker.isCameraAvailable {
+            if ReceiptImagePicker.isCameraAvailable {
                 Button {
                     showingCamera = true
                 } label: {
@@ -288,7 +238,7 @@ struct AddReceiptSheet: View {
     /// - Assignment: Inferred from current date if within an assignment's date range
     private func saveReceipt() {
         // Apply defaults for image-only saves
-        let finalDescription = receiptDescription.isEmpty ? DefaultReceiptValues.description : receiptDescription
+        let finalDescription = receiptDescription.isEmpty ? "Receipt image" : receiptDescription
         let finalAssignmentId = selectedAssignmentId ?? findActiveAssignment(for: date)?.id
 
         let receipt = Receipt(
@@ -303,158 +253,6 @@ struct AddReceiptSheet: View {
         modelContext.insert(receipt)
         isPresented = false
     }
-}
-
-// MARK: - Image Picker
-
-#if os(iOS)
-/// UIKit camera picker wrapper for SwiftUI (used with fullScreenCover)
-///
-/// Wraps UIImagePickerController for camera access with boolean binding dismissal.
-/// Saves captured image directly (resized for OCR).
-struct ImagePicker: UIViewControllerRepresentable {
-    /// Binding to store the captured image data
-    @Binding var imageData: Data?
-
-    /// Binding to control presentation (for explicit dismissal)
-    @Binding var isPresented: Bool
-
-    /// The source type for the picker
-    let sourceType: UIImagePickerController.SourceType
-
-    /// Check if camera is available on this device
-    static var isCameraAvailable: Bool {
-        UIImagePickerController.isSourceTypeAvailable(.camera)
-    }
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = sourceType
-        picker.delegate = context.coordinator
-        picker.allowsEditing = false
-        return picker
-    }
-
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
-    }
-
-    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: ImagePicker
-
-        init(parent: ImagePicker) {
-            self.parent = parent
-        }
-
-        func imagePickerController(
-            _ picker: UIImagePickerController,
-            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
-        ) {
-            if let image = info[.originalImage] as? UIImage {
-                let resized = resizeImage(image, maxDimension: ImageConstants.maxStoredImageDimension)
-                parent.imageData = resized.jpegData(compressionQuality: ImageConstants.compressionQuality)
-            }
-            parent.isPresented = false
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.isPresented = false
-        }
-    }
-}
-
-/// Photo library picker for use with sheet(item:) presentation
-///
-/// Uses optional binding for dismissal to work with item-based sheet presentation.
-/// Saves selected image directly (resized for OCR).
-struct PhotoLibraryPicker: UIViewControllerRepresentable {
-    @Binding var imageData: Data?
-    @Binding var presentedSheet: AddReceiptSheet.SheetType?
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .photoLibrary
-        picker.delegate = context.coordinator
-        picker.allowsEditing = false
-        return picker
-    }
-
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
-    }
-
-    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: PhotoLibraryPicker
-
-        init(parent: PhotoLibraryPicker) {
-            self.parent = parent
-        }
-
-        func imagePickerController(
-            _ picker: UIImagePickerController,
-            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
-        ) {
-            if let image = info[.originalImage] as? UIImage {
-                let resized = resizeImage(image, maxDimension: ImageConstants.maxStoredImageDimension)
-                parent.imageData = resized.jpegData(compressionQuality: ImageConstants.compressionQuality)
-            }
-            parent.presentedSheet = nil
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.presentedSheet = nil
-        }
-    }
-}
-#endif
-
-// MARK: - Constants
-
-private enum ImageConstants {
-    static let maxPreviewHeight: CGFloat = 200
-    static let cornerRadius: CGFloat = 8
-    static let compressionQuality: CGFloat = 0.7
-    /// Maximum dimension (width or height) for stored images to prevent memory issues
-    static let maxStoredImageDimension: CGFloat = 1920
-}
-
-#if os(iOS)
-/// Resizes a UIImage to fit within the specified maximum dimension while preserving aspect ratio
-/// - Parameters:
-///   - image: The original image to resize
-///   - maxDimension: The maximum width or height for the resized image
-/// - Returns: The resized image, or the original if it's already within bounds
-private func resizeImage(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
-    let size = image.size
-
-    // Check if resize is needed
-    guard size.width > maxDimension || size.height > maxDimension else {
-        return image
-    }
-
-    // Calculate new size maintaining aspect ratio
-    let aspectRatio = size.width / size.height
-    let newSize: CGSize
-    if size.width > size.height {
-        newSize = CGSize(width: maxDimension, height: maxDimension / aspectRatio)
-    } else {
-        newSize = CGSize(width: maxDimension * aspectRatio, height: maxDimension)
-    }
-
-    // Render resized image
-    let renderer = UIGraphicsImageRenderer(size: newSize)
-    return renderer.image { _ in
-        image.draw(in: CGRect(origin: .zero, size: newSize))
-    }
-}
-#endif
-
-private enum DefaultReceiptValues {
-    static let description = "Receipt image"
 }
 
 // MARK: - Preview

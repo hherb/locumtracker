@@ -8,7 +8,7 @@ import Vision
 ///
 /// Displays the captured image with a draggable/resizable crop rectangle.
 /// Uses Vision framework to auto-detect document/receipt edges on appearance.
-struct ImageCropView: View {
+public struct ImageCropView: View {
     @Environment(\.dismiss) private var dismiss
 
     /// The original image to crop
@@ -35,9 +35,19 @@ struct ImageCropView: View {
     /// Handle size for corner dragging
     private let handleSize: CGFloat = 44
 
-    var body: some View {
+    public init(
+        originalImage: UIImage,
+        onCrop: @escaping (UIImage) -> Void,
+        onCancel: @escaping () -> Void
+    ) {
+        self.originalImage = originalImage
+        self.onCrop = onCrop
+        self.onCancel = onCancel
+    }
+
+    public var body: some View {
         NavigationStack {
-            GeometryReader { geometry in
+            GeometryReader { _ in
                 ZStack {
                     Color.black.ignoresSafeArea()
 

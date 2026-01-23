@@ -238,38 +238,9 @@ public struct ImageCropView: View {
     // MARK: - Vision Edge Detection
 
     private func detectReceiptEdges() async {
-        defer { isDetecting = false }
-
-        guard let cgImage = originalImage.cgImage else { return }
-
-        let request = VNDetectRectanglesRequest()
-        request.minimumAspectRatio = 0.2  // Allow narrow receipts
-        request.maximumAspectRatio = 1.0  // Note: Vision uses width/height, so tall receipts have ratio < 1
-        request.minimumSize = 0.1  // Detect smaller receipts
-        request.maximumObservations = 1
-        request.minimumConfidence = 0.5  // Accept lower confidence detections
-
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-
-        do {
-            try handler.perform([request])
-
-            if let observation = request.results?.first {
-                // Vision coordinates are normalized with origin at bottom-left
-                // Convert to SwiftUI coordinates (origin at top-left)
-                await MainActor.run {
-                    let boundingBox = observation.boundingBox
-                    cropRect = CGRect(
-                        x: boundingBox.minX,
-                        y: 1 - boundingBox.maxY,
-                        width: boundingBox.width,
-                        height: boundingBox.height
-                    )
-                }
-            }
-        } catch {
-            // Detection failed, keep default crop rect
-        }
+        // Skip detection - just use the default 80% crop rect
+        // Vision rectangle detection often produces poor results for receipts
+        isDetecting = false
     }
 
     // MARK: - Cropping

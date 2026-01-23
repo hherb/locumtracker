@@ -25,18 +25,28 @@ struct AddReceiptSheet: View {
     @State private var receiptDescription: String = ""
     @State private var selectedAssignmentId: UUID?
     @State private var imageData: Data?
-    @State private var showingCamera = false
     @State private var presentedSheet: SheetType?
 
-    /// Sheet types (excluding camera which uses fullScreenCover)
+    /// Sheet types for fullScreenCover presentations
     enum SheetType: Identifiable {
+        case camera
         case photoLibrary
-        case fullImage
+        case fullImage(Data)
         #if os(iOS)
-        case cropImage
+        /// Crop with the image data embedded to avoid state timing issues
+        case cropImage(Data)
         #endif
 
-        var id: Self { self }
+        var id: String {
+            switch self {
+            case .camera: return "camera"
+            case .photoLibrary: return "photoLibrary"
+            case .fullImage: return "fullImage"
+            #if os(iOS)
+            case .cropImage: return "cropImage"
+            #endif
+            }
+        }
     }
 
     /// Whether the form has valid input for saving
@@ -82,27 +92,30 @@ struct AddReceiptSheet: View {
             }
         }
         #if os(iOS)
-        .fullScreenCover(isPresented: $showingCamera) {
-            ReceiptImagePicker(
-                imageData: $imageData,
-                sourceType: .camera,
-                onDismiss: { showingCamera = false }
-            )
-        }
         .fullScreenCover(item: $presentedSheet) { sheet in
             switch sheet {
+            case .camera:
+                ReceiptImagePicker(
+                    imageData: $imageData,
+                    sourceType: .camera,
+                    onDismiss: { presentedSheet = nil }
+                )
             case .photoLibrary:
                 ReceiptImagePicker(
                     imageData: $imageData,
                     sourceType: .photoLibrary,
                     onDismiss: { presentedSheet = nil }
                 )
-            case .fullImage:
-                FullImageView(imageData: imageData ?? Data())
-            case .cropImage:
-                ReceiptCropWrapper(
-                    imageData: $imageData,
-                    onDismiss: { presentedSheet = nil }
+            case .fullImage(let imgData):
+                FullImageView(imageData: imgData)
+            case .cropImage(let dataToEdit):
+                ImageCropView(
+                    originalImage: UIImage(data: dataToEdit) ?? UIImage(),
+                    onCrop: { croppedImage in
+                        imageData = imageToJPEGData(croppedImage)
+                        presentedSheet = nil
+                    },
+                    onCancel: { presentedSheet = nil }
                 )
             }
         }
@@ -180,8 +193,8 @@ struct AddReceiptSheet: View {
                 ReceiptImagePreview(
                     imageData: imgData,
                     onDelete: { imageData = nil },
-                    onCrop: { presentedSheet = .cropImage },
-                    onTap: { presentedSheet = .fullImage }
+                    onCrop: { presentedSheet = .cropImage(imgData) },
+                    onTap: { presentedSheet = .fullImage(imgData) }
                 )
             } else {
                 imagePickerButtons
@@ -195,7 +208,7 @@ struct AddReceiptSheet: View {
         HStack {
             if ReceiptImagePicker.isCameraAvailable {
                 Button {
-                    showingCamera = true
+                    presentedSheet = .camera
                 } label: {
                     Label("Take Photo", systemImage: "camera")
                 }

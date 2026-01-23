@@ -223,11 +223,15 @@ public struct ReceiptImagePicker: UIViewControllerRepresentable {
             if let image = info[.originalImage] as? UIImage {
                 parent.imageData = imageToJPEGData(image)
             }
-            parent.onDismiss()
+            picker.dismiss(animated: true) {
+                self.parent.onDismiss()
+            }
         }
 
         public func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.onDismiss()
+            picker.dismiss(animated: true) {
+                self.parent.onDismiss()
+            }
         }
     }
 }

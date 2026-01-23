@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import LocumTrackerCore
 import LocumTrackerUI
+import LocumTrackerOCR
 
 #if canImport(UIKit)
 import UIKit
@@ -178,6 +179,9 @@ struct EditReceiptSheet: View {
     @State private var selectedAssignmentId: UUID?
     @State private var imageData: Data?
     @State private var presentedSheet: SheetType?
+    @State private var ocrImportState: OCRImportState = .idle
+    @State private var showOCRError = false
+    @State private var ocrErrorMessage = ""
 
     /// Sheet types for fullScreenCover presentations
     enum SheetType: Identifiable {
@@ -339,11 +343,115 @@ struct EditReceiptSheet: View {
                     onDelete: { imageData = nil },
                     onCrop: { presentedSheet = .cropImage(imgData) }
                 )
+
+                #if os(iOS)
+                ocrImportButton(for: imgData)
+                #endif
             } else {
                 imagePickerButtons
             }
         }
     }
+
+    #if os(iOS)
+    @ViewBuilder
+    private func ocrImportButton(for imgData: Data) -> some View {
+        HStack {
+            Button {
+                Task {
+                    await importFromImage(imgData)
+                }
+            } label: {
+                if ocrImportState.isLoading {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text(ocrImportState.statusMessage)
+                    }
+                } else {
+                    Label("Import from Image", systemImage: "text.viewfinder")
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(ocrImportState.isLoading)
+        }
+        .padding(.top, 8)
+        .alert("OCR Import Failed", isPresented: $showOCRError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(ocrErrorMessage)
+        }
+    }
+
+    private func importFromImage(_ imgData: Data) async {
+        ocrImportState = .initializing
+
+        do {
+            let service = ReceiptOCRService.shared
+            ocrImportState = .processing
+
+            guard let receiptData = try await service.extractReceiptData(from: imgData) else {
+                ocrImportState = .failed("Could not process image")
+                ocrErrorMessage = "The image could not be processed. Please try a clearer photo."
+                showOCRError = true
+                return
+            }
+
+            // Apply extracted data to form fields
+            if let extractedAmount = receiptData.totalAmount {
+                amount = NSDecimalNumber(decimal: extractedAmount).doubleValue
+                amountText = String(format: "%.2f", amount)
+            }
+
+            if let merchant = receiptData.merchant {
+                receiptDescription = merchant
+                category = inferCategory(from: merchant)
+            }
+
+            if let extractedDate = receiptData.date {
+                date = extractedDate
+                selectedAssignmentId = findActiveAssignment(for: extractedDate)?.id
+            }
+
+            ocrImportState = .completed(receiptData)
+
+            try? await Task.sleep(for: .seconds(2))
+            ocrImportState = .idle
+
+        } catch {
+            ocrImportState = .failed(error.localizedDescription)
+            ocrErrorMessage = "OCR failed: \(error.localizedDescription)"
+            showOCRError = true
+        }
+    }
+
+    private func inferCategory(from merchant: String) -> ExpenseCategory {
+        let upperMerchant = merchant.uppercased()
+
+        if ["BP", "SHELL", "CALTEX", "AMPOL", "7-ELEVEN", "UNITED", "LIBERTY", "PUMA"].contains(where: { upperMerchant.contains($0) }) {
+            return .travel
+        }
+        if ["HOTEL", "MOTEL", "INN", "LODGE", "AIRBNB", "RESORT"].contains(where: { upperMerchant.contains($0) }) {
+            return .accommodation
+        }
+        if ["MCDONALD", "KFC", "SUBWAY", "HUNGRY JACK", "DOMINO", "PIZZA", "CAFE", "RESTAURANT", "NANDO"].contains(where: { upperMerchant.contains($0) }) {
+            return .meals
+        }
+        if ["CHEMIST", "PHARMACY", "PRICELINE", "AMCAL", "TERRY WHITE"].contains(where: { upperMerchant.contains($0) }) {
+            return .supplies
+        }
+        if ["OFFICEWORKS", "STAPLES"].contains(where: { upperMerchant.contains($0) }) {
+            return .supplies
+        }
+        return .other
+    }
+
+    private func findActiveAssignment(for date: Date) -> Assignment? {
+        assignments.first { assignment in
+            date >= assignment.startDate && date <= assignment.endDate
+        }
+    }
+    #endif
 
     @ViewBuilder
     private var imagePickerButtons: some View {

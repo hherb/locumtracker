@@ -6,8 +6,9 @@ import LocumTrackerUI
 /// View for editing user profile and settings
 ///
 /// Allows users to configure their professional details including:
-/// - Personal information (name, email)
-/// - Tax details (ABN with validation, GST registration)
+/// - Personal information (title, name, email)
+/// - Address for invoicing
+/// - Business structure and tax details (ABN with validation, GST registration)
 /// - Vocational status for WIP FPS calculations
 /// - Default rate configuration
 struct ProfileSettingsView: View {
@@ -17,11 +18,24 @@ struct ProfileSettingsView: View {
 
     // MARK: - Form State
 
+    // Personal Information
+    @State private var title: ProfessionalTitle = .dr
     @State private var firstName: String = ""
     @State private var lastName: String = ""
     @State private var email: String = ""
+
+    // Address
+    @State private var streetAddress: String = ""
+    @State private var suburb: String = ""
+    @State private var state: String = ""
+    @State private var postcode: String = ""
+
+    // Business & Tax
+    @State private var businessStructure: BusinessStructure = .individual
     @State private var abn: String = ""
     @State private var gstRegistered: Bool = false
+
+    // Professional Status
     @State private var isVocational: Bool = true
     @State private var providerNumber: String = ""
     @State private var specialty: String = ""
@@ -51,7 +65,8 @@ struct ProfileSettingsView: View {
     var body: some View {
         Form {
             personalInfoSection
-            taxDetailsSection
+            addressSection
+            businessTaxSection
             professionalStatusSection
             defaultRatesSection
         }
@@ -85,6 +100,13 @@ struct ProfileSettingsView: View {
 
     private var personalInfoSection: some View {
         Section("Personal Information") {
+            Picker("Title", selection: $title) {
+                ForEach(ProfessionalTitle.allCases, id: \.self) { titleOption in
+                    Text(titleOption.description).tag(titleOption)
+                }
+            }
+            .accessibilityIdentifier("titlePicker")
+
             TextField("First Name", text: $firstName)
                 .textContentType(.givenName)
                 .accessibilityIdentifier("firstNameField")
@@ -109,11 +131,58 @@ struct ProfileSettingsView: View {
         }
     }
 
-    private var taxDetailsSection: some View {
+    private var addressSection: some View {
         Section {
+            TextField("Street Address", text: $streetAddress)
+                .textContentType(.streetAddressLine1)
+                .accessibilityIdentifier("streetAddressField")
+                #if os(iOS)
+                .textInputAutocapitalization(.words)
+                #endif
+
+            TextField("Suburb", text: $suburb)
+                .textContentType(.addressCity)
+                .accessibilityIdentifier("suburbField")
+                #if os(iOS)
+                .textInputAutocapitalization(.words)
+                #endif
+
+            HStack {
+                Picker("State", selection: $state) {
+                    Text("Select").tag("")
+                    ForEach(AustralianStates.allCases, id: \.self) { stateOption in
+                        Text(stateOption.rawValue).tag(stateOption.rawValue)
+                    }
+                }
+                .accessibilityIdentifier("statePicker")
+
+                TextField("Postcode", text: $postcode)
+                    .textContentType(.postalCode)
+                    .accessibilityIdentifier("postcodeField")
+                    #if os(iOS)
+                    .keyboardType(.numberPad)
+                    #endif
+                    .frame(width: PostcodeFieldConstants.width)
+            }
+        } header: {
+            Text("Address")
+        } footer: {
+            Text("Used for invoicing")
+        }
+    }
+
+    private var businessTaxSection: some View {
+        Section {
+            Picker("Business Structure", selection: $businessStructure) {
+                ForEach(BusinessStructure.allCases, id: \.self) { structure in
+                    Text(structure.description).tag(structure)
+                }
+            }
+            .accessibilityIdentifier("businessStructurePicker")
+
             // ABN field with validation
             VStack(alignment: .leading, spacing: FormConstants.fieldSpacing) {
-                TextField("ABN", text: $abn)
+                TextField("ABN (optional)", text: $abn)
                     .accessibilityIdentifier("abnField")
                     #if os(iOS)
                     .keyboardType(.numberPad)
@@ -135,7 +204,7 @@ struct ProfileSettingsView: View {
                     .foregroundStyle(.secondary)
             }
         } header: {
-            Text("Tax Details")
+            Text("Business & Tax")
         } footer: {
             if !abn.isEmpty && abnValidationState == .valid {
                 Text("ABN: \(TaxService.formatABN(abn))")
@@ -294,14 +363,29 @@ struct ProfileSettingsView: View {
     private func loadExistingProfile() {
         guard let profile = existingProfile else { return }
 
+        // Personal Information
+        title = profile.title
         firstName = profile.firstName
         lastName = profile.lastName
         email = profile.email
+
+        // Address
+        streetAddress = profile.streetAddress
+        suburb = profile.suburb
+        state = profile.state
+        postcode = profile.postcode
+
+        // Business & Tax
+        businessStructure = profile.businessStructure
         abn = profile.abn ?? ""
         gstRegistered = profile.gstRegistered
+
+        // Professional Status
         isVocational = profile.isVocational
         providerNumber = profile.providerNumber ?? ""
         specialty = profile.specialty ?? ""
+
+        // Default Rates
         defaultDailyRate = profile.defaultDailyRate
         defaultHourlyRate = profile.defaultHourlyRate
         defaultOnCallRate = profile.defaultOnCallRate ?? 0
@@ -319,9 +403,15 @@ struct ProfileSettingsView: View {
 
         if let profile = existingProfile {
             // Update existing profile
+            profile.title = title
             profile.firstName = firstName
             profile.lastName = lastName
             profile.email = email
+            profile.streetAddress = streetAddress
+            profile.suburb = suburb
+            profile.state = state
+            profile.postcode = postcode
+            profile.businessStructure = businessStructure
             profile.abn = cleanABN.isEmpty ? nil : cleanABN
             profile.gstRegistered = gstRegistered
             profile.isVocational = isVocational
@@ -335,9 +425,15 @@ struct ProfileSettingsView: View {
         } else {
             // Create new profile
             let newProfile = LocumProfile(
+                title: title,
                 firstName: firstName,
                 lastName: lastName,
                 email: email,
+                streetAddress: streetAddress,
+                suburb: suburb,
+                state: state,
+                postcode: postcode,
+                businessStructure: businessStructure,
                 abn: cleanABN.isEmpty ? nil : cleanABN,
                 gstRegistered: gstRegistered,
                 isVocational: isVocational,
@@ -375,6 +471,22 @@ private enum RateFieldConstants {
     static let width: CGFloat = 120
 }
 
+private enum PostcodeFieldConstants {
+    static let width: CGFloat = 100
+}
+
+/// Australian states and territories for address picker
+private enum AustralianStates: String, CaseIterable {
+    case nsw = "NSW"
+    case vic = "VIC"
+    case qld = "QLD"
+    case wa = "WA"
+    case sa = "SA"
+    case tas = "TAS"
+    case act = "ACT"
+    case nt = "NT"
+}
+
 // MARK: - Preview
 
 #Preview("New Profile") {
@@ -394,9 +506,15 @@ private enum RateFieldConstants {
     let container = try! ModelContainer(for: schema, configurations: config)
 
     let profile = LocumProfile(
+        title: .dr,
         firstName: "Jane",
         lastName: "Smith",
         email: "jane.smith@example.com",
+        streetAddress: "123 Medical Centre Drive",
+        suburb: "Sydney",
+        state: "NSW",
+        postcode: "2000",
+        businessStructure: .soleTrader,
         abn: "51824753556",
         gstRegistered: true,
         isVocational: true,

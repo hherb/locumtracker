@@ -16,6 +16,48 @@ public enum PaymentMethod: String, CaseIterable, Codable, Sendable {
     }
 }
 
+/// Business structure types for Australian businesses
+public enum BusinessStructure: String, CaseIterable, Codable, Sendable {
+    case individual = "individual"
+    case soleTrader = "sole_trader"
+    case company = "company"
+    case trust = "trust"
+    case partnership = "partnership"
+
+    public var description: String {
+        switch self {
+        case .individual: return "Individual"
+        case .soleTrader: return "Sole Trader"
+        case .company: return "Company (Pty Ltd)"
+        case .trust: return "Trust"
+        case .partnership: return "Partnership"
+        }
+    }
+}
+
+/// Professional title prefixes
+public enum ProfessionalTitle: String, CaseIterable, Codable, Sendable {
+    case dr = "Dr"
+    case prof = "Prof"
+    case assocProf = "A/Prof"
+    case mr = "Mr"
+    case ms = "Ms"
+    case mrs = "Mrs"
+    case none = ""
+
+    public var description: String {
+        switch self {
+        case .dr: return "Dr"
+        case .prof: return "Professor"
+        case .assocProf: return "Associate Professor"
+        case .mr: return "Mr"
+        case .ms: return "Ms"
+        case .mrs: return "Mrs"
+        case .none: return "None"
+        }
+    }
+}
+
 /// Payment details for invoice generation
 public struct PaymentDetails: Codable, Sendable {
     public var bankName: String
@@ -54,29 +96,87 @@ public struct PaymentDetails: Codable, Sendable {
 @Model
 public final class LocumProfile {
     public var id: UUID = UUID()
+
+    // Personal Information
+    public var titleRaw: String = ProfessionalTitle.dr.rawValue
     public var firstName: String = ""
     public var lastName: String = ""
     public var email: String = ""
+
+    // Address for invoicing
+    public var streetAddress: String = ""
+    public var suburb: String = ""
+    public var state: String = ""
+    public var postcode: String = ""
+
+    // Business & Tax Details
+    public var businessStructureRaw: String = BusinessStructure.individual.rawValue
     public var abn: String?
     public var gstRegistered: Bool = false
+
+    // Professional Details
     public var isVocational: Bool = true
+    public var providerNumber: String?
+    public var specialty: String?
+
+    // Default Rates
     public var defaultDailyRate: Double = 0
     public var defaultHourlyRate: Double = 0
     public var defaultOnCallRate: Double?
     public var defaultCallOutRate: Double?
-    public var providerNumber: String?
-    public var specialty: String?
+
+    // Timestamps
     public var createdAt: Date = Date()
     public var updatedAt: Date = Date()
 
     // Store payment details as JSON since SwiftData doesn't support nested Codable structs directly
     public var paymentDetailsJSON: Data?
 
+    /// Professional title (stored as raw string for SwiftData compatibility)
+    public var title: ProfessionalTitle {
+        get { ProfessionalTitle(rawValue: titleRaw) ?? .dr }
+        set { titleRaw = newValue.rawValue }
+    }
+
+    /// Business structure (stored as raw string for SwiftData compatibility)
+    public var businessStructure: BusinessStructure {
+        get { BusinessStructure(rawValue: businessStructureRaw) ?? .individual }
+        set { businessStructureRaw = newValue.rawValue }
+    }
+
+    /// Creates a new locum profile
+    ///
+    /// - Parameters:
+    ///   - id: Unique identifier (defaults to new UUID)
+    ///   - title: Professional title prefix (Dr, Prof, etc.)
+    ///   - firstName: First name
+    ///   - lastName: Last name
+    ///   - email: Email address
+    ///   - streetAddress: Street address for invoicing
+    ///   - suburb: Suburb/city
+    ///   - state: State/territory (e.g., NSW, VIC)
+    ///   - postcode: Postal code
+    ///   - businessStructure: Business structure type
+    ///   - abn: Australian Business Number (optional)
+    ///   - gstRegistered: Whether registered for GST
+    ///   - isVocational: Whether vocationally registered
+    ///   - defaultDailyRate: Default daily rate for new assignments
+    ///   - defaultHourlyRate: Default hourly rate for new assignments
+    ///   - defaultOnCallRate: Default on-call rate (optional)
+    ///   - defaultCallOutRate: Default call-out rate (optional)
+    ///   - providerNumber: Medicare provider number (optional)
+    ///   - specialty: Medical specialty (optional)
     public init(
         id: UUID = UUID(),
+        title: ProfessionalTitle = .dr,
         firstName: String,
         lastName: String,
         email: String,
+        streetAddress: String = "",
+        suburb: String = "",
+        state: String = "",
+        postcode: String = "",
+        businessStructure: BusinessStructure = .individual,
         abn: String? = nil,
         gstRegistered: Bool = false,
         isVocational: Bool = true,
@@ -88,9 +188,15 @@ public final class LocumProfile {
         specialty: String? = nil
     ) {
         self.id = id
+        self.titleRaw = title.rawValue
         self.firstName = firstName
         self.lastName = lastName
         self.email = email
+        self.streetAddress = streetAddress
+        self.suburb = suburb
+        self.state = state
+        self.postcode = postcode
+        self.businessStructureRaw = businessStructure.rawValue
         self.abn = abn
         self.gstRegistered = gstRegistered
         self.isVocational = isVocational
@@ -104,9 +210,67 @@ public final class LocumProfile {
         self.updatedAt = Date()
     }
 
-    /// Full name of the practitioner
+    /// Full name of the practitioner (without title)
     public var fullName: String {
         "\(firstName) \(lastName)"
+    }
+
+    /// Full name with professional title
+    public var formalName: String {
+        if title == .none {
+            return fullName
+        }
+        return "\(title.rawValue) \(firstName) \(lastName)"
+    }
+
+    /// Formatted address for invoicing (multi-line, Australian format)
+    ///
+    /// Format: Street Address
+    ///         SUBURB STATE POSTCODE
+    public var formattedAddress: String? {
+        var lines: [String] = []
+
+        if !streetAddress.isEmpty {
+            lines.append(streetAddress)
+        }
+
+        // Australian address format: SUBURB STATE POSTCODE (all caps for suburb traditionally)
+        var localityLine = ""
+        if !suburb.isEmpty {
+            localityLine = suburb
+        }
+        if !state.isEmpty {
+            localityLine += localityLine.isEmpty ? state : " \(state)"
+        }
+        if !postcode.isEmpty {
+            localityLine += localityLine.isEmpty ? postcode : " \(postcode)"
+        }
+
+        if !localityLine.isEmpty {
+            lines.append(localityLine)
+        }
+
+        return lines.isEmpty ? nil : lines.joined(separator: "\n")
+    }
+
+    /// Single-line address for compact display
+    public var addressOneLine: String? {
+        var parts: [String] = []
+
+        if !streetAddress.isEmpty {
+            parts.append(streetAddress)
+        }
+        if !suburb.isEmpty {
+            parts.append(suburb)
+        }
+        if !state.isEmpty {
+            parts.append(state)
+        }
+        if !postcode.isEmpty {
+            parts.append(postcode)
+        }
+
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
     }
 
     /// Returns the ABN formatted with spaces (XX XXX XXX XXX)

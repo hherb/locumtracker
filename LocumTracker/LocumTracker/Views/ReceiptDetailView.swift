@@ -369,36 +369,38 @@ struct EditReceiptSheet: View {
 
 // MARK: - Full Image View
 
-/// Full screen image viewer with scroll support
+/// Full screen image viewer with pinch-to-zoom support
 ///
-/// Displays the receipt image in a scrollable container for zooming.
+/// Displays the receipt image initially filling the screen with support
+/// for pinch-to-zoom and pan gestures.
 struct FullImageView: View {
     @Environment(\.dismiss) private var dismiss
 
     /// The image data to display
     let imageData: Data
 
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+
+    private let minScale: CGFloat = 1.0
+    private let maxScale: CGFloat = 5.0
+
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
-                ScrollView([.horizontal, .vertical], showsIndicators: false) {
-                    #if os(iOS)
-                    if let uiImage = UIImage(data: imageData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(minWidth: geometry.size.width, minHeight: geometry.size.height)
-                    }
-                    #else
-                    if let nsImage = NSImage(data: imageData) {
-                        Image(nsImage: nsImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(minWidth: geometry.size.width, minHeight: geometry.size.height)
-                    }
-                    #endif
+                #if os(iOS)
+                if let uiImage = UIImage(data: imageData) {
+                    zoomableImage(Image(uiImage: uiImage), in: geometry)
                 }
+                #else
+                if let nsImage = NSImage(data: imageData) {
+                    zoomableImage(Image(nsImage: nsImage), in: geometry)
+                }
+                #endif
             }
+            .background(Color.black)
             .navigationTitle("Receipt Image")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -411,6 +413,65 @@ struct FullImageView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func zoomableImage(_ image: Image, in geometry: GeometryProxy) -> some View {
+        image
+            .resizable()
+            .scaledToFit()
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .scaleEffect(scale)
+            .offset(offset)
+            .gesture(
+                MagnifyGesture()
+                    .onChanged { value in
+                        let newScale = lastScale * value.magnification
+                        scale = min(max(newScale, minScale), maxScale)
+                    }
+                    .onEnded { _ in
+                        lastScale = scale
+                        // Reset offset if zoomed out to minimum
+                        if scale <= minScale {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                offset = .zero
+                                lastOffset = .zero
+                            }
+                        }
+                    }
+            )
+            .simultaneousGesture(
+                DragGesture()
+                    .onChanged { value in
+                        if scale > minScale {
+                            offset = CGSize(
+                                width: lastOffset.width + value.translation.width,
+                                height: lastOffset.height + value.translation.height
+                            )
+                        }
+                    }
+                    .onEnded { _ in
+                        lastOffset = offset
+                    }
+            )
+            .simultaneousGesture(
+                TapGesture(count: 2)
+                    .onEnded {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            if scale > minScale {
+                                // Reset to original size
+                                scale = minScale
+                                lastScale = minScale
+                                offset = .zero
+                                lastOffset = .zero
+                            } else {
+                                // Zoom in
+                                scale = 2.5
+                                lastScale = 2.5
+                            }
+                        }
+                    }
+            )
     }
 }
 

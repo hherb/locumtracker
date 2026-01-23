@@ -25,19 +25,30 @@ struct AddReceiptSheet: View {
     @State private var receiptDescription: String = ""
     @State private var selectedAssignmentId: UUID?
     @State private var imageData: Data?
-    @State private var activeSheet: ImagePickerSheet?
+    @State private var activeSheet: ActiveSheet?
 
-    /// Enum to track which image picker sheet is active
-    enum ImagePickerSheet: Identifiable {
+    /// Enum to track which sheet is active
+    enum ActiveSheet: Identifiable {
         case camera
         case photoLibrary
+        case fullImage
 
         var id: Self { self }
     }
 
     /// Whether the form has valid input for saving
+    /// Allows saving if either: manual entry (amount > 0 and description) OR image captured
     private var isValidInput: Bool {
-        amount > 0 && !receiptDescription.isEmpty
+        imageData != nil || (amount > 0 && !receiptDescription.isEmpty)
+    }
+
+    /// Finds the active assignment for a given date based on assignment date ranges
+    /// - Parameter date: The date to check
+    /// - Returns: The assignment that contains this date, or nil if none found
+    private func findActiveAssignment(for date: Date) -> Assignment? {
+        assignments.first { assignment in
+            date >= assignment.startDate && date <= assignment.endDate
+        }
     }
 
     var body: some View {
@@ -73,6 +84,10 @@ struct AddReceiptSheet: View {
                     ImagePicker(imageData: $imageData, sourceType: .camera)
                 case .photoLibrary:
                     ImagePicker(imageData: $imageData, sourceType: .photoLibrary)
+                case .fullImage:
+                    if let imgData = imageData {
+                        FullImageView(imageData: imgData)
+                    }
                 }
             }
             #endif
@@ -159,11 +174,22 @@ struct AddReceiptSheet: View {
         VStack {
             #if os(iOS)
             if let uiImage = UIImage(data: data) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxHeight: ImageConstants.maxPreviewHeight)
-                    .clipShape(RoundedRectangle(cornerRadius: ImageConstants.cornerRadius))
+                Button {
+                    activeSheet = .fullImage
+                } label: {
+                    VStack {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxHeight: ImageConstants.maxPreviewHeight)
+                            .clipShape(RoundedRectangle(cornerRadius: ImageConstants.cornerRadius))
+
+                        Text("Tap to view full size")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
             }
             #else
             if let nsImage = NSImage(data: data) {
@@ -179,6 +205,7 @@ struct AddReceiptSheet: View {
                 imageData = nil
             }
             .font(.caption)
+            .padding(.top, 8)
         }
     }
 
@@ -221,13 +248,23 @@ struct AddReceiptSheet: View {
     // MARK: - Actions
 
     /// Saves the receipt to the model context and dismisses the sheet
+    ///
+    /// When saving with only an image (no manual entry), applies defaults:
+    /// - Amount: 0.00
+    /// - Category: .other (tax deductible)
+    /// - Description: "Receipt image"
+    /// - Assignment: Inferred from current date if within an assignment's date range
     private func saveReceipt() {
+        // Apply defaults for image-only saves
+        let finalDescription = receiptDescription.isEmpty ? DefaultReceiptValues.description : receiptDescription
+        let finalAssignmentId = selectedAssignmentId ?? findActiveAssignment(for: date)?.id
+
         let receipt = Receipt(
             amount: amount,
             category: category,
             date: date,
-            receiptDescription: receiptDescription,
-            assignmentId: selectedAssignmentId,
+            receiptDescription: finalDescription,
+            assignmentId: finalAssignmentId,
             imageData: imageData
         )
 
@@ -293,6 +330,10 @@ private enum ImageConstants {
     static let maxPreviewHeight: CGFloat = 200
     static let cornerRadius: CGFloat = 8
     static let compressionQuality: CGFloat = 0.7
+}
+
+private enum DefaultReceiptValues {
+    static let description = "Receipt image"
 }
 
 // MARK: - Preview

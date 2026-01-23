@@ -25,8 +25,15 @@ struct AddReceiptSheet: View {
     @State private var receiptDescription: String = ""
     @State private var selectedAssignmentId: UUID?
     @State private var imageData: Data?
-    @State private var showingImagePicker = false
-    @State private var showingCamera = false
+    @State private var activeSheet: ImagePickerSheet?
+
+    /// Enum to track which image picker sheet is active
+    enum ImagePickerSheet: Identifiable {
+        case camera
+        case photoLibrary
+
+        var id: Self { self }
+    }
 
     /// Whether the form has valid input for saving
     private var isValidInput: Bool {
@@ -60,11 +67,13 @@ struct AddReceiptSheet: View {
                 }
             }
             #if os(iOS)
-            .sheet(isPresented: $showingImagePicker) {
-                ImagePicker(imageData: $imageData, sourceType: .photoLibrary)
-            }
-            .sheet(isPresented: $showingCamera) {
-                ImagePicker(imageData: $imageData, sourceType: .camera)
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .camera:
+                    ImagePicker(imageData: $imageData, sourceType: .camera)
+                case .photoLibrary:
+                    ImagePicker(imageData: $imageData, sourceType: .photoLibrary)
+                }
             }
             #endif
         }
@@ -178,7 +187,7 @@ struct AddReceiptSheet: View {
         #if os(iOS)
         HStack {
             Button {
-                showingCamera = true
+                activeSheet = .camera
             } label: {
                 Label("Take Photo", systemImage: "camera")
             }
@@ -186,7 +195,7 @@ struct AddReceiptSheet: View {
             Spacer()
 
             Button {
-                showingImagePicker = true
+                activeSheet = .photoLibrary
             } label: {
                 Label("Choose Photo", systemImage: "photo")
             }

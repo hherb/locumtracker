@@ -56,47 +56,64 @@ Stop guessing — **know exactly where you stand** with your rural incentive pay
 
 | Component | Status |
 |-----------|--------|
-| Core Business Logic | **Complete** — 29 tests passing |
-| Rural Subsidy Calculations | **Complete** — Full MMM support |
+| Core Business Logic | **Complete** — 143 tests passing |
+| Rural Subsidy Calculations | **Complete** — Full MMM/FPS support |
 | Data Models | **Complete** — All entities defined |
-| iOS App UI | **In Development** |
-| macOS App UI | **In Development** |
-| CloudKit Sync | **Scaffolded** |
+| Receipt OCR Engine | **Complete** — PaddleOCR via ONNX Runtime |
+| iOS App UI | **Functional** — All main views implemented |
+| Storage Layer | **Complete** — Repositories + CloudKit sync |
+| macOS App UI | **Planned** |
 
-**Ready to use:** The calculation engine is fully tested and production-ready. UI development is actively underway.
+**What works today:**
+- Full work tracking: assignments, sessions, locations, daily records
+- Receipt management with camera capture and image cropping
+- OCR text extraction from receipt images (PaddleOCR models)
+- Earnings dashboard and quarterly quota tracking
+- Profile settings and locum profile management
+- Complete rural subsidy (WIP Doctor Stream FPS) calculations
 
 ---
 
 ## Platform Availability
 
-### Available Now (In Development)
+### Available Now
 
 | Platform | Status | Features |
 |----------|--------|----------|
-| **iOS** (iPhone/iPad) | Active Development | Mobile-first design, camera receipt capture, quick daily entry |
-| **macOS** | Active Development | Desktop power features, advanced reporting, bulk operations |
+| **iOS** (iPhone/iPad) | Functional | Work tracking, receipt capture with OCR, earnings dashboard, quota tracking |
 
-### Coming Soon
+### In Development
 
-| Platform | Timeline | Notes |
-|----------|----------|-------|
-| **Android** | Future Release | Full feature parity with iOS |
-| **Windows & Linux** | Future Release | Cross-platform Python/PySide6 implementation |
+| Platform | Status | Features |
+|----------|--------|----------|
+| **macOS** | Planned | Desktop power features, advanced reporting, bulk operations |
+
+### Coming Later
+
+| Platform | Notes |
+|----------|-------|
+| **Android** | Full feature parity with iOS |
+| **Windows & Linux** | Cross-platform Python/PySide6 implementation |
 
 ---
 
 ## Roadmap
 
-### Now
-- iOS and macOS app interfaces
-- CloudKit synchronisation
-- Receipt capture workflow
+### Recently Completed
+- ✅ iOS app with full work tracking UI
+- ✅ Receipt capture with camera integration and image cropping
+- ✅ OCR engine with PaddleOCR models for receipt text extraction
+- ✅ CloudKit sync infrastructure
+- ✅ Storage layer with repositories
+
+### In Progress
+- macOS app interface
+- LLM-powered receipt data extraction (merchant, amount, date, category from OCR text)
 
 ### Next
 - Invoice generation and PDF export
 - Calendar integration
 - Quota progress notifications
-- **LLM-powered receipt scanning** — Automatically extract merchant, amount, date, and category from receipt photos
 
 ### Future
 - **Android app** — Bring LocumTracker to Android users
@@ -155,8 +172,9 @@ open LocumTracker.xcodeproj
 ### Architecture
 
 Clean, modular Swift packages:
-- **LocumTrackerCore** — Pure business logic (complete & tested)
-- **LocumTrackerStorage** — SwiftData + CloudKit persistence
+- **LocumTrackerCore** — Pure business logic with 143 tests
+- **LocumTrackerStorage** — SwiftData repositories + CloudKit sync
+- **LocumTrackerOCR** — Receipt OCR with PaddleOCR models via ONNX Runtime
 - **LocumTrackerUI** — Shared SwiftUI components
 
 See [CLAUDE.md](CLAUDE.md) for detailed development documentation.

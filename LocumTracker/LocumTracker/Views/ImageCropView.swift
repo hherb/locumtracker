@@ -131,17 +131,20 @@ struct ImageCropView: View {
                         .frame(width: pixelRect.width, height: pixelRect.height)
                         .position(x: pixelRect.midX, y: pixelRect.midY)
                 }
+                .allowsHitTesting(false)
 
             // Crop rectangle border
             Rectangle()
                 .stroke(Color.white, lineWidth: 2)
                 .frame(width: pixelRect.width, height: pixelRect.height)
                 .position(x: pixelRect.midX, y: pixelRect.midY)
+                .allowsHitTesting(false)
 
             // Corner handles
             cornerHandles(for: pixelRect)
         }
         .frame(width: imageDisplaySize.width, height: imageDisplaySize.height)
+        .coordinateSpace(name: "cropArea")
     }
 
     @ViewBuilder
@@ -161,14 +164,15 @@ struct ImageCropView: View {
         Circle()
             .fill(Color.white)
             .frame(width: handleSize / 2, height: handleSize / 2)
+            .frame(width: handleSize, height: handleSize)
+            .contentShape(Rectangle())
             .position(position)
             .gesture(
-                DragGesture()
+                DragGesture(coordinateSpace: .named("cropArea"))
                     .onChanged { value in
                         updateCropRect(for: corner, with: value.location)
                     }
             )
-            .contentShape(Rectangle().size(CGSize(width: handleSize, height: handleSize)))
     }
 
     private enum Corner {
@@ -229,10 +233,11 @@ struct ImageCropView: View {
         guard let cgImage = originalImage.cgImage else { return }
 
         let request = VNDetectRectanglesRequest()
-        request.minimumAspectRatio = 0.3
-        request.maximumAspectRatio = 1.0
-        request.minimumSize = 0.2
+        request.minimumAspectRatio = 0.2  // Allow narrow receipts
+        request.maximumAspectRatio = 1.0  // Note: Vision uses width/height, so tall receipts have ratio < 1
+        request.minimumSize = 0.1  // Detect smaller receipts
         request.maximumObservations = 1
+        request.minimumConfidence = 0.5  // Accept lower confidence detections
 
         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
 

@@ -27,10 +27,6 @@ struct AddReceiptSheet: View {
     @State private var imageData: Data?
     @State private var showingCamera = false
     @State private var presentedSheet: SheetType?
-    #if os(iOS)
-    /// Holds the raw captured image before cropping
-    @State private var imageToCrop: UIImage?
-    #endif
 
     /// Sheet types (excluding camera which uses fullScreenCover)
     enum SheetType: Identifiable {
@@ -87,37 +83,30 @@ struct AddReceiptSheet: View {
         }
         #if os(iOS)
         .fullScreenCover(isPresented: $showingCamera) {
-            ImagePicker(imageToCrop: $imageToCrop, isPresented: $showingCamera, sourceType: .camera)
+            ImagePicker(imageData: $imageData, isPresented: $showingCamera, sourceType: .camera)
         }
         .sheet(item: $presentedSheet) { sheet in
             switch sheet {
             case .photoLibrary:
-                PhotoLibraryPicker(imageToCrop: $imageToCrop, presentedSheet: $presentedSheet)
+                PhotoLibraryPicker(imageData: $imageData, presentedSheet: $presentedSheet)
             case .fullImage:
                 if let imgData = imageData {
                     FullImageView(imageData: imgData)
                 }
             case .cropImage:
-                if let image = imageToCrop {
+                if let imgData = imageData, let uiImage = UIImage(data: imgData) {
                     ImageCropView(
-                        originalImage: image,
+                        originalImage: uiImage,
                         onCrop: { croppedImage in
                             let resizedImage = resizeImage(croppedImage, maxDimension: ImageConstants.maxStoredImageDimension)
                             imageData = resizedImage.jpegData(compressionQuality: ImageConstants.compressionQuality)
-                            imageToCrop = nil
                             presentedSheet = nil
                         },
                         onCancel: {
-                            imageToCrop = nil
                             presentedSheet = nil
                         }
                     )
                 }
-            }
-        }
-        .onChange(of: imageToCrop) { _, newImage in
-            if newImage != nil {
-                presentedSheet = .cropImage
             }
         }
         #endif
@@ -230,10 +219,22 @@ struct AddReceiptSheet: View {
             }
             #endif
 
-            Button("Remove Image", role: .destructive) {
-                imageData = nil
+            HStack(spacing: 20) {
+                Button(role: .destructive) {
+                    imageData = nil
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+
+                #if os(iOS)
+                Button {
+                    presentedSheet = .cropImage
+                } label: {
+                    Label("Crop", systemImage: "crop")
+                }
+                #endif
             }
-            .font(.caption)
+            .font(.subheadline)
             .padding(.top, 8)
         }
     }
@@ -310,10 +311,10 @@ struct AddReceiptSheet: View {
 /// UIKit camera picker wrapper for SwiftUI (used with fullScreenCover)
 ///
 /// Wraps UIImagePickerController for camera access with boolean binding dismissal.
-/// Passes captured image to crop view before final storage.
+/// Saves captured image directly (resized for OCR).
 struct ImagePicker: UIViewControllerRepresentable {
-    /// Binding to store the captured image for cropping
-    @Binding var imageToCrop: UIImage?
+    /// Binding to store the captured image data
+    @Binding var imageData: Data?
 
     /// Binding to control presentation (for explicit dismissal)
     @Binding var isPresented: Bool
@@ -352,7 +353,8 @@ struct ImagePicker: UIViewControllerRepresentable {
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
             if let image = info[.originalImage] as? UIImage {
-                parent.imageToCrop = image
+                let resized = resizeImage(image, maxDimension: ImageConstants.maxStoredImageDimension)
+                parent.imageData = resized.jpegData(compressionQuality: ImageConstants.compressionQuality)
             }
             parent.isPresented = false
         }
@@ -366,9 +368,9 @@ struct ImagePicker: UIViewControllerRepresentable {
 /// Photo library picker for use with sheet(item:) presentation
 ///
 /// Uses optional binding for dismissal to work with item-based sheet presentation.
-/// Passes selected image to crop view before final storage.
+/// Saves selected image directly (resized for OCR).
 struct PhotoLibraryPicker: UIViewControllerRepresentable {
-    @Binding var imageToCrop: UIImage?
+    @Binding var imageData: Data?
     @Binding var presentedSheet: AddReceiptSheet.SheetType?
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
@@ -397,7 +399,8 @@ struct PhotoLibraryPicker: UIViewControllerRepresentable {
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
             if let image = info[.originalImage] as? UIImage {
-                parent.imageToCrop = image
+                let resized = resizeImage(image, maxDimension: ImageConstants.maxStoredImageDimension)
+                parent.imageData = resized.jpegData(compressionQuality: ImageConstants.compressionQuality)
             }
             parent.presentedSheet = nil
         }

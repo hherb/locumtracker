@@ -77,21 +77,22 @@ struct AddReceiptSheet: View {
                     .disabled(!isValidInput)
                 }
             }
-            #if os(iOS)
-            .sheet(item: $activeSheet) { sheet in
-                switch sheet {
-                case .camera:
-                    ImagePicker(imageData: $imageData, sourceType: .camera)
-                case .photoLibrary:
-                    ImagePicker(imageData: $imageData, sourceType: .photoLibrary)
-                case .fullImage:
-                    if let imgData = imageData {
-                        FullImageView(imageData: imgData)
-                    }
+        }
+        #if os(iOS)
+        .fullScreenCover(item: $activeSheet) { sheet in
+            switch sheet {
+            case .camera:
+                ImagePicker(imageData: $imageData, sourceType: .camera)
+                    .ignoresSafeArea()
+            case .photoLibrary:
+                ImagePicker(imageData: $imageData, sourceType: .photoLibrary)
+            case .fullImage:
+                if let imgData = imageData {
+                    FullImageView(imageData: imgData)
                 }
             }
-            #endif
         }
+        #endif
     }
 
     // MARK: - View Components
@@ -213,13 +214,15 @@ struct AddReceiptSheet: View {
     private var imagePickerButtons: some View {
         #if os(iOS)
         HStack {
-            Button {
-                activeSheet = .camera
-            } label: {
-                Label("Take Photo", systemImage: "camera")
-            }
+            if ImagePicker.isCameraAvailable {
+                Button {
+                    activeSheet = .camera
+                } label: {
+                    Label("Take Photo", systemImage: "camera")
+                }
 
-            Spacer()
+                Spacer()
+            }
 
             Button {
                 activeSheet = .photoLibrary
@@ -285,6 +288,11 @@ struct ImagePicker: UIViewControllerRepresentable {
 
     /// The source type for the picker (camera or photo library)
     let sourceType: UIImagePickerController.SourceType
+
+    /// Check if camera is available on this device
+    static var isCameraAvailable: Bool {
+        UIImagePickerController.isSourceTypeAvailable(.camera)
+    }
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()

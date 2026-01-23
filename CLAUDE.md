@@ -11,10 +11,15 @@ LocumTracker is a work tracking application for Australian locum (deputy) doctor
 ## Build and Test Commands
 
 ```bash
-# Build packages
+# Build iOS app (from LocumTracker directory)
+cd LocumTracker
+xcodebuild -scheme LocumTracker -destination 'platform=iOS Simulator,name=iPhone 16' build
+
+# Build packages independently
 swift build --package-path Packages/LocumTrackerCore
 swift build --package-path Packages/LocumTrackerStorage
 swift build --package-path Packages/LocumTrackerUI
+swift build --package-path Packages/LocumTrackerOCR
 
 # Run all tests for LocumTrackerCore
 swift test --package-path Packages/LocumTrackerCore
@@ -22,6 +27,25 @@ swift test --package-path Packages/LocumTrackerCore
 # Run a specific test
 swift test --package-path Packages/LocumTrackerCore --filter RuralSubsidyServiceTests
 ```
+
+### Common Build Issues
+
+**"No such module" errors:**
+1. Clean derived data: `rm -rf ~/Library/Developer/Xcode/DerivedData/LocumTracker-*`
+2. In Xcode: File > Packages > Reset Package Caches
+3. Rebuild
+
+**Package changes not reflecting:**
+- Clean build folder (Cmd+Shift+K) then rebuild
+
+**Full clean build:**
+```bash
+rm -rf ~/Library/Developer/Xcode/DerivedData/LocumTracker-*
+rm -rf LocumTracker/.swiftpm
+rm -rf Packages/*/.build
+```
+
+See `doc/developers/BUILD.md` for comprehensive build troubleshooting.
 
 ## Architecture
 

@@ -101,6 +101,12 @@ struct ProfileSettingsView: View {
         .onAppear {
             loadExistingProfile()
         }
+        .onChange(of: profiles) { _, newProfiles in
+            // Reload when profiles query results change (handles initial load timing)
+            if let profile = newProfiles.first, firstName.isEmpty {
+                loadFromProfile(profile)
+            }
+        }
         .alert("Profile Saved", isPresented: $showingSaveConfirmation) {
             Button("OK", role: .cancel) {
                 if !isNewProfile {
@@ -378,7 +384,11 @@ struct ProfileSettingsView: View {
     /// Loads existing profile data into form fields
     private func loadExistingProfile() {
         guard let profile = existingProfile else { return }
+        loadFromProfile(profile)
+    }
 
+    /// Loads data from a specific profile into form fields
+    private func loadFromProfile(_ profile: LocumProfile) {
         // Personal Information
         title = profile.title
         firstName = profile.firstName

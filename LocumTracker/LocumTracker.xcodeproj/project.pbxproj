@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6F22420F2F23C70C0051ECF7 /* LocumTrackerOCR in Frameworks */ = {isa = PBXBuildFile; productRef = 6F22420E2F23C70C0051ECF7 /* LocumTrackerOCR */; };
 		6F5748C72F1D0CFB00B07EF1 /* LocumTrackerCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6F5748C62F1D0CFB00B07EF1 /* LocumTrackerCore */; };
 		6F5748CA2F1D0D1000B07EF1 /* LocumTrackerStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 6F5748C92F1D0D1000B07EF1 /* LocumTrackerStorage */; };
 		6F5748CD2F1D0D2D00B07EF1 /* LocumTrackerUI in Frameworks */ = {isa = PBXBuildFile; productRef = 6F5748CC2F1D0D2D00B07EF1 /* LocumTrackerUI */; };
@@ -74,6 +75,7 @@
 				6F5748CD2F1D0D2D00B07EF1 /* LocumTrackerUI in Frameworks */,
 				6F5748CA2F1D0D1000B07EF1 /* LocumTrackerStorage in Frameworks */,
 				6F5748C72F1D0CFB00B07EF1 /* LocumTrackerCore in Frameworks */,
+				6F22420F2F23C70C0051ECF7 /* LocumTrackerOCR in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -94,12 +96,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		6F22420D2F23C70C0051ECF7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		6F57488A2F1D0C3A00B07EF1 = {
 			isa = PBXGroup;
 			children = (
 				6F5748952F1D0C3A00B07EF1 /* LocumTracker */,
 				6F5748A72F1D0C3B00B07EF1 /* LocumTrackerTests */,
 				6F5748B12F1D0C3B00B07EF1 /* LocumTrackerUITests */,
+				6F22420D2F23C70C0051ECF7 /* Frameworks */,
 				6F5748942F1D0C3A00B07EF1 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -137,6 +147,7 @@
 				6F5748C62F1D0CFB00B07EF1 /* LocumTrackerCore */,
 				6F5748C92F1D0D1000B07EF1 /* LocumTrackerStorage */,
 				6F5748CC2F1D0D2D00B07EF1 /* LocumTrackerUI */,
+				6F22420E2F23C70C0051ECF7 /* LocumTrackerOCR */,
 			);
 			productName = LocumTracker;
 			productReference = 6F5748932F1D0C3A00B07EF1 /* LocumTracker.app */;
@@ -224,6 +235,7 @@
 				6F5748C52F1D0CFB00B07EF1 /* XCLocalSwiftPackageReference "../Packages/LocumTrackerCore" */,
 				6F5748C82F1D0D1000B07EF1 /* XCLocalSwiftPackageReference "../Packages/LocumTrackerStorage" */,
 				6F5748CB2F1D0D2D00B07EF1 /* XCLocalSwiftPackageReference "../Packages/LocumTrackerUI" */,
+				6F22420C2F23C59A0051ECF7 /* XCLocalSwiftPackageReference "../Packages/LocumTrackerOCR" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6F5748942F1D0C3A00B07EF1 /* Products */;
@@ -678,6 +690,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		6F22420C2F23C59A0051ECF7 /* XCLocalSwiftPackageReference "../Packages/LocumTrackerOCR" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../Packages/LocumTrackerOCR;
+		};
 		6F5748C52F1D0CFB00B07EF1 /* XCLocalSwiftPackageReference "../Packages/LocumTrackerCore" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../Packages/LocumTrackerCore;
@@ -693,6 +709,11 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		6F22420E2F23C70C0051ECF7 /* LocumTrackerOCR */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6F22420C2F23C59A0051ECF7 /* XCLocalSwiftPackageReference "../Packages/LocumTrackerOCR" */;
+			productName = LocumTrackerOCR;
+		};
 		6F5748C62F1D0CFB00B07EF1 /* LocumTrackerCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = LocumTrackerCore;

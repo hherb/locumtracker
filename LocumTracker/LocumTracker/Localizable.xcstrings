@@ -81,8 +81,8 @@
     "0.00" : {
 
     },
-    "ABN" : {
-      "comment" : "Text field placeholder for Australian Business Number"
+    "ABN (optional)" : {
+
     },
     "ABN must be 11 digits" : {
       "comment" : "ABN validation message for short input"
@@ -156,6 +156,12 @@
     "Based on predominant MMM%lld. Actual payment depends on registration status and year level." : {
 
     },
+    "Business & Tax" : {
+
+    },
+    "Business Structure" : {
+
+    },
     "By Assignment" : {
       "comment" : "Section header for earnings breakdown"
     },
@@ -163,6 +169,9 @@
       "comment" : "Section header for earnings breakdown"
     },
     "Call-Out Rate" : {
+
+    },
+    "Camera Access Required" : {
 
     },
     "Cancel" : {
@@ -319,6 +328,9 @@
     "Image capture available on iOS" : {
 
     },
+    "Import from Image" : {
+
+    },
     "in %lld-quarter reference period" : {
 
     },
@@ -434,6 +446,9 @@
     "Notes" : {
       "comment" : "Label for notes field"
     },
+    "OCR Import Failed" : {
+
+    },
     "of %lld" : {
 
     },
@@ -449,6 +464,9 @@
     "Only MMM3-7 locations qualify for WIP Doctor Stream payments." : {
 
     },
+    "Open Settings" : {
+
+    },
     "Optional notes" : {
 
     },
@@ -457,6 +475,12 @@
     },
     "Personal Information" : {
       "comment" : "Section header in profile settings"
+    },
+    "Please allow camera access in Settings to take receipt photos." : {
+
+    },
+    "Postcode" : {
+
     },
     "Potential Annual Payment" : {
       "comment" : "Section header for payment estimates"
@@ -512,9 +536,6 @@
     "Record your first work session for this assignment." : {
 
     },
-    "Remove Image" : {
-
-    },
     "Requires 21+ sessions (3+ hours each) per quarter." : {
 
     },
@@ -529,6 +550,9 @@
     },
     "Search receipts" : {
       "comment" : "Search placeholder in receipts list"
+    },
+    "Select" : {
+
     },
     "Select a location" : {
 
@@ -569,10 +593,16 @@
     "Start Time" : {
 
     },
+    "State" : {
+
+    },
     "Status" : {
 
     },
     "Status: %@" : {
+
+    },
+    "Street Address" : {
 
     },
     "Subsidy Eligible" : {
@@ -581,20 +611,17 @@
     "Subsidy: %@" : {
 
     },
+    "Suburb" : {
+
+    },
     "Summary" : {
       "comment" : "Section header in earnings dashboard"
     },
     "Take Photo" : {
 
     },
-    "Tap to view full size" : {
-
-    },
     "Tax Deductible" : {
 
-    },
-    "Tax Details" : {
-      "comment" : "Section header in profile settings"
     },
     "Tax Status" : {
 
@@ -606,6 +633,9 @@
 
     },
     "Time" : {
+
+    },
+    "Title" : {
 
     },
     "Total Earnings" : {
@@ -640,6 +670,9 @@
 
     },
     "Up to %@/year" : {
+
+    },
+    "Used for invoicing" : {
 
     },
     "Valid ABN" : {

@@ -2,6 +2,7 @@ import SwiftUI
 
 #if canImport(UIKit)
 import UIKit
+import AVFoundation
 #endif
 
 // MARK: - Constants
@@ -163,6 +164,115 @@ public struct ReceiptImagePreview: View {
         .padding(.top, 8)
     }
 }
+
+// MARK: - Camera Permission Service
+
+#if os(iOS)
+/// Service to handle camera permission checks and requests
+public enum CameraPermissionService {
+    /// Current camera authorization status
+    public static var authorizationStatus: AVAuthorizationStatus {
+        AVCaptureDevice.authorizationStatus(for: .video)
+    }
+
+    /// Whether camera hardware is available on this device
+    public static var isCameraHardwareAvailable: Bool {
+        UIImagePickerController.isSourceTypeAvailable(.camera)
+    }
+
+    /// Whether camera can be used (hardware available AND permission granted)
+    public static var canUseCamera: Bool {
+        isCameraHardwareAvailable && authorizationStatus == .authorized
+    }
+
+    /// Request camera permission asynchronously
+    /// - Returns: true if permission was granted, false otherwise
+    @MainActor
+    public static func requestPermission() async -> Bool {
+        await AVCaptureDevice.requestAccess(for: .video)
+    }
+}
+#endif
+
+// MARK: - Camera Capture Button
+
+#if os(iOS)
+/// A button that handles camera permission before capturing
+///
+/// Checks permission status and either:
+/// - Requests permission if undetermined
+/// - Shows camera if permitted
+/// - Shows Settings alert if denied
+public struct CameraCaptureButton: View {
+    /// Called to present the camera picker
+    let onPresentCamera: () -> Void
+
+    @State private var showingPermissionAlert = false
+    @State private var isRequestingPermission = false
+
+    public init(onPresentCamera: @escaping () -> Void) {
+        self.onPresentCamera = onPresentCamera
+    }
+
+    public var body: some View {
+        Button {
+            handleTakePhotoTapped()
+        } label: {
+            if isRequestingPermission {
+                ProgressView()
+            } else {
+                Label("Take Photo", systemImage: "camera")
+            }
+        }
+        .disabled(isRequestingPermission)
+        .alert("Camera Access Required", isPresented: $showingPermissionAlert) {
+            Button("Open Settings") {
+                openAppSettings()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Please allow camera access in Settings to take receipt photos.")
+        }
+    }
+
+    private func handleTakePhotoTapped() {
+        guard CameraPermissionService.isCameraHardwareAvailable else {
+            return
+        }
+
+        let status = CameraPermissionService.authorizationStatus
+
+        switch status {
+        case .authorized:
+            onPresentCamera()
+
+        case .notDetermined:
+            isRequestingPermission = true
+            Task {
+                let granted = await CameraPermissionService.requestPermission()
+                isRequestingPermission = false
+                if granted {
+                    onPresentCamera()
+                } else {
+                    showingPermissionAlert = true
+                }
+            }
+
+        case .denied, .restricted:
+            showingPermissionAlert = true
+
+        @unknown default:
+            showingPermissionAlert = true
+        }
+    }
+
+    private func openAppSettings() {
+        if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(settingsURL)
+        }
+    }
+}
+#endif
 
 // MARK: - Camera/Photo Picker
 

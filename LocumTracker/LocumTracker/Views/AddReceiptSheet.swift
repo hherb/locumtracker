@@ -206,11 +206,9 @@ struct AddReceiptSheet: View {
     private var imagePickerButtons: some View {
         #if os(iOS)
         HStack {
-            if ReceiptImagePicker.isCameraAvailable {
-                Button {
+            if CameraPermissionService.isCameraHardwareAvailable {
+                CameraCaptureButton {
                     presentedSheet = .camera
-                } label: {
-                    Label("Take Photo", systemImage: "camera")
                 }
 
                 Spacer()

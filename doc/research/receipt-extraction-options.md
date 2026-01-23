@@ -6,13 +6,35 @@ This document evaluates on-device options for extracting structured data (mercha
 
 ---
 
+## Design Philosophy
+
+LocumTracker prioritizes:
+1. **Open source** where possible
+2. **No paid API dependencies**
+3. **Fully local/on-device processing**
+4. **User privacy** - no data leaves the device
+
+**Exception**: Apple's built-in frameworks (Vision, Foundation Models) are acceptable as they ship with iOS/macOS at no cost and process locally.
+
+---
+
 ## Executive Summary
 
 | Platform | Recommended Primary Approach | Fallback/Alternative |
 |----------|------------------------------|---------------------|
-| **iOS** | Apple Foundation Models + Vision Framework | Vision Framework alone |
-| **Android** | ML Kit GenAI (Gemini Nano) + ML Kit Text Recognition | PaddleOCR via ONNX Runtime |
-| **Cross-platform** | PaddleOCR (ONNX) or Tesseract | Cloud API fallback |
+| **iOS/macOS** | Apple Vision Framework + Foundation Models (iOS 26+) | Vision + regex parsing |
+| **Android** | **PaddleOCR via ONNX Runtime** (open source) | Regex-based extraction |
+
+### Why These Choices?
+
+- **iOS/macOS**: Apple's frameworks are built-in, free, and process locally. No reason to bundle additional models.
+- **Android**: PaddleOCR is fully open source (Apache 2.0), requires no Google Play Services, and models can be bundled in the APK (~15-20 MB total).
+
+### Implementation Guides
+
+Detailed implementation guides are available:
+- [iOS/macOS Implementation Guide](../planning/paddleocr-ios-macos-implementation.md) - Uses Apple Vision + Foundation Models with PaddleOCR fallback
+- [Android Implementation Guide](../planning/paddleocr-android-implementation.md) - Uses PaddleOCR via ONNX Runtime
 
 ---
 

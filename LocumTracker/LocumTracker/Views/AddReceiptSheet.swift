@@ -79,11 +79,10 @@ struct AddReceiptSheet: View {
             }
         }
         #if os(iOS)
-        .fullScreenCover(item: $activeSheet) { sheet in
+        .sheet(item: $activeSheet) { sheet in
             switch sheet {
             case .camera:
                 ImagePicker(imageData: $imageData, sourceType: .camera)
-                    .ignoresSafeArea()
             case .photoLibrary:
                 ImagePicker(imageData: $imageData, sourceType: .photoLibrary)
             case .fullImage:
@@ -283,6 +282,8 @@ struct AddReceiptSheet: View {
 ///
 /// Wraps UIImagePickerController to provide camera and photo library access.
 struct ImagePicker: UIViewControllerRepresentable {
+    @Environment(\.dismiss) private var dismiss
+
     /// Binding to store the selected image data
     @Binding var imageData: Data?
 
@@ -298,21 +299,24 @@ struct ImagePicker: UIViewControllerRepresentable {
         let picker = UIImagePickerController()
         picker.sourceType = sourceType
         picker.delegate = context.coordinator
+        picker.allowsEditing = false
         return picker
     }
 
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(self)
+        Coordinator(parent: self, dismiss: dismiss)
     }
 
     /// Coordinator for handling image picker delegate callbacks
     class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
         let parent: ImagePicker
+        let dismiss: DismissAction
 
-        init(_ parent: ImagePicker) {
+        init(parent: ImagePicker, dismiss: DismissAction) {
             self.parent = parent
+            self.dismiss = dismiss
         }
 
         func imagePickerController(
@@ -322,11 +326,11 @@ struct ImagePicker: UIViewControllerRepresentable {
             if let image = info[.originalImage] as? UIImage {
                 parent.imageData = image.jpegData(compressionQuality: ImageConstants.compressionQuality)
             }
-            picker.dismiss(animated: true)
+            dismiss()
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            picker.dismiss(animated: true)
+            dismiss()
         }
     }
 }

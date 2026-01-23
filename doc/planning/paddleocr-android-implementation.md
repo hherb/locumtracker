@@ -208,6 +208,12 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
+    // Permissions
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
+
+    // Material Icons Extended (for Icons.Default)
+    implementation("androidx.compose.material:material-icons-extended")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
@@ -266,6 +272,53 @@ import java.nio.FloatBuffer
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
+
+/**
+ * Constants for OCR processing parameters
+ */
+private object OCRConstants {
+    /** Multiple for padding detection input (PaddleOCR requirement) */
+    const val DETECTION_PADDING_MULTIPLE = 32
+
+    /** Target height for recognition model input */
+    const val RECOGNITION_TARGET_HEIGHT = 48
+
+    /** Minimum width for recognition model input */
+    const val RECOGNITION_MIN_WIDTH = 48
+
+    /** Maximum width for recognition model input */
+    const val RECOGNITION_MAX_WIDTH = 320
+
+    /** Minimum box dimension to filter noise */
+    const val MINIMUM_BOX_DIMENSION = 5
+
+    /** Threshold for considering text on the same line (in pixels) */
+    const val SAME_LINE_THRESHOLD = 20f
+
+    /** Padding expansion for cropped text regions (in pixels) */
+    const val TEXT_REGION_PADDING = 2f
+
+    /** Number of threads for inference */
+    const val INFERENCE_THREAD_COUNT = 4
+
+    /** ImageNet normalization mean values (RGB) */
+    val NORMALIZATION_MEAN = floatArrayOf(0.485f, 0.456f, 0.406f)
+
+    /** ImageNet normalization standard deviation values (RGB) */
+    val NORMALIZATION_STD = floatArrayOf(0.229f, 0.224f, 0.225f)
+
+    /** Recognition normalization offset */
+    const val RECOGNITION_NORM_OFFSET = 0.5f
+
+    /** Detection model input tensor name */
+    const val DETECTION_INPUT_NAME = "x"
+
+    /** Recognition model input tensor name */
+    const val RECOGNITION_INPUT_NAME = "x"
+
+    /** Bytes per pixel for ARGB format */
+    const val BYTES_PER_PIXEL = 4
+}
 
 /**
  * Configuration for OCR processing
@@ -348,7 +401,7 @@ class OCREngine(
         // Configure session options
         val sessionOptions = OrtSession.SessionOptions().apply {
             setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
-            setIntraOpNumThreads(4)
+            setIntraOpNumThreads(OCRConstants.INFERENCE_THREAD_COUNT)
 
             // Enable NNAPI if configured
             if (configuration.useNNAPI) {
@@ -428,7 +481,7 @@ class OCREngine(
         // Sort results top-to-bottom, left-to-right
         results.sortWith { a, b ->
             val yDiff = kotlin.math.abs(a.boundingBox.top - b.boundingBox.top)
-            if (yDiff < 20) {
+            if (yDiff < OCRConstants.SAME_LINE_THRESHOLD) {
                 a.boundingBox.left.compareTo(b.boundingBox.left)
             } else {
                 a.boundingBox.top.compareTo(b.boundingBox.top)
@@ -461,9 +514,10 @@ class OCREngine(
         val scaledWidth = (originalWidth * scale).toInt()
         val scaledHeight = (originalHeight * scale).toInt()
 
-        // Round to multiple of 32 (required by detection model)
-        val targetWidth = (ceil(scaledWidth / 32.0) * 32).toInt()
-        val targetHeight = (ceil(scaledHeight / 32.0) * 32).toInt()
+        // Round to multiple of padding requirement (required by detection model)
+        val paddingMultiple = OCRConstants.DETECTION_PADDING_MULTIPLE.toDouble()
+        val targetWidth = (ceil(scaledWidth / paddingMultiple) * paddingMultiple).toInt()
+        val targetHeight = (ceil(scaledHeight / paddingMultiple) * paddingMultiple).toInt()
 
         // Create resized bitmap
         val resizedBitmap = Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true)
@@ -480,9 +534,9 @@ class OCREngine(
         paddedBitmap.getPixels(pixels, 0, targetWidth, 0, 0, targetWidth, targetHeight)
         paddedBitmap.recycle()
 
-        // PaddleOCR uses mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-        val mean = floatArrayOf(0.485f, 0.456f, 0.406f)
-        val std = floatArrayOf(0.229f, 0.224f, 0.225f)
+        // PaddleOCR uses ImageNet normalization
+        val mean = OCRConstants.NORMALIZATION_MEAN
+        val std = OCRConstants.NORMALIZATION_STD
 
         val floatBuffer = FloatBuffer.allocate(3 * targetWidth * targetHeight)
         val hw = targetWidth * targetHeight
@@ -519,7 +573,7 @@ class OCREngine(
         val inputShape = longArrayOf(1, 3, height.toLong(), width.toLong())
         val inputTensor = OnnxTensor.createTensor(env, input, inputShape)
 
-        val outputs = session.run(mapOf("x" to inputTensor))
+        val outputs = session.run(mapOf(OCRConstants.DETECTION_INPUT_NAME to inputTensor))
         inputTensor.close()
 
         val outputTensor = outputs[0] as OnnxTensor
@@ -592,10 +646,10 @@ class OCREngine(
                         stack.add(cx to cy - 1)
                     }
 
-                    // Filter small boxes
+                    // Filter small boxes (likely noise)
                     val boxWidth = maxX - minX
                     val boxHeight = maxY - minY
-                    if (boxWidth > 5 && boxHeight > 5) {
+                    if (boxWidth > OCRConstants.MINIMUM_BOX_DIMENSION && boxHeight > OCRConstants.MINIMUM_BOX_DIMENSION) {
                         // Convert back to original image coordinates
                         boxes.add(RectF(
                             minX / scale,
@@ -614,8 +668,8 @@ class OCREngine(
     // MARK: - Recognition
 
     private fun cropTextRegion(bitmap: Bitmap, box: RectF): Bitmap? {
-        // Expand box slightly
-        val padding = 2f
+        // Expand box slightly for better recognition
+        val padding = OCRConstants.TEXT_REGION_PADDING
         val left = max(0f, box.left - padding).toInt()
         val top = max(0f, box.top - padding).toInt()
         val right = min(bitmap.width.toFloat(), box.right + padding).toInt()
@@ -634,10 +688,13 @@ class OCREngine(
     }
 
     private fun preprocessForRecognition(bitmap: Bitmap): FloatBuffer {
-        // Target height is 48 for PP-OCRv4
-        val targetHeight = 48
+        // Target height is fixed, width is variable based on aspect ratio
+        val targetHeight = OCRConstants.RECOGNITION_TARGET_HEIGHT
         val aspectRatio = bitmap.width.toFloat() / bitmap.height.toFloat()
-        val targetWidth = max(48, min(320, (targetHeight * aspectRatio).toInt()))
+        val targetWidth = max(
+            OCRConstants.RECOGNITION_MIN_WIDTH,
+            min(OCRConstants.RECOGNITION_MAX_WIDTH, (targetHeight * aspectRatio).toInt())
+        )
 
         // Resize
         val resizedBitmap = Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
@@ -659,8 +716,8 @@ class OCREngine(
                     2 -> (pixel and 0xFF) / 255.0f
                     else -> 0f
                 }
-                // Normalize to [-1, 1]
-                floatBuffer.put((value - 0.5f) / 0.5f)
+                // Normalize to [-1, 1] range
+                floatBuffer.put((value - OCRConstants.RECOGNITION_NORM_OFFSET) / OCRConstants.RECOGNITION_NORM_OFFSET)
             }
         }
         floatBuffer.rewind()
@@ -672,13 +729,16 @@ class OCREngine(
         val session = recognitionSession ?: throw OCRError.NotInitialized
         val env = ortEnvironment ?: throw OCRError.NotInitialized
 
-        val targetHeight = 48
-        val targetWidth = max(48, min(320, inputWidth))
+        val targetHeight = OCRConstants.RECOGNITION_TARGET_HEIGHT
+        val targetWidth = max(
+            OCRConstants.RECOGNITION_MIN_WIDTH,
+            min(OCRConstants.RECOGNITION_MAX_WIDTH, inputWidth)
+        )
 
         val inputShape = longArrayOf(1, 3, targetHeight.toLong(), targetWidth.toLong())
         val inputTensor = OnnxTensor.createTensor(env, input, inputShape)
 
-        val outputs = session.run(mapOf("x" to inputTensor))
+        val outputs = session.run(mapOf(OCRConstants.RECOGNITION_INPUT_NAME to inputTensor))
         inputTensor.close()
 
         val outputTensor = outputs[0] as OnnxTensor
@@ -915,10 +975,13 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp

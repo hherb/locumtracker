@@ -214,13 +214,73 @@ import Foundation
 import CoreGraphics
 import onnxruntime_objc
 
+// MARK: - Constants
+
+/// Constants for OCR processing parameters
+private enum OCRConstants {
+    /// Multiple for padding detection input (PaddleOCR requirement)
+    static let detectionPaddingMultiple: Int = 32
+
+    /// Target height for recognition model input
+    static let recognitionTargetHeight: Int = 48
+
+    /// Minimum width for recognition model input
+    static let recognitionMinWidth: Int = 48
+
+    /// Maximum width for recognition model input
+    static let recognitionMaxWidth: Int = 320
+
+    /// Minimum box dimension to filter noise
+    static let minimumBoxDimension: Int = 5
+
+    /// Threshold for considering text on the same line (in pixels)
+    static let sameLineThreshold: CGFloat = 20
+
+    /// Padding expansion for cropped text regions (in pixels)
+    static let textRegionPadding: CGFloat = 2
+
+    /// Number of threads for inference
+    static let inferenceThreadCount: Int32 = 4
+
+    /// ImageNet normalization mean values (RGB)
+    static let normalizationMean: [Float] = [0.485, 0.456, 0.406]
+
+    /// ImageNet normalization standard deviation values (RGB)
+    static let normalizationStd: [Float] = [0.229, 0.224, 0.225]
+
+    /// Recognition normalization offset
+    static let recognitionNormOffset: Float = 0.5
+
+    /// Detection model input tensor name
+    static let detectionInputName = "x"
+
+    /// Detection model output tensor name (varies by model version)
+    static let detectionOutputName = "sigmoid_0.tmp_0"
+
+    /// Recognition model input tensor name
+    static let recognitionInputName = "x"
+
+    /// Recognition model output tensor name (varies by model version)
+    static let recognitionOutputName = "softmax_0.tmp_0"
+}
+
 /// Errors that can occur during OCR processing
-public enum OCRError: Error {
+public enum OCRError: Error, CustomStringConvertible {
     case modelLoadFailed(String)
     case imagePreprocessingFailed
     case inferenceError(String)
     case postProcessingFailed
     case invalidInput
+
+    public var description: String {
+        switch self {
+        case .modelLoadFailed(let message): return "Model load failed: \(message)"
+        case .imagePreprocessingFailed: return "Image preprocessing failed"
+        case .inferenceError(let message): return "Inference error: \(message)"
+        case .postProcessingFailed: return "Post-processing failed"
+        case .invalidInput: return "Invalid input"
+        }
+    }
 }
 
 /// Configuration for OCR processing
@@ -289,7 +349,7 @@ public final class OCREngine {
         // Configure session options
         let sessionOptions = try ORTSessionOptions()
         try sessionOptions.setGraphOptimizationLevel(.all)
-        try sessionOptions.setIntraOpNumThreads(4)
+        try sessionOptions.setIntraOpNumThreads(OCRConstants.inferenceThreadCount)
 
         // Enable CoreML if configured and available
         #if !targetEnvironment(simulator)
@@ -367,8 +427,8 @@ public final class OCREngine {
                 continue
             }
 
-            let recInput = try preprocessForRecognition(croppedImage)
-            let (text, confidence) = try runRecognition(input: recInput)
+            let (recInput, recWidth) = try preprocessForRecognition(croppedImage)
+            let (text, confidence) = try runRecognition(input: recInput, width: recWidth)
 
             if confidence >= configuration.recognitionThreshold && !text.isEmpty {
                 results.append(OCRResult(
@@ -382,7 +442,7 @@ public final class OCREngine {
         // Sort results top-to-bottom, left-to-right
         results.sort { a, b in
             let yDiff = abs(a.boundingBox.origin.y - b.boundingBox.origin.y)
-            if yDiff < 20 { // Same line threshold
+            if yDiff < OCRConstants.sameLineThreshold {
                 return a.boundingBox.origin.x < b.boundingBox.origin.x
             }
             return a.boundingBox.origin.y < b.boundingBox.origin.y
@@ -409,9 +469,10 @@ public final class OCREngine {
             newHeight = originalHeight * scale
         }
 
-        // Round to multiple of 32 (required by detection model)
-        let targetWidth = Int(ceil(newWidth / 32) * 32)
-        let targetHeight = Int(ceil(newHeight / 32) * 32)
+        // Round to multiple of padding requirement (required by detection model)
+        let paddingMultiple = CGFloat(OCRConstants.detectionPaddingMultiple)
+        let targetWidth = Int(ceil(newWidth / paddingMultiple) * paddingMultiple)
+        let targetHeight = Int(ceil(newHeight / paddingMultiple) * paddingMultiple)
 
         // Calculate padding
         let padRight = targetWidth - Int(newWidth)
@@ -444,21 +505,22 @@ public final class OCREngine {
 
         let data = pixelData as Data
 
-        // Convert to normalized float tensor [1, 3, H, W] in BGR order
-        // PaddleOCR uses mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+        // Convert to normalized float tensor [1, 3, H, W] in RGB order
+        // PaddleOCR uses ImageNet normalization: mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
         var floatData = [Float](repeating: 0, count: 3 * targetWidth * targetHeight)
 
-        let mean: [Float] = [0.485, 0.456, 0.406]  // RGB
-        let std: [Float] = [0.229, 0.224, 0.225]
+        let mean = OCRConstants.normalizationMean
+        let std = OCRConstants.normalizationStd
+        let bytesPerPixel = 4
 
         for y in 0..<targetHeight {
             for x in 0..<targetWidth {
-                let pixelIndex = (y * targetWidth + x) * 4
+                let pixelIndex = (y * targetWidth + x) * bytesPerPixel
                 let r = Float(data[pixelIndex]) / 255.0
                 let g = Float(data[pixelIndex + 1]) / 255.0
                 let b = Float(data[pixelIndex + 2]) / 255.0
 
-                // Normalize and store in CHW format
+                // Normalize and store in CHW format (Channels, Height, Width)
                 let hw = targetWidth * targetHeight
                 floatData[0 * hw + y * targetWidth + x] = (r - mean[0]) / std[0]  // R channel
                 floatData[1 * hw + y * targetWidth + x] = (g - mean[1]) / std[1]  // G channel
@@ -477,8 +539,9 @@ public final class OCREngine {
         }
 
         // Get input shape from preprocessing
-        let height = Int(ceil(originalSize.height * scale / 32) * 32)
-        let width = Int(ceil(originalSize.width * scale / 32) * 32)
+        let paddingMultiple = CGFloat(OCRConstants.detectionPaddingMultiple)
+        let height = Int(ceil(originalSize.height * scale / paddingMultiple) * paddingMultiple)
+        let width = Int(ceil(originalSize.width * scale / paddingMultiple) * paddingMultiple)
 
         let inputShape: [NSNumber] = [1, 3, NSNumber(value: height), NSNumber(value: width)]
 
@@ -489,12 +552,12 @@ public final class OCREngine {
         )
 
         let outputs = try session.run(
-            withInputs: ["x": inputTensor],
-            outputNames: ["sigmoid_0.tmp_0"],
+            withInputs: [OCRConstants.detectionInputName: inputTensor],
+            outputNames: [OCRConstants.detectionOutputName],
             runOptions: nil
         )
 
-        guard let outputTensor = outputs["sigmoid_0.tmp_0"],
+        guard let outputTensor = outputs[OCRConstants.detectionOutputName],
               let outputData = try? outputTensor.tensorData() as Data else {
             throw OCRError.inferenceError("Failed to get detection output")
         }
@@ -555,10 +618,10 @@ public final class OCREngine {
                         stack.append((cx, cy - 1))
                     }
 
-                    // Filter small boxes
+                    // Filter small boxes (likely noise)
                     let boxWidth = maxX - minX
                     let boxHeight = maxY - minY
-                    if boxWidth > 5 && boxHeight > 5 {
+                    if boxWidth > OCRConstants.minimumBoxDimension && boxHeight > OCRConstants.minimumBoxDimension {
                         // Convert back to original image coordinates
                         let rect = CGRect(
                             x: CGFloat(minX) / scale,
@@ -579,7 +642,7 @@ public final class OCREngine {
 
     private func cropTextRegion(from image: CGImage, box: CGRect) -> CGImage? {
         // Expand box slightly for better recognition
-        let expandedBox = box.insetBy(dx: -2, dy: -2)
+        let expandedBox = box.insetBy(dx: -OCRConstants.textRegionPadding, dy: -OCRConstants.textRegionPadding)
         let clampedBox = CGRect(
             x: max(0, expandedBox.origin.x),
             y: max(0, expandedBox.origin.y),
@@ -590,11 +653,17 @@ public final class OCREngine {
         return image.cropping(to: clampedBox)
     }
 
-    private func preprocessForRecognition(_ image: CGImage) throws -> Data {
-        // Target height is 48 for PP-OCRv4, width is variable based on aspect ratio
-        let targetHeight = 48
+    /// Preprocesses an image for recognition and returns the tensor data with dimensions
+    /// - Parameter image: The cropped text region image
+    /// - Returns: Tuple of (tensor data, target width) for building the input tensor
+    private func preprocessForRecognition(_ image: CGImage) throws -> (Data, Int) {
+        // Target height is fixed, width is variable based on aspect ratio
+        let targetHeight = OCRConstants.recognitionTargetHeight
         let aspectRatio = CGFloat(image.width) / CGFloat(image.height)
-        let targetWidth = max(48, min(320, Int(CGFloat(targetHeight) * aspectRatio)))
+        let targetWidth = max(
+            OCRConstants.recognitionMinWidth,
+            min(OCRConstants.recognitionMaxWidth, Int(CGFloat(targetHeight) * aspectRatio))
+        )
 
         guard let context = CGContext(
             data: nil,
@@ -625,32 +694,41 @@ public final class OCREngine {
 
         // Convert to normalized float tensor
         var floatData = [Float](repeating: 0, count: 3 * targetWidth * targetHeight)
+        let normOffset = OCRConstants.recognitionNormOffset
+        let bytesPerPixel = 4
 
         for y in 0..<targetHeight {
             for x in 0..<targetWidth {
-                let pixelIndex = (y * targetWidth + x) * 4
+                let pixelIndex = (y * targetWidth + x) * bytesPerPixel
                 let r = Float(data[pixelIndex]) / 255.0
                 let g = Float(data[pixelIndex + 1]) / 255.0
                 let b = Float(data[pixelIndex + 2]) / 255.0
 
                 // Normalize to [-1, 1] range (PaddleOCR recognition preprocessing)
                 let hw = targetWidth * targetHeight
-                floatData[0 * hw + y * targetWidth + x] = (r - 0.5) / 0.5
-                floatData[1 * hw + y * targetWidth + x] = (g - 0.5) / 0.5
-                floatData[2 * hw + y * targetWidth + x] = (b - 0.5) / 0.5
+                floatData[0 * hw + y * targetWidth + x] = (r - normOffset) / normOffset
+                floatData[1 * hw + y * targetWidth + x] = (g - normOffset) / normOffset
+                floatData[2 * hw + y * targetWidth + x] = (b - normOffset) / normOffset
             }
         }
 
-        return Data(bytes: floatData, count: floatData.count * MemoryLayout<Float>.size)
+        let tensorData = Data(bytes: floatData, count: floatData.count * MemoryLayout<Float>.size)
+        return (tensorData, targetWidth)
     }
 
-    private func runRecognition(input: Data) throws -> (String, Float) {
+    /// Runs recognition inference on preprocessed image data
+    /// - Parameters:
+    ///   - input: Preprocessed tensor data
+    ///   - width: Width of the preprocessed image
+    /// - Returns: Tuple of (recognized text, confidence score)
+    private func runRecognition(input: Data, width: Int) throws -> (String, Float) {
         guard let session = recognitionSession else {
             throw OCRError.inferenceError("Recognition session not initialized")
         }
 
-        // Input shape for recognition: [1, 3, 48, W]
-        let inputShape: [NSNumber] = [1, 3, 48, NSNumber(value: input.count / (3 * 48 * MemoryLayout<Float>.size))]
+        // Input shape for recognition: [1, 3, height, width]
+        let targetHeight = OCRConstants.recognitionTargetHeight
+        let inputShape: [NSNumber] = [1, 3, NSNumber(value: targetHeight), NSNumber(value: width)]
 
         let inputTensor = try ORTValue(
             tensorData: NSMutableData(data: input),
@@ -659,12 +737,12 @@ public final class OCREngine {
         )
 
         let outputs = try session.run(
-            withInputs: ["x": inputTensor],
-            outputNames: ["softmax_0.tmp_0"],
+            withInputs: [OCRConstants.recognitionInputName: inputTensor],
+            outputNames: [OCRConstants.recognitionOutputName],
             runOptions: nil
         )
 
-        guard let outputTensor = outputs["softmax_0.tmp_0"],
+        guard let outputTensor = outputs[OCRConstants.recognitionOutputName],
               let outputData = try? outputTensor.tensorData() as Data,
               let shape = try? outputTensor.tensorTypeAndShapeInfo().shape else {
             throw OCRError.inferenceError("Failed to get recognition output")

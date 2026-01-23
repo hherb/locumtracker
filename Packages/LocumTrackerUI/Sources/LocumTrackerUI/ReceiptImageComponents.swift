@@ -236,32 +236,44 @@ public struct CameraCaptureButton: View {
     }
 
     private func handleTakePhotoTapped() {
+        print("[CameraCaptureButton] handleTakePhotoTapped called")
         guard CameraPermissionService.isCameraHardwareAvailable else {
+            print("[CameraCaptureButton] Camera hardware not available")
             return
         }
 
         let status = CameraPermissionService.authorizationStatus
+        print("[CameraCaptureButton] Authorization status: \(status.rawValue) (0=notDetermined, 1=restricted, 2=denied, 3=authorized)")
 
         switch status {
         case .authorized:
+            print("[CameraCaptureButton] Status is .authorized, calling onPresentCamera()")
             onPresentCamera()
+            print("[CameraCaptureButton] onPresentCamera() returned")
 
         case .notDetermined:
+            print("[CameraCaptureButton] Status is .notDetermined, requesting permission")
             isRequestingPermission = true
-            Task {
+            Task { @MainActor in
                 let granted = await CameraPermissionService.requestPermission()
+                print("[CameraCaptureButton] Permission request result: \(granted)")
                 isRequestingPermission = false
                 if granted {
+                    print("[CameraCaptureButton] Permission granted, calling onPresentCamera()")
                     onPresentCamera()
+                    print("[CameraCaptureButton] onPresentCamera() returned after permission grant")
                 } else {
+                    print("[CameraCaptureButton] Permission denied, showing alert")
                     showingPermissionAlert = true
                 }
             }
 
         case .denied, .restricted:
+            print("[CameraCaptureButton] Status is denied/restricted, showing alert")
             showingPermissionAlert = true
 
         @unknown default:
+            print("[CameraCaptureButton] Unknown status, showing alert")
             showingPermissionAlert = true
         }
     }
@@ -277,6 +289,92 @@ public struct CameraCaptureButton: View {
 // MARK: - Camera/Photo Picker
 
 #if os(iOS)
+/// Container view controller that hosts UIImagePickerController
+///
+/// This wrapper is needed because UIImagePickerController doesn't work well
+/// when used directly as a UIViewControllerRepresentable in fullScreenCover.
+public class ImagePickerHostController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    public var sourceType: UIImagePickerController.SourceType = .camera
+    public var onImagePicked: ((UIImage) -> Void)?
+    public var onCancel: (() -> Void)?
+
+    private var hasPresented = false
+
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .black
+    }
+
+    public override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+
+        // Only present picker once
+        guard !hasPresented else { return }
+        hasPresented = true
+
+        // For camera, ensure we have authorization before presenting
+        if sourceType == .camera {
+            let status = AVCaptureDevice.authorizationStatus(for: .video)
+            print("[Camera Debug] Authorization status: \(status.rawValue)")
+            print("[Camera Debug] Camera available: \(UIImagePickerController.isSourceTypeAvailable(.camera))")
+
+            if status == .authorized && UIImagePickerController.isSourceTypeAvailable(.camera) {
+                // Small delay to ensure view hierarchy is ready
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                    self?.presentCameraPicker()
+                }
+            } else {
+                // Fallback to photo library
+                print("[Camera Debug] Falling back to photo library - status: \(status.rawValue)")
+                presentPhotoLibraryPicker()
+            }
+        } else {
+            presentPhotoLibraryPicker()
+        }
+    }
+
+    private func presentCameraPicker() {
+        let imagePicker = UIImagePickerController()
+        imagePicker.sourceType = .camera
+        imagePicker.cameraCaptureMode = .photo
+        imagePicker.delegate = self
+        imagePicker.allowsEditing = false
+        imagePicker.modalPresentationStyle = .fullScreen
+
+        print("[Camera Debug] Presenting camera picker")
+        present(imagePicker, animated: true) {
+            print("[Camera Debug] Camera picker presented")
+        }
+    }
+
+    private func presentPhotoLibraryPicker() {
+        let imagePicker = UIImagePickerController()
+        imagePicker.sourceType = .photoLibrary
+        imagePicker.delegate = self
+        imagePicker.allowsEditing = false
+
+        present(imagePicker, animated: true)
+    }
+
+    public func imagePickerController(
+        _ picker: UIImagePickerController,
+        didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+    ) {
+        picker.dismiss(animated: true) { [weak self] in
+            if let image = info[.originalImage] as? UIImage {
+                self?.onImagePicked?(image)
+            }
+            self?.onCancel?()
+        }
+    }
+
+    public func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true) { [weak self] in
+            self?.onCancel?()
+        }
+    }
+}
+
 /// UIKit camera/photo library picker wrapper for SwiftUI
 ///
 /// Captures or selects an image and saves it directly (resized for OCR).
@@ -305,45 +403,20 @@ public struct ReceiptImagePicker: UIViewControllerRepresentable {
         self.onDismiss = onDismiss
     }
 
-    public func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = sourceType
-        picker.delegate = context.coordinator
-        picker.allowsEditing = false
-        return picker
+    public func makeUIViewController(context: Context) -> ImagePickerHostController {
+        print("[ReceiptImagePicker] makeUIViewController called with sourceType: \(sourceType.rawValue) (0=photoLibrary, 1=camera, 2=savedPhotosAlbum)")
+        let host = ImagePickerHostController()
+        host.sourceType = sourceType
+        host.onImagePicked = { image in
+            self.imageData = imageToJPEGData(image)
+        }
+        host.onCancel = {
+            self.onDismiss()
+        }
+        return host
     }
 
-    public func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-
-    public func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
-    }
-
-    public class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: ReceiptImagePicker
-
-        init(parent: ReceiptImagePicker) {
-            self.parent = parent
-        }
-
-        public func imagePickerController(
-            _ picker: UIImagePickerController,
-            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
-        ) {
-            if let image = info[.originalImage] as? UIImage {
-                parent.imageData = imageToJPEGData(image)
-            }
-            picker.dismiss(animated: true) {
-                self.parent.onDismiss()
-            }
-        }
-
-        public func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            picker.dismiss(animated: true) {
-                self.parent.onDismiss()
-            }
-        }
-    }
+    public func updateUIViewController(_ uiViewController: ImagePickerHostController, context: Context) {}
 }
 #endif
 

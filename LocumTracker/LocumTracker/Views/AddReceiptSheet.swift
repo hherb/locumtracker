@@ -5,6 +5,7 @@ import LocumTrackerUI
 
 #if canImport(UIKit)
 import UIKit
+import AVFoundation
 #endif
 
 /// Sheet view for adding a new receipt
@@ -26,6 +27,8 @@ struct AddReceiptSheet: View {
     @State private var selectedAssignmentId: UUID?
     @State private var imageData: Data?
     @State private var presentedSheet: SheetType?
+    @State private var showCameraPermissionAlert = false
+    @State private var isRequestingCameraPermission = false
 
     /// Sheet types for fullScreenCover presentations
     enum SheetType: Identifiable {
@@ -92,9 +95,14 @@ struct AddReceiptSheet: View {
             }
         }
         #if os(iOS)
+        .onChange(of: presentedSheet?.id) { oldValue, newValue in
+            print("[AddReceiptSheet] presentedSheet CHANGED from '\(oldValue ?? "nil")' to '\(newValue ?? "nil")'")
+        }
         .fullScreenCover(item: $presentedSheet) { sheet in
+            let _ = print("[AddReceiptSheet] fullScreenCover presenting sheet: \(sheet.id)")
             switch sheet {
             case .camera:
+                let _ = print("[AddReceiptSheet] Creating ReceiptImagePicker with .camera")
                 ReceiptImagePicker(
                     imageData: $imageData,
                     sourceType: .camera,
@@ -205,20 +213,38 @@ struct AddReceiptSheet: View {
     @ViewBuilder
     private var imagePickerButtons: some View {
         #if os(iOS)
-        HStack {
+        HStack(spacing: 20) {
             if CameraPermissionService.isCameraHardwareAvailable {
-                CameraCaptureButton {
-                    presentedSheet = .camera
+                Button {
+                    handleTakePhotoTapped()
+                } label: {
+                    if isRequestingCameraPermission {
+                        ProgressView()
+                    } else {
+                        Label("Take Photo", systemImage: "camera")
+                    }
                 }
-
-                Spacer()
+                .buttonStyle(.bordered)
+                .disabled(isRequestingCameraPermission)
             }
 
             Button {
+                print("[AddReceiptSheet] Choose Photo button tapped, setting presentedSheet = .photoLibrary")
                 presentedSheet = .photoLibrary
             } label: {
                 Label("Choose Photo", systemImage: "photo")
             }
+            .buttonStyle(.bordered)
+        }
+        .alert("Camera Access Required", isPresented: $showCameraPermissionAlert) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Please allow camera access in Settings to take receipt photos.")
         }
         #else
         Text("Image capture available on iOS")
@@ -226,6 +252,45 @@ struct AddReceiptSheet: View {
             .font(.caption)
         #endif
     }
+
+    #if os(iOS)
+    private func handleTakePhotoTapped() {
+        print("[AddReceiptSheet] handleTakePhotoTapped called")
+
+        let status = CameraPermissionService.authorizationStatus
+        print("[AddReceiptSheet] Camera authorization status: \(status.rawValue)")
+
+        switch status {
+        case .authorized:
+            print("[AddReceiptSheet] Already authorized, setting presentedSheet = .camera")
+            presentedSheet = .camera
+            print("[AddReceiptSheet] presentedSheet is now: \(String(describing: presentedSheet?.id))")
+
+        case .notDetermined:
+            print("[AddReceiptSheet] Permission not determined, requesting...")
+            isRequestingCameraPermission = true
+            Task { @MainActor in
+                let granted = await CameraPermissionService.requestPermission()
+                isRequestingCameraPermission = false
+                print("[AddReceiptSheet] Permission request result: \(granted)")
+                if granted {
+                    print("[AddReceiptSheet] Permission granted, setting presentedSheet = .camera")
+                    presentedSheet = .camera
+                    print("[AddReceiptSheet] presentedSheet is now: \(String(describing: presentedSheet?.id))")
+                } else {
+                    showCameraPermissionAlert = true
+                }
+            }
+
+        case .denied, .restricted:
+            print("[AddReceiptSheet] Permission denied/restricted")
+            showCameraPermissionAlert = true
+
+        @unknown default:
+            showCameraPermissionAlert = true
+        }
+    }
+    #endif
 
     // MARK: - Helpers
 

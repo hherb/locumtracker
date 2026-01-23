@@ -58,14 +58,14 @@ private enum OCRConstants {
     /// Detection model input tensor name.
     static let detectionInputName = "x"
 
-    /// Detection model output tensor name (PP-OCRv3).
-    static let detectionOutputName = "sigmoid_0.tmp_0"
+    /// Detection model output tensor name (PP-OCRv3 converted via paddle2onnx).
+    static let detectionOutputName = "fetch_name_0"
 
     /// Recognition model input tensor name.
     static let recognitionInputName = "x"
 
-    /// Recognition model output tensor name.
-    static let recognitionOutputName = "softmax_0.tmp_0"
+    /// Recognition model output tensor name (PP-OCRv3 converted via paddle2onnx).
+    static let recognitionOutputName = "fetch_name_0"
 
     /// Bytes per pixel in RGBA format.
     static let bytesPerPixel = 4
@@ -245,8 +245,8 @@ public final class OCREngine: @unchecked Sendable {
         let content = try String(contentsOfFile: dictPath, encoding: .utf8)
         characterDictionary = content.components(separatedBy: .newlines).filter { !$0.isEmpty }
 
-        // Add blank token at the beginning (CTC blank)
-        characterDictionary.insert(" ", at: 0)
+        // PaddleOCR convention: dictionary indices match model output indices directly
+        // Blank token is at index 0, dictionary characters start at index 1
     }
 
     // MARK: - Public API
@@ -306,8 +306,10 @@ public final class OCREngine: @unchecked Sendable {
             let (text, confidence) = try runRecognition(input: recInput, width: recWidth)
 
             if confidence >= configuration.recognitionThreshold && !text.isEmpty {
+                // Post-process text to insert spaces at word boundaries
+                let processedText = insertWordSpaces(in: text)
                 results.append(OCRResult(
-                    text: text,
+                    text: processedText,
                     boundingBox: box,
                     confidence: confidence
                 ))
@@ -458,6 +460,7 @@ public final class OCREngine: @unchecked Sendable {
         var floatArray = [Float](repeating: 0, count: floatCount)
         _ = floatArray.withUnsafeMutableBytes { outputData.copyBytes(to: $0) }
 
+        // Output shape is [1, 1, H, W], so data is already in H*W format after flattening
         // Binary threshold the probability map
         var binaryMap = [UInt8](repeating: 0, count: width * height)
         for i in 0..<min(floatArray.count, width * height) {
@@ -623,6 +626,12 @@ public final class OCREngine: @unchecked Sendable {
         let seqLength = shape[1]
         let numClasses = shape[2]
 
+        // PaddleOCR CTC convention:
+        // - Index 0: CTC blank token (used for spacing/padding in CTC)
+        // - Indices 1 to N: dictionary characters (dictIndex = modelIndex - 1)
+        // - Last index may also be blank depending on model version
+        let blankIndex = 0
+
         var floatArray = [Float](repeating: 0, count: outputData.count / MemoryLayout<Float>.size)
         _ = floatArray.withUnsafeMutableBytes { outputData.copyBytes(to: $0) }
 
@@ -644,9 +653,11 @@ public final class OCREngine: @unchecked Sendable {
             }
 
             // CTC decoding: skip blanks (index 0) and repeated characters
-            if maxIndex != 0 && maxIndex != lastIndex {
-                if maxIndex < characterDictionary.count {
-                    result += characterDictionary[maxIndex]
+            if maxIndex != blankIndex && maxIndex != lastIndex {
+                // Dictionary index is model index - 1 (since index 0 is blank)
+                let dictIndex = maxIndex - 1
+                if dictIndex >= 0 && dictIndex < characterDictionary.count {
+                    result += characterDictionary[dictIndex]
                     totalConfidence += maxProb
                     charCount += 1
                 }
@@ -656,5 +667,96 @@ public final class OCREngine: @unchecked Sendable {
 
         let avgConfidence = charCount > 0 ? totalConfidence / Float(charCount) : 0
         return (result, avgConfidence)
+    }
+
+    // MARK: - Post-processing
+
+    /// Inserts spaces at likely word boundaries in recognized text.
+    ///
+    /// Detects word boundaries using patterns common in receipt text:
+    /// - Transitions from lowercase to uppercase (e.g., "helloWorld" -> "hello World")
+    /// - Transitions from letter to digit (e.g., "ABC123" -> "ABC 123")
+    /// - Transitions from digit to letter (e.g., "123ABC" -> "123 ABC")
+    /// - Currency symbols followed by digits (e.g., "$50" stays as "$50")
+    ///
+    /// - Parameter text: The raw OCR text without spaces.
+    /// - Returns: Text with spaces inserted at detected word boundaries.
+    private func insertWordSpaces(in text: String) -> String {
+        guard text.count > 1 else { return text }
+
+        var result = ""
+        let chars = Array(text)
+
+        for i in 0..<chars.count {
+            let current = chars[i]
+            result.append(current)
+
+            // Don't add space after the last character
+            guard i < chars.count - 1 else { continue }
+
+            let next = chars[i + 1]
+
+            // Check if we should insert a space
+            if shouldInsertSpace(after: current, before: next) {
+                result.append(" ")
+            }
+        }
+
+        return result
+    }
+
+    /// Determines if a space should be inserted between two characters.
+    private func shouldInsertSpace(after current: Character, before next: Character) -> Bool {
+        let currentIsLower = current.isLowercase
+        let currentIsUpper = current.isUppercase
+        let currentIsDigit = current.isNumber
+        let currentIsLetter = current.isLetter
+
+        let nextIsLower = next.isLowercase
+        let nextIsUpper = next.isUppercase
+        let nextIsDigit = next.isNumber
+        let nextIsLetter = next.isLetter
+
+        // Don't split currency amounts (e.g., $50.00)
+        let currencySymbols: Set<Character> = ["$", "€", "£", "¥"]
+        if currencySymbols.contains(current) && nextIsDigit {
+            return false
+        }
+
+        // Don't split decimal numbers (e.g., 50.00)
+        if (currentIsDigit || current == ".") && (nextIsDigit || next == ".") {
+            return false
+        }
+
+        // Don't split common punctuation sequences
+        if current == "." || current == "," || current == ":" || current == "/" {
+            return false
+        }
+        if next == "." || next == "," || next == ":" {
+            return false
+        }
+
+        // Transition from lowercase to uppercase (camelCase boundary)
+        if currentIsLower && nextIsUpper {
+            return true
+        }
+
+        // Transition from letter to digit (e.g., "ABC123")
+        if currentIsLetter && nextIsDigit {
+            return true
+        }
+
+        // Transition from digit to uppercase letter (e.g., "123ABC")
+        if currentIsDigit && nextIsUpper {
+            return true
+        }
+
+        // Transition from digit to lowercase after multiple digits is less clear
+        // but often indicates a word boundary (e.g., "2025wed" -> "2025 wed")
+        if currentIsDigit && nextIsLower {
+            return true
+        }
+
+        return false
     }
 }

@@ -25,16 +25,9 @@ struct AddReceiptSheet: View {
     @State private var receiptDescription: String = ""
     @State private var selectedAssignmentId: UUID?
     @State private var imageData: Data?
-    @State private var activeSheet: ActiveSheet?
-
-    /// Enum to track which sheet is active
-    enum ActiveSheet: Identifiable {
-        case camera
-        case photoLibrary
-        case fullImage
-
-        var id: Self { self }
-    }
+    @State private var showingCamera = false
+    @State private var showingPhotoLibrary = false
+    @State private var showingFullImage = false
 
     /// Whether the form has valid input for saving
     /// Allows saving if either: manual entry (amount > 0 and description) OR image captured
@@ -79,16 +72,15 @@ struct AddReceiptSheet: View {
             }
         }
         #if os(iOS)
-        .sheet(item: $activeSheet) { sheet in
-            switch sheet {
-            case .camera:
-                ImagePicker(imageData: $imageData, sourceType: .camera)
-            case .photoLibrary:
-                ImagePicker(imageData: $imageData, sourceType: .photoLibrary)
-            case .fullImage:
-                if let imgData = imageData {
-                    FullImageView(imageData: imgData)
-                }
+        .fullScreenCover(isPresented: $showingCamera) {
+            ImagePicker(imageData: $imageData, isPresented: $showingCamera, sourceType: .camera)
+        }
+        .sheet(isPresented: $showingPhotoLibrary) {
+            ImagePicker(imageData: $imageData, isPresented: $showingPhotoLibrary, sourceType: .photoLibrary)
+        }
+        .sheet(isPresented: $showingFullImage) {
+            if let imgData = imageData {
+                FullImageView(imageData: imgData)
             }
         }
         #endif
@@ -175,7 +167,7 @@ struct AddReceiptSheet: View {
             #if os(iOS)
             if let uiImage = UIImage(data: data) {
                 Button {
-                    activeSheet = .fullImage
+                    showingFullImage = true
                 } label: {
                     VStack {
                         Image(uiImage: uiImage)
@@ -215,7 +207,7 @@ struct AddReceiptSheet: View {
         HStack {
             if ImagePicker.isCameraAvailable {
                 Button {
-                    activeSheet = .camera
+                    showingCamera = true
                 } label: {
                     Label("Take Photo", systemImage: "camera")
                 }
@@ -224,7 +216,7 @@ struct AddReceiptSheet: View {
             }
 
             Button {
-                activeSheet = .photoLibrary
+                showingPhotoLibrary = true
             } label: {
                 Label("Choose Photo", systemImage: "photo")
             }
@@ -282,10 +274,11 @@ struct AddReceiptSheet: View {
 ///
 /// Wraps UIImagePickerController to provide camera and photo library access.
 struct ImagePicker: UIViewControllerRepresentable {
-    @Environment(\.dismiss) private var dismiss
-
     /// Binding to store the selected image data
     @Binding var imageData: Data?
+
+    /// Binding to control presentation (for explicit dismissal)
+    @Binding var isPresented: Bool
 
     /// The source type for the picker (camera or photo library)
     let sourceType: UIImagePickerController.SourceType
@@ -306,17 +299,15 @@ struct ImagePicker: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self, dismiss: dismiss)
+        Coordinator(parent: self)
     }
 
     /// Coordinator for handling image picker delegate callbacks
     class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
         let parent: ImagePicker
-        let dismiss: DismissAction
 
-        init(parent: ImagePicker, dismiss: DismissAction) {
+        init(parent: ImagePicker) {
             self.parent = parent
-            self.dismiss = dismiss
         }
 
         func imagePickerController(
@@ -326,11 +317,11 @@ struct ImagePicker: UIViewControllerRepresentable {
             if let image = info[.originalImage] as? UIImage {
                 parent.imageData = image.jpegData(compressionQuality: ImageConstants.compressionQuality)
             }
-            dismiss()
+            parent.isPresented = false
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            dismiss()
+            parent.isPresented = false
         }
     }
 }

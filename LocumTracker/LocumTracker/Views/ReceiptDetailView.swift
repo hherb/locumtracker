@@ -185,15 +185,8 @@ struct EditReceiptSheet: View {
     @State private var receiptDescription: String
     @State private var selectedAssignmentId: UUID?
     @State private var imageData: Data?
-    @State private var activeSheet: ImagePickerSheet?
-
-    /// Enum to track which image picker sheet is active
-    enum ImagePickerSheet: Identifiable {
-        case camera
-        case photoLibrary
-
-        var id: Self { self }
-    }
+    @State private var showingCamera = false
+    @State private var showingPhotoLibrary = false
 
     init(isPresented: Binding<Bool>, receipt: Receipt) {
         self._isPresented = isPresented
@@ -239,13 +232,11 @@ struct EditReceiptSheet: View {
                 }
             }
             #if os(iOS)
-            .sheet(item: $activeSheet) { sheet in
-                switch sheet {
-                case .camera:
-                    ImagePicker(imageData: $imageData, sourceType: .camera)
-                case .photoLibrary:
-                    ImagePicker(imageData: $imageData, sourceType: .photoLibrary)
-                }
+            .fullScreenCover(isPresented: $showingCamera) {
+                ImagePicker(imageData: $imageData, isPresented: $showingCamera, sourceType: .camera)
+            }
+            .sheet(isPresented: $showingPhotoLibrary) {
+                ImagePicker(imageData: $imageData, isPresented: $showingPhotoLibrary, sourceType: .photoLibrary)
             }
             #endif
         }
@@ -330,16 +321,18 @@ struct EditReceiptSheet: View {
     private var imagePickerButtons: some View {
         #if os(iOS)
         HStack {
-            Button {
-                activeSheet = .camera
-            } label: {
-                Label("Take Photo", systemImage: "camera")
+            if ImagePicker.isCameraAvailable {
+                Button {
+                    showingCamera = true
+                } label: {
+                    Label("Take Photo", systemImage: "camera")
+                }
+
+                Spacer()
             }
 
-            Spacer()
-
             Button {
-                activeSheet = .photoLibrary
+                showingPhotoLibrary = true
             } label: {
                 Label("Choose Photo", systemImage: "photo")
             }

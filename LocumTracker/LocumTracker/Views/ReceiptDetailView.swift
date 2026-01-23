@@ -186,7 +186,14 @@ struct EditReceiptSheet: View {
     @State private var selectedAssignmentId: UUID?
     @State private var imageData: Data?
     @State private var showingCamera = false
-    @State private var showingPhotoLibrary = false
+    @State private var presentedSheet: SheetType?
+
+    /// Sheet types (excluding camera which uses fullScreenCover)
+    enum SheetType: Identifiable {
+        case photoLibrary
+
+        var id: Self { self }
+    }
 
     init(isPresented: Binding<Bool>, receipt: Receipt) {
         self._isPresented = isPresented
@@ -235,8 +242,11 @@ struct EditReceiptSheet: View {
             .fullScreenCover(isPresented: $showingCamera) {
                 ImagePicker(imageData: $imageData, isPresented: $showingCamera, sourceType: .camera)
             }
-            .sheet(isPresented: $showingPhotoLibrary) {
-                ImagePicker(imageData: $imageData, isPresented: $showingPhotoLibrary, sourceType: .photoLibrary)
+            .sheet(item: $presentedSheet) { sheet in
+                switch sheet {
+                case .photoLibrary:
+                    EditPhotoLibraryPicker(imageData: $imageData, presentedSheet: $presentedSheet)
+                }
             }
             #endif
         }
@@ -332,7 +342,7 @@ struct EditReceiptSheet: View {
             }
 
             Button {
-                showingPhotoLibrary = true
+                presentedSheet = .photoLibrary
             } label: {
                 Label("Choose Photo", systemImage: "photo")
             }
@@ -498,6 +508,52 @@ struct ReceiptImageView: View {
         #endif
     }
 }
+
+// MARK: - Edit Photo Library Picker
+
+#if os(iOS)
+/// Photo library picker for EditReceiptSheet with item-based dismissal
+struct EditPhotoLibraryPicker: UIViewControllerRepresentable {
+    @Binding var imageData: Data?
+    @Binding var presentedSheet: EditReceiptSheet.SheetType?
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .photoLibrary
+        picker.delegate = context.coordinator
+        picker.allowsEditing = false
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: EditPhotoLibraryPicker
+
+        init(parent: EditPhotoLibraryPicker) {
+            self.parent = parent
+        }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.imageData = image.jpegData(compressionQuality: 0.7)
+            }
+            parent.presentedSheet = nil
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.presentedSheet = nil
+        }
+    }
+}
+#endif
 
 // MARK: - Helper Functions
 

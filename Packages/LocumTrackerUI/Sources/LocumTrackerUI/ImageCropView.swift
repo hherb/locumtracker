@@ -26,9 +26,6 @@ public struct ImageCropView: View {
     /// Whether auto-detection is in progress
     @State private var isDetecting = true
 
-    /// Size of the displayed image area
-    @State private var imageDisplaySize: CGSize = .zero
-
     /// Minimum crop size as a fraction of the image
     private let minCropFraction: CGFloat = 0.1
 
@@ -47,38 +44,24 @@ public struct ImageCropView: View {
 
     public var body: some View {
         NavigationStack {
-            GeometryReader { _ in
+            GeometryReader { geometry in
+                let imageSize = calculateImageDisplaySize(in: geometry.size)
+
                 ZStack {
                     Color.black.ignoresSafeArea()
 
-                    VStack {
-                        Spacer()
-
-                        ZStack {
-                            // Original image
-                            Image(uiImage: originalImage)
-                                .resizable()
-                                .scaledToFit()
-                                .background(
-                                    GeometryReader { imageGeometry in
-                                        Color.clear
-                                            .onAppear {
-                                                imageDisplaySize = imageGeometry.size
-                                            }
-                                            .onChange(of: imageGeometry.size) { _, newSize in
-                                                imageDisplaySize = newSize
-                                            }
-                                    }
-                                )
-
-                            // Dimmed overlay outside crop area
-                            if imageDisplaySize != .zero {
-                                cropOverlay
-                            }
+                    // Image with crop overlay
+                    Image(uiImage: originalImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: imageSize.width, height: imageSize.height)
+                        .overlay {
+                            cropOverlay(imageSize: imageSize)
                         }
 
+                    // Instructions at bottom
+                    VStack {
                         Spacer()
-
                         if isDetecting {
                             HStack {
                                 ProgressView()
@@ -121,15 +104,43 @@ public struct ImageCropView: View {
         }
     }
 
+    // MARK: - Size Calculation
+
+    /// Calculate the actual displayed size of the image within the available space
+    private func calculateImageDisplaySize(in availableSize: CGSize) -> CGSize {
+        guard availableSize.width > 0, availableSize.height > 0 else { return .zero }
+
+        // Get the actual pixel dimensions accounting for orientation
+        let imageWidth = originalImage.size.width
+        let imageHeight = originalImage.size.height
+
+        guard imageWidth > 0, imageHeight > 0 else { return .zero }
+
+        let imageAspect = imageWidth / imageHeight
+        let availableAspect = availableSize.width / availableSize.height
+
+        if imageAspect > availableAspect {
+            // Image is wider than available space - width is limiting
+            let width = availableSize.width
+            let height = width / imageAspect
+            return CGSize(width: width, height: height)
+        } else {
+            // Image is taller than available space - height is limiting
+            let height = availableSize.height
+            let width = height * imageAspect
+            return CGSize(width: width, height: height)
+        }
+    }
+
     // MARK: - Crop Overlay
 
     @ViewBuilder
-    private var cropOverlay: some View {
+    private func cropOverlay(imageSize: CGSize) -> some View {
         let pixelRect = CGRect(
-            x: cropRect.minX * imageDisplaySize.width,
-            y: cropRect.minY * imageDisplaySize.height,
-            width: cropRect.width * imageDisplaySize.width,
-            height: cropRect.height * imageDisplaySize.height
+            x: cropRect.minX * imageSize.width,
+            y: cropRect.minY * imageSize.height,
+            width: cropRect.width * imageSize.width,
+            height: cropRect.height * imageSize.height
         )
 
         ZStack {
@@ -151,26 +162,26 @@ public struct ImageCropView: View {
                 .allowsHitTesting(false)
 
             // Corner handles
-            cornerHandles(for: pixelRect)
+            cornerHandles(for: pixelRect, imageSize: imageSize)
         }
-        .frame(width: imageDisplaySize.width, height: imageDisplaySize.height)
+        .frame(width: imageSize.width, height: imageSize.height)
         .coordinateSpace(name: "cropArea")
     }
 
     @ViewBuilder
-    private func cornerHandles(for rect: CGRect) -> some View {
+    private func cornerHandles(for rect: CGRect, imageSize: CGSize) -> some View {
         // Top-left
-        cornerHandle(at: CGPoint(x: rect.minX, y: rect.minY), corner: .topLeft)
+        cornerHandle(at: CGPoint(x: rect.minX, y: rect.minY), corner: .topLeft, imageSize: imageSize)
         // Top-right
-        cornerHandle(at: CGPoint(x: rect.maxX, y: rect.minY), corner: .topRight)
+        cornerHandle(at: CGPoint(x: rect.maxX, y: rect.minY), corner: .topRight, imageSize: imageSize)
         // Bottom-left
-        cornerHandle(at: CGPoint(x: rect.minX, y: rect.maxY), corner: .bottomLeft)
+        cornerHandle(at: CGPoint(x: rect.minX, y: rect.maxY), corner: .bottomLeft, imageSize: imageSize)
         // Bottom-right
-        cornerHandle(at: CGPoint(x: rect.maxX, y: rect.maxY), corner: .bottomRight)
+        cornerHandle(at: CGPoint(x: rect.maxX, y: rect.maxY), corner: .bottomRight, imageSize: imageSize)
     }
 
     @ViewBuilder
-    private func cornerHandle(at position: CGPoint, corner: Corner) -> some View {
+    private func cornerHandle(at position: CGPoint, corner: Corner, imageSize: CGSize) -> some View {
         Circle()
             .fill(Color.white)
             .frame(width: handleSize / 2, height: handleSize / 2)
@@ -180,7 +191,7 @@ public struct ImageCropView: View {
             .gesture(
                 DragGesture(coordinateSpace: .named("cropArea"))
                     .onChanged { value in
-                        updateCropRect(for: corner, with: value.location)
+                        updateCropRect(for: corner, with: value.location, imageSize: imageSize)
                     }
             )
     }
@@ -189,11 +200,11 @@ public struct ImageCropView: View {
         case topLeft, topRight, bottomLeft, bottomRight
     }
 
-    private func updateCropRect(for corner: Corner, with location: CGPoint) {
-        guard imageDisplaySize.width > 0, imageDisplaySize.height > 0 else { return }
+    private func updateCropRect(for corner: Corner, with location: CGPoint, imageSize: CGSize) {
+        guard imageSize.width > 0, imageSize.height > 0 else { return }
 
-        let normalizedX = max(0, min(1, location.x / imageDisplaySize.width))
-        let normalizedY = max(0, min(1, location.y / imageDisplaySize.height))
+        let normalizedX = max(0, min(1, location.x / imageSize.width))
+        let normalizedY = max(0, min(1, location.y / imageSize.height))
 
         var newRect = cropRect
 

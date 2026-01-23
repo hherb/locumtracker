@@ -212,8 +212,9 @@ struct EditReceiptSheet: View {
     }
 
     /// Whether the form has valid input for saving
+    /// Allows saving if either: manual entry (amount > 0 and description) OR image exists
     private var isValidInput: Bool {
-        amount > 0 && !receiptDescription.isEmpty
+        imageData != nil || (amount > 0 && !receiptDescription.isEmpty)
     }
 
     var body: some View {

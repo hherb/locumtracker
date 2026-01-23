@@ -607,6 +607,12 @@ public struct OCRResult: Identifiable {
 
     /// Recognition confidence (0-1)
     public let confidence: Float
+
+    public init(text: String, boundingBox: CGRect, confidence: Float) {
+        self.text = text
+        self.boundingBox = boundingBox
+        self.confidence = confidence
+    }
 }
 ```
 

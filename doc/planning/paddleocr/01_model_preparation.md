@@ -67,4 +67,5 @@ Resources/OCRModels/
 
 ---
 
+**Previous:** [OVERVIEW.md](OVERVIEW.md)
 **Next:** [02_project_setup.md](02_project_setup.md) - Configure SPM/CocoaPods and add models to Xcode

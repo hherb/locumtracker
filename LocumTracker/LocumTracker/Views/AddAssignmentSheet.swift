@@ -28,8 +28,15 @@ struct AddAssignmentSheet: View {
     @State private var rateStructure: RateStructure = .dailyRate
     @State private var dailyRate: Double = AssignmentDefaults.dailyRate
     @State private var hourlyRate: Double = AssignmentDefaults.hourlyRate
+    @State private var onCallRate: Double?
+    @State private var callOutRate: Double?
     @State private var startDate = Date()
     @State private var endDate = Date().addingTimeInterval(AssignmentDefaults.defaultDurationDays)
+
+    /// Currently selected location
+    private var selectedLocation: Location? {
+        locations.first { $0.id == selectedLocationId }
+    }
 
     var body: some View {
         NavigationStack {
@@ -58,8 +65,39 @@ struct AddAssignmentSheet: View {
             .onAppear {
                 if selectedLocationId == nil, let firstLocation = locations.first {
                     selectedLocationId = firstLocation.id
+                    applyLocationDefaults(from: firstLocation)
                 }
             }
+            .onChange(of: selectedLocationId) { _, newId in
+                if let newId = newId,
+                   let location = locations.first(where: { $0.id == newId }) {
+                    applyLocationDefaults(from: location)
+                }
+            }
+        }
+    }
+
+    /// Apply default rates from a location to the form fields
+    private func applyLocationDefaults(from location: Location) {
+        // Apply daily rate if available
+        if let defaultDaily = location.defaultDailyRate {
+            dailyRate = defaultDaily
+        }
+
+        // Apply hourly rate if available
+        if let defaultHourly = location.defaultHourlyRate {
+            hourlyRate = defaultHourly
+        }
+
+        // Apply on-call and call-out rates if available
+        onCallRate = location.defaultOnCallRate
+        callOutRate = location.defaultCallOutRate
+
+        // Set rate structure based on which defaults are available
+        if location.defaultDailyRate != nil {
+            rateStructure = .dailyRate
+        } else if location.defaultHourlyRate != nil {
+            rateStructure = .hourlyRate
         }
     }
 
@@ -90,6 +128,14 @@ struct AddAssignmentSheet: View {
                 rateInputRow(label: "Daily Rate", value: $dailyRate, identifier: "dailyRateField")
             } else {
                 rateInputRow(label: "Hourly Rate", value: $hourlyRate, identifier: "hourlyRateField")
+                optionalRateInputRow(label: "On-Call Rate", value: $onCallRate, identifier: "onCallRateField")
+                optionalRateInputRow(label: "Call-Out Rate", value: $callOutRate, identifier: "callOutRateField")
+            }
+
+            if selectedLocation?.hasDefaultRates == true {
+                Text("Rates pre-filled from location defaults")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -122,6 +168,25 @@ struct AddAssignmentSheet: View {
         }
     }
 
+    /// Creates a row for optional rate input with currency formatting
+    /// - Parameters:
+    ///   - label: The label text for the row
+    ///   - value: Binding to the optional rate value
+    ///   - identifier: Accessibility identifier for the text field
+    /// - Returns: A view containing the label and text field
+    private func optionalRateInputRow(label: String, value: Binding<Double?>, identifier: String) -> some View {
+        HStack {
+            Text(label)
+            Spacer()
+            TextField("Optional", value: value, format: .currency(code: CurrencyDefaults.currencyCode))
+                .multilineTextAlignment(.trailing)
+                .accessibilityIdentifier(identifier)
+                #if os(iOS)
+                .keyboardType(.decimalPad)
+                #endif
+        }
+    }
+
     // MARK: - Actions
 
     private func saveAssignment() {
@@ -132,6 +197,8 @@ struct AddAssignmentSheet: View {
             rateStructure: rateStructure,
             dailyRate: rateStructure == .dailyRate ? dailyRate : nil,
             hourlyRate: rateStructure == .hourlyRate ? hourlyRate : nil,
+            onCallRate: rateStructure == .hourlyRate ? onCallRate : nil,
+            callOutRate: rateStructure == .hourlyRate ? callOutRate : nil,
             startDate: startDate,
             endDate: endDate
         )

@@ -29,6 +29,7 @@ struct SessionListView: View {
     let location: Location?
 
     @State private var showingAddSession = false
+    @State private var showingAddCallout = false
 
     init(assignment: Assignment, location: Location?) {
         self.assignment = assignment
@@ -59,6 +60,8 @@ struct SessionListView: View {
             } else {
                 ForEach(dailyRecords) { record in
                     Section {
+                        DailyRecordRowView(record: record)
+
                         if let recordSessions = sessionsByRecord[record.id], !recordSessions.isEmpty {
                             ForEach(recordSessions) { session in
                                 SessionRowView(session: session)
@@ -83,16 +86,34 @@ struct SessionListView: View {
         #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showingAddSession = true
+                Menu {
+                    Button {
+                        showingAddSession = true
+                    } label: {
+                        Label("Add Session", systemImage: "clock")
+                    }
+
+                    Button {
+                        showingAddCallout = true
+                    } label: {
+                        Label("Log Call-Out", systemImage: "phone.arrow.up.right")
+                    }
                 } label: {
-                    Label("Add Session", systemImage: "plus")
+                    Label("Add", systemImage: "plus")
                 }
             }
         }
         .sheet(isPresented: $showingAddSession) {
             AddSessionSheet(
                 isPresented: $showingAddSession,
+                assignment: assignment,
+                mmmClassification: location?.mmmClassification ?? 1,
+                location: location
+            )
+        }
+        .sheet(isPresented: $showingAddCallout) {
+            AddCalloutSheet(
+                isPresented: $showingAddCallout,
                 assignment: assignment,
                 mmmClassification: location?.mmmClassification ?? 1
             )
@@ -221,16 +242,44 @@ struct SessionRowView: View {
 // MARK: - Daily Record Header View
 
 struct DailyRecordHeaderView: View {
-    let record: DailyRecord
+    @Bindable var record: DailyRecord
 
     var body: some View {
         HStack {
             Text(record.date, style: .date)
+
+            if record.wasOnCall {
+                Image(systemName: "phone.circle.fill")
+                    .foregroundStyle(.orange)
+                    .font(.caption)
+                    .accessibilityLabel("On call")
+            }
+
             Spacer()
+
             if record.totalEarnings > 0 {
                 Text(CurrencyFormatter.format(record.totalEarnings))
                     .fontWeight(.medium)
             }
+        }
+    }
+}
+
+// MARK: - Daily Record Row View (with on-call toggle)
+
+struct DailyRecordRowView: View {
+    @Bindable var record: DailyRecord
+
+    var body: some View {
+        Toggle(isOn: $record.wasOnCall) {
+            HStack {
+                Image(systemName: "phone.circle")
+                    .foregroundStyle(.orange)
+                Text("On Call")
+            }
+        }
+        .onChange(of: record.wasOnCall) { _, _ in
+            record.updatedAt = Date()
         }
     }
 }

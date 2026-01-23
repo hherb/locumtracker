@@ -1,3 +1,4 @@
+// swift-tools-version: 5.9
 // LocumTracker
 // Copyright (C) 2025 Dr Horst Herb
 //
@@ -14,7 +15,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// swift-tools-version: 5.9
 import PackageDescription
 
 let package = Package(

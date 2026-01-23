@@ -29,11 +29,15 @@ public final class DailyRecord {
     public var createdAt: Date = Date()
     public var updatedAt: Date = Date()
 
+    /// Whether the doctor was on call this day (separate from actual call-out sessions)
+    public var wasOnCall: Bool = false
+
     public init(
         id: UUID = UUID(),
         assignmentId: UUID,
         date: Date,
-        notes: String? = nil
+        notes: String? = nil,
+        wasOnCall: Bool = false
     ) {
         self.id = id
         self.assignmentId = assignmentId
@@ -43,6 +47,7 @@ public final class DailyRecord {
         self.notes = notes
         self.createdAt = Date()
         self.updatedAt = Date()
+        self.wasOnCall = wasOnCall
     }
 }
 

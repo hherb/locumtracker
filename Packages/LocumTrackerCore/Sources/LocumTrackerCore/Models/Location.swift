@@ -59,6 +59,34 @@ public final class Location {
     public var createdAt: Date = Date()
     public var updatedAt: Date = Date()
 
+    // MARK: - Default Rates
+
+    /// Default daily rate for assignments at this location
+    public var defaultDailyRate: Double?
+    /// Default hourly rate for assignments at this location
+    public var defaultHourlyRate: Double?
+    /// Default on-call rate for assignments at this location
+    public var defaultOnCallRate: Double?
+    /// Default call-out rate for assignments at this location
+    public var defaultCallOutRate: Double?
+
+    // MARK: - Default Session Templates
+
+    /// JSON-encoded default session templates (stored as Data for SwiftData compatibility)
+    public var defaultSessionTemplatesJSON: Data?
+
+    /// Default session templates for this location.
+    /// These define typical work sessions that can be pre-populated when creating daily records.
+    public var defaultSessionTemplates: [DefaultSessionTemplate] {
+        get {
+            guard let data = defaultSessionTemplatesJSON else { return [] }
+            return (try? JSONDecoder().decode([DefaultSessionTemplate].self, from: data)) ?? []
+        }
+        set {
+            defaultSessionTemplatesJSON = try? JSONEncoder().encode(newValue)
+        }
+    }
+
     public init(
         id: UUID = UUID(),
         name: String,
@@ -66,7 +94,12 @@ public final class Location {
         mmmClassification: Int,
         latitude: Double? = nil,
         longitude: Double? = nil,
-        effectiveFrom: Date = Date()
+        effectiveFrom: Date = Date(),
+        defaultDailyRate: Double? = nil,
+        defaultHourlyRate: Double? = nil,
+        defaultOnCallRate: Double? = nil,
+        defaultCallOutRate: Double? = nil,
+        defaultSessionTemplates: [DefaultSessionTemplate] = []
     ) {
         self.id = id
         self.name = name
@@ -78,6 +111,13 @@ public final class Location {
         self.effectiveTo = nil
         self.createdAt = Date()
         self.updatedAt = Date()
+        self.defaultDailyRate = defaultDailyRate
+        self.defaultHourlyRate = defaultHourlyRate
+        self.defaultOnCallRate = defaultOnCallRate
+        self.defaultCallOutRate = defaultCallOutRate
+        if !defaultSessionTemplates.isEmpty {
+            self.defaultSessionTemplatesJSON = try? JSONEncoder().encode(defaultSessionTemplates)
+        }
     }
 
     /// Determines if this location is eligible for rural subsidy (MMM 3-7)
@@ -88,5 +128,15 @@ public final class Location {
     /// Returns the MMM classification as a descriptive string
     public var mmmClassificationDescription: String {
         MMMClassification(rawValue: mmmClassification)?.description ?? "Unknown"
+    }
+
+    /// Whether this location has any default rates configured
+    public var hasDefaultRates: Bool {
+        defaultDailyRate != nil || defaultHourlyRate != nil
+    }
+
+    /// Whether this location has default session templates configured
+    public var hasDefaultSessionTemplates: Bool {
+        !defaultSessionTemplates.isEmpty
     }
 }

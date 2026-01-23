@@ -36,6 +36,8 @@ struct LocationDetailView: View {
     var body: some View {
         List {
             detailsSection
+            defaultRatesSection
+            defaultSessionsSection
             subsidySection
             assignmentsSection
             actionsSection
@@ -86,6 +88,59 @@ struct LocationDetailView: View {
                 Text("MMM Classification")
                 Spacer()
                 MMMBadge(classification: location.mmmClassification)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var defaultRatesSection: some View {
+        if location.hasDefaultRates {
+            Section("Default Rates") {
+                if let dailyRate = location.defaultDailyRate {
+                    LabeledContent("Daily Rate") {
+                        Text(CurrencyFormatter.format(dailyRate))
+                    }
+                }
+                if let hourlyRate = location.defaultHourlyRate {
+                    LabeledContent("Hourly Rate") {
+                        Text(CurrencyFormatter.format(hourlyRate) + "/hr")
+                    }
+                }
+                if let onCallRate = location.defaultOnCallRate {
+                    LabeledContent("On-Call Rate") {
+                        Text(CurrencyFormatter.format(onCallRate) + "/hr")
+                    }
+                }
+                if let callOutRate = location.defaultCallOutRate {
+                    LabeledContent("Call-Out Rate") {
+                        Text(CurrencyFormatter.format(callOutRate) + "/hr")
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var defaultSessionsSection: some View {
+        if location.hasDefaultSessionTemplates {
+            Section("Default Sessions") {
+                ForEach(location.defaultSessionTemplates) { template in
+                    HStack {
+                        if let label = template.label {
+                            Text(label)
+                                .fontWeight(.medium)
+                        } else {
+                            Text("Session")
+                                .fontWeight(.medium)
+                        }
+                        Spacer()
+                        Text(template.timeRangeFormatted)
+                            .foregroundStyle(.secondary)
+                        Text("(\(String(format: "%.1f", template.durationHours))h)")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                }
             }
         }
     }
@@ -192,12 +247,30 @@ struct EditLocationSheet: View {
     @State private var address: String
     @State private var mmmClassification: Int
 
+    // Default rates
+    @State private var defaultDailyRate: String
+    @State private var defaultHourlyRate: String
+    @State private var defaultOnCallRate: String
+    @State private var defaultCallOutRate: String
+
+    // Default session templates
+    @State private var defaultSessionTemplates: [DefaultSessionTemplate]
+    @State private var showingAddSessionTemplate = false
+
     init(isPresented: Binding<Bool>, location: Location) {
         self._isPresented = isPresented
         self.location = location
         _name = State(initialValue: location.name)
         _address = State(initialValue: location.address)
         _mmmClassification = State(initialValue: location.mmmClassification)
+
+        // Initialize rates from location (convert Double? to String)
+        _defaultDailyRate = State(initialValue: location.defaultDailyRate.map { String($0) } ?? "")
+        _defaultHourlyRate = State(initialValue: location.defaultHourlyRate.map { String($0) } ?? "")
+        _defaultOnCallRate = State(initialValue: location.defaultOnCallRate.map { String($0) } ?? "")
+        _defaultCallOutRate = State(initialValue: location.defaultCallOutRate.map { String($0) } ?? "")
+
+        _defaultSessionTemplates = State(initialValue: location.defaultSessionTemplates)
     }
 
     var body: some View {
@@ -218,6 +291,9 @@ struct EditLocationSheet: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+
+                defaultRatesSection
+                defaultSessionsSection
             }
             .navigationTitle("Edit Location")
             #if os(iOS)
@@ -236,6 +312,94 @@ struct EditLocationSheet: View {
                     .disabled(name.isEmpty)
                 }
             }
+            .sheet(isPresented: $showingAddSessionTemplate) {
+                EditAddSessionTemplateSheet(
+                    isPresented: $showingAddSessionTemplate,
+                    templates: $defaultSessionTemplates
+                )
+            }
+        }
+    }
+
+    // MARK: - Default Rates Section
+
+    private var defaultRatesSection: some View {
+        Section {
+            HStack {
+                Text("Daily Rate")
+                Spacer()
+                TextField("Optional", text: $defaultDailyRate)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 100)
+                Text("$")
+                    .foregroundStyle(.secondary)
+            }
+            HStack {
+                Text("Hourly Rate")
+                Spacer()
+                TextField("Optional", text: $defaultHourlyRate)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 100)
+                Text("$/hr")
+                    .foregroundStyle(.secondary)
+            }
+            HStack {
+                Text("On-Call Rate")
+                Spacer()
+                TextField("Optional", text: $defaultOnCallRate)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 100)
+                Text("$/hr")
+                    .foregroundStyle(.secondary)
+            }
+            HStack {
+                Text("Call-Out Rate")
+                Spacer()
+                TextField("Optional", text: $defaultCallOutRate)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 100)
+                Text("$/hr")
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Default Rates")
+        } footer: {
+            Text("These rates will be used as defaults when creating assignments at this location.")
+        }
+    }
+
+    // MARK: - Default Sessions Section
+
+    private var defaultSessionsSection: some View {
+        Section {
+            ForEach(defaultSessionTemplates) { template in
+                HStack {
+                    if let label = template.label {
+                        Text(label)
+                            .fontWeight(.medium)
+                    }
+                    Spacer()
+                    Text(template.timeRangeFormatted)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .onDelete { indexSet in
+                defaultSessionTemplates.remove(atOffsets: indexSet)
+            }
+
+            Button {
+                showingAddSessionTemplate = true
+            } label: {
+                Label("Add Session", systemImage: "plus.circle")
+            }
+        } header: {
+            Text("Default Sessions")
+        } footer: {
+            Text("Default sessions will be pre-filled when recording a work day at this location.")
         }
     }
 
@@ -259,7 +423,105 @@ struct EditLocationSheet: View {
         location.name = name
         location.address = address
         location.mmmClassification = mmmClassification
+
+        // Update rates
+        location.defaultDailyRate = Double(defaultDailyRate)
+        location.defaultHourlyRate = Double(defaultHourlyRate)
+        location.defaultOnCallRate = Double(defaultOnCallRate)
+        location.defaultCallOutRate = Double(defaultCallOutRate)
+
+        // Update session templates
+        location.defaultSessionTemplates = defaultSessionTemplates
+
         location.updatedAt = Date()
+        isPresented = false
+    }
+}
+
+/// Sheet for adding a new session template (used from EditLocationSheet)
+private struct EditAddSessionTemplateSheet: View {
+    @Binding var isPresented: Bool
+    @Binding var templates: [DefaultSessionTemplate]
+
+    @State private var label: String = ""
+    @State private var startTime: Date = Calendar.current.date(
+        bySettingHour: 8, minute: 0, second: 0, of: Date()
+    ) ?? Date()
+    @State private var endTime: Date = Calendar.current.date(
+        bySettingHour: 12, minute: 0, second: 0, of: Date()
+    ) ?? Date()
+
+    private var duration: TimeInterval {
+        endTime.timeIntervalSince(startTime)
+    }
+
+    private var isValidDuration: Bool {
+        duration > 0
+    }
+
+    private var durationText: String {
+        guard isValidDuration else { return "Invalid" }
+        let hours = Int(duration) / 3600
+        let minutes = (Int(duration) % 3600) / 60
+        if hours > 0 && minutes > 0 {
+            return "\(hours)h \(minutes)m"
+        } else if hours > 0 {
+            return "\(hours)h"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Session Details") {
+                    TextField("Label (optional)", text: $label)
+                }
+
+                Section("Time") {
+                    DatePicker("Start Time", selection: $startTime, displayedComponents: .hourAndMinute)
+                    DatePicker("End Time", selection: $endTime, displayedComponents: .hourAndMinute)
+                    LabeledContent("Duration") {
+                        Text(durationText)
+                            .foregroundStyle(isValidDuration ? Color.primary : Color.red)
+                    }
+                }
+            }
+            .navigationTitle("Add Session Template")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        isPresented = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        addTemplate()
+                    }
+                    .disabled(!isValidDuration)
+                }
+            }
+        }
+    }
+
+    private func addTemplate() {
+        let calendar = Calendar.current
+        let startComponents = calendar.dateComponents([.hour, .minute], from: startTime)
+        let endComponents = calendar.dateComponents([.hour, .minute], from: endTime)
+
+        let template = DefaultSessionTemplate(
+            startHour: startComponents.hour ?? 8,
+            startMinute: startComponents.minute ?? 0,
+            endHour: endComponents.hour ?? 12,
+            endMinute: endComponents.minute ?? 0,
+            label: label.isEmpty ? nil : label
+        )
+
+        templates.append(template)
         isPresented = false
     }
 }

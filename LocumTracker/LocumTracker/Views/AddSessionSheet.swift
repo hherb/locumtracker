@@ -26,6 +26,7 @@ struct AddSessionSheet: View {
     @Binding var isPresented: Bool
     let assignment: Assignment
     let mmmClassification: Int
+    let location: Location?
 
     @State private var sessionDate: Date
     @State private var startTime: Date
@@ -34,17 +35,41 @@ struct AddSessionSheet: View {
     @State private var travelMinutes: Int = 0
     @State private var notes: String = ""
 
-    init(isPresented: Binding<Bool>, assignment: Assignment, mmmClassification: Int) {
+    // Track which template is selected (if any)
+    @State private var selectedTemplateIndex: Int?
+
+    init(isPresented: Binding<Bool>, assignment: Assignment, mmmClassification: Int, location: Location? = nil) {
         self._isPresented = isPresented
         self.assignment = assignment
         self.mmmClassification = mmmClassification
+        self.location = location
 
-        // Initialize with sensible defaults
+        // Initialize with sensible defaults or first template
         let now = Date()
         let calendar = Calendar.current
         _sessionDate = State(initialValue: now)
-        _startTime = State(initialValue: calendar.date(bySettingHour: 8, minute: 0, second: 0, of: now) ?? now)
-        _endTime = State(initialValue: calendar.date(bySettingHour: 17, minute: 0, second: 0, of: now) ?? now)
+
+        // Use first default session template if available
+        if let location = location,
+           let firstTemplate = location.defaultSessionTemplates.first {
+            _startTime = State(initialValue: calendar.date(
+                bySettingHour: firstTemplate.startHour,
+                minute: firstTemplate.startMinute,
+                second: 0,
+                of: now
+            ) ?? now)
+            _endTime = State(initialValue: calendar.date(
+                bySettingHour: firstTemplate.endHour,
+                minute: firstTemplate.endMinute,
+                second: 0,
+                of: now
+            ) ?? now)
+            _selectedTemplateIndex = State(initialValue: 0)
+        } else {
+            _startTime = State(initialValue: calendar.date(bySettingHour: 8, minute: 0, second: 0, of: now) ?? now)
+            _endTime = State(initialValue: calendar.date(bySettingHour: 17, minute: 0, second: 0, of: now) ?? now)
+            _selectedTemplateIndex = State(initialValue: nil)
+        }
 
         // Filter daily records for this assignment
         let assignmentId = assignment.id
@@ -79,10 +104,18 @@ struct AddSessionSheet: View {
         }
     }
 
+    /// Available session templates from location
+    private var sessionTemplates: [DefaultSessionTemplate] {
+        location?.defaultSessionTemplates ?? []
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 dateSection
+                if !sessionTemplates.isEmpty {
+                    templateSection
+                }
                 timeSection
                 sessionTypeSection
                 travelSection
@@ -119,6 +152,59 @@ struct AddSessionSheet: View {
                 displayedComponents: .date
             )
         }
+    }
+
+    private var templateSection: some View {
+        Section {
+            ForEach(Array(sessionTemplates.enumerated()), id: \.element.id) { index, template in
+                Button {
+                    applyTemplate(template, at: index)
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            if let label = template.label {
+                                Text(label)
+                                    .fontWeight(.medium)
+                            }
+                            Text(template.timeRangeFormatted)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if selectedTemplateIndex == index {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.blue)
+                        }
+                    }
+                }
+                .foregroundStyle(.primary)
+            }
+        } header: {
+            Text("Default Sessions")
+        } footer: {
+            Text("Tap a session to apply its times")
+        }
+    }
+
+    private func applyTemplate(_ template: DefaultSessionTemplate, at index: Int) {
+        let calendar = Calendar.current
+        let now = Date()
+
+        startTime = calendar.date(
+            bySettingHour: template.startHour,
+            minute: template.startMinute,
+            second: 0,
+            of: now
+        ) ?? now
+
+        endTime = calendar.date(
+            bySettingHour: template.endHour,
+            minute: template.endMinute,
+            second: 0,
+            of: now
+        ) ?? now
+
+        selectedTemplateIndex = index
     }
 
     private var timeSection: some View {

@@ -237,11 +237,17 @@ struct ReceiptRowView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
-                    if receipt.hasImage {
-                        Image(systemName: "paperclip")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .accessibilityHidden(true)
+                    if receipt.hasAttachments {
+                        HStack(spacing: 2) {
+                            Image(systemName: "paperclip")
+                                .font(.caption2)
+                            if receipt.attachmentCount > 1 {
+                                Text("\(receipt.attachmentCount)")
+                                    .font(.caption2)
+                            }
+                        }
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("\(receipt.attachmentCount) attachment\(receipt.attachmentCount == 1 ? "" : "s")")
                     }
                 }
             }
@@ -274,7 +280,14 @@ struct ReceiptRowView: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         let dateString = formatter.string(from: receipt.date)
-        let attachmentInfo = receipt.hasImage ? ", has attachment" : ""
+        let attachmentInfo: String
+        if receipt.attachmentCount > 1 {
+            attachmentInfo = ", \(receipt.attachmentCount) attachments"
+        } else if receipt.hasAttachments {
+            attachmentInfo = ", has attachment"
+        } else {
+            attachmentInfo = ""
+        }
         return "\(receipt.receiptDescription), \(receipt.category.description), \(CurrencyFormatter.format(receipt.amount)), \(dateString)\(attachmentInfo)"
     }
 }

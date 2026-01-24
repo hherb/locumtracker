@@ -75,6 +75,24 @@ public extension ExpenseCategory {
     }
 }
 
+// MARK: - Session Template Constants
+
+/// Default values for session template creation
+public enum SessionTemplateDefaults {
+    /// Default start hour for new session templates (8 AM)
+    public static let defaultStartHour = 8
+    /// Default end hour for new session templates (12 PM)
+    public static let defaultEndHour = 12
+}
+
+/// Time conversion constants
+public enum TimeConstants {
+    /// Number of seconds in one hour
+    public static let secondsPerHour = 3600
+    /// Number of seconds in one minute
+    public static let secondsPerMinute = 60
+}
+
 // MARK: - MMM Classification Helpers
 
 /// Provides UI colors for Modified Monash Model classifications

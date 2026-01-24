@@ -400,6 +400,9 @@
     "Mark as Completed" : {
 
     },
+    "Medicare" : {
+
+    },
     "MMM Classification" : {
 
     },
@@ -520,6 +523,12 @@
     },
     "Personal Information" : {
       "comment" : "Section header in profile settings"
+    },
+    "Phone" : {
+
+    },
+    "Phone Number" : {
+
     },
     "Please allow camera access in Settings to take receipt photos." : {
 

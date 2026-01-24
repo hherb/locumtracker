@@ -24,9 +24,11 @@ struct LocationDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var location: Location
     @Query private var assignments: [Assignment]
+    @Query(sort: \Location.name) private var allLocations: [Location]
 
     @State private var showingEditSheet = false
     @State private var showingDeleteConfirmation = false
+    @State private var showingAddAssignment = false
 
     /// Assignments at this location
     private var locationAssignments: [Assignment] {
@@ -55,6 +57,13 @@ struct LocationDetailView: View {
         }
         .sheet(isPresented: $showingEditSheet) {
             EditLocationSheet(isPresented: $showingEditSheet, location: location)
+        }
+        .sheet(isPresented: $showingAddAssignment) {
+            AddAssignmentSheet(
+                isPresented: $showingAddAssignment,
+                locations: allLocations,
+                preselectedLocationId: location.id
+            )
         }
         .confirmationDialog(
             "Delete Location",
@@ -228,6 +237,12 @@ struct LocationDetailView: View {
                         StatusBadge(status: assignment.status)
                     }
                 }
+            }
+
+            Button {
+                showingAddAssignment = true
+            } label: {
+                Label("Add Assignment", systemImage: "plus.circle")
             }
         }
     }

@@ -23,6 +23,7 @@ struct AddAssignmentSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var isPresented: Bool
     let locations: [Location]
+    let preselectedLocationId: UUID?
 
     @State private var selectedLocationId: UUID?
     @State private var rateStructure: RateStructure = .dailyRate
@@ -32,6 +33,12 @@ struct AddAssignmentSheet: View {
     @State private var callOutRate: Double?
     @State private var startDate = Date()
     @State private var endDate = Date().addingTimeInterval(AssignmentDefaults.defaultDurationDays)
+
+    init(isPresented: Binding<Bool>, locations: [Location], preselectedLocationId: UUID? = nil) {
+        self._isPresented = isPresented
+        self.locations = locations
+        self.preselectedLocationId = preselectedLocationId
+    }
 
     /// Currently selected location
     private var selectedLocation: Location? {
@@ -63,9 +70,12 @@ struct AddAssignmentSheet: View {
                 }
             }
             .onAppear {
-                if selectedLocationId == nil, let firstLocation = locations.first {
-                    selectedLocationId = firstLocation.id
-                    applyLocationDefaults(from: firstLocation)
+                // Use preselected location if provided, otherwise use first location
+                let initialLocationId = preselectedLocationId ?? locations.first?.id
+                if selectedLocationId == nil, let locationId = initialLocationId,
+                   let location = locations.first(where: { $0.id == locationId }) {
+                    selectedLocationId = locationId
+                    applyLocationDefaults(from: location)
                 }
             }
             .onChange(of: selectedLocationId) { _, newId in

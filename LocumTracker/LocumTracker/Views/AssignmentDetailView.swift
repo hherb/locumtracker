@@ -79,22 +79,26 @@ struct AssignmentDetailView: View {
     private var locationSection: some View {
         Section("Location") {
             if let location = location {
-                VStack(alignment: .leading, spacing: DetailConstants.itemSpacing) {
-                    Text(location.name)
-                        .font(.headline)
-                    Text(location.address)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    HStack {
-                        MMMBadge(classification: location.mmmClassification)
-                        if location.isRuralSubsidyEligible {
-                            Text("Subsidy Eligible")
-                                .font(.caption)
-                                .foregroundStyle(.green)
+                NavigationLink {
+                    LocationDetailView(location: location)
+                } label: {
+                    VStack(alignment: .leading, spacing: DetailConstants.itemSpacing) {
+                        Text(location.name)
+                            .font(.headline)
+                        Text(location.address)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        HStack {
+                            MMMBadge(classification: location.mmmClassification)
+                            if location.isRuralSubsidyEligible {
+                                Text("Subsidy Eligible")
+                                    .font(.caption)
+                                    .foregroundStyle(.green)
+                            }
                         }
                     }
+                    .padding(.vertical, DetailConstants.sectionVerticalPadding)
                 }
-                .padding(.vertical, DetailConstants.sectionVerticalPadding)
             } else {
                 Text("Unknown Location")
                     .foregroundStyle(.secondary)

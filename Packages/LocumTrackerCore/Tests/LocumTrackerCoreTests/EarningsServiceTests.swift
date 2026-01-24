@@ -85,4 +85,178 @@ final class EarningsServiceTests: XCTestCase {
     func testDefaultCallOutPercentage() {
         XCTAssertEqual(EarningsService.defaultCallOutPercentage, 0.50)
     }
+
+    // MARK: - Daily Earnings Calculation Tests
+
+    func testCalculateDailyEarnings_DailyRate_WithSessions() {
+        // Daily rate: any session logged counts as full day
+        let sessions: [(type: SessionType, durationHours: Double)] = [
+            (.regular, 4.0),
+            (.regular, 4.0)
+        ]
+
+        let earnings = EarningsService.calculateDailyEarnings(
+            rateStructure: .dailyRate,
+            dailyRate: 1500.0,
+            hourlyRate: nil,
+            onCallRate: nil,
+            callOutRate: nil,
+            sessions: sessions
+        )
+
+        XCTAssertEqual(earnings, 1500.0, "Daily rate should be full amount regardless of session count")
+    }
+
+    func testCalculateDailyEarnings_DailyRate_SingleSession() {
+        // Even a single session counts as full day for daily rate
+        let sessions: [(type: SessionType, durationHours: Double)] = [
+            (.regular, 2.0)
+        ]
+
+        let earnings = EarningsService.calculateDailyEarnings(
+            rateStructure: .dailyRate,
+            dailyRate: 1500.0,
+            hourlyRate: nil,
+            onCallRate: nil,
+            callOutRate: nil,
+            sessions: sessions
+        )
+
+        XCTAssertEqual(earnings, 1500.0, "Single session should earn full daily rate")
+    }
+
+    func testCalculateDailyEarnings_DailyRate_NoSessions() {
+        let sessions: [(type: SessionType, durationHours: Double)] = []
+
+        let earnings = EarningsService.calculateDailyEarnings(
+            rateStructure: .dailyRate,
+            dailyRate: 1500.0,
+            hourlyRate: nil,
+            onCallRate: nil,
+            callOutRate: nil,
+            sessions: sessions
+        )
+
+        XCTAssertEqual(earnings, 0.0, "No sessions should mean zero earnings")
+    }
+
+    func testCalculateDailyEarnings_HourlyRate_RegularSessions() {
+        let sessions: [(type: SessionType, durationHours: Double)] = [
+            (.regular, 4.0),
+            (.regular, 4.0)
+        ]
+
+        let earnings = EarningsService.calculateDailyEarnings(
+            rateStructure: .hourlyRate,
+            dailyRate: nil,
+            hourlyRate: 150.0,
+            onCallRate: nil,
+            callOutRate: nil,
+            sessions: sessions
+        )
+
+        XCTAssertEqual(earnings, 1200.0, "8 hours at $150/hour = $1200")
+    }
+
+    func testCalculateDailyEarnings_HourlyRate_MixedSessions() {
+        let sessions: [(type: SessionType, durationHours: Double)] = [
+            (.regular, 8.0),    // 8 * 150 = 1200
+            (.onCall, 16.0)     // 16 * (150 * 0.25) = 600
+        ]
+
+        let earnings = EarningsService.calculateDailyEarnings(
+            rateStructure: .hourlyRate,
+            dailyRate: nil,
+            hourlyRate: 150.0,
+            onCallRate: nil,     // Uses default 25%
+            callOutRate: nil,
+            sessions: sessions
+        )
+
+        XCTAssertEqual(earnings, 1800.0, "Regular (1200) + OnCall (600) = $1800")
+    }
+
+    func testCalculateDailyEarnings_HourlyRate_WithExplicitOnCallRate() {
+        let sessions: [(type: SessionType, durationHours: Double)] = [
+            (.onCall, 10.0)
+        ]
+
+        let earnings = EarningsService.calculateDailyEarnings(
+            rateStructure: .hourlyRate,
+            dailyRate: nil,
+            hourlyRate: 150.0,
+            onCallRate: 50.0,    // Explicit $50/hour on-call rate
+            callOutRate: nil,
+            sessions: sessions
+        )
+
+        XCTAssertEqual(earnings, 500.0, "10 hours at $50/hour on-call = $500")
+    }
+
+    func testCalculateDailyEarnings_HourlyRate_CallOutWithExplicitRate() {
+        let sessions: [(type: SessionType, durationHours: Double)] = [
+            (.callOut, 2.0)
+        ]
+
+        let earnings = EarningsService.calculateDailyEarnings(
+            rateStructure: .hourlyRate,
+            dailyRate: nil,
+            hourlyRate: 150.0,
+            onCallRate: nil,
+            callOutRate: 200.0,   // Flat $200 per call-out
+            sessions: sessions
+        )
+
+        XCTAssertEqual(earnings, 200.0, "Call-out should be flat rate")
+    }
+
+    func testCalculateDailyEarnings_HourlyRate_CallOutFallback() {
+        // When no explicit call-out rate, use 50% of hourly * duration
+        let sessions: [(type: SessionType, durationHours: Double)] = [
+            (.callOut, 2.0)
+        ]
+
+        let earnings = EarningsService.calculateDailyEarnings(
+            rateStructure: .hourlyRate,
+            dailyRate: nil,
+            hourlyRate: 150.0,
+            onCallRate: nil,
+            callOutRate: nil,
+            sessions: sessions
+        )
+
+        XCTAssertEqual(earnings, 150.0, "2 hours at 50% of $150 = $150")
+    }
+
+    func testCalculateDailyEarnings_HourlyRate_NoSessions() {
+        let sessions: [(type: SessionType, durationHours: Double)] = []
+
+        let earnings = EarningsService.calculateDailyEarnings(
+            rateStructure: .hourlyRate,
+            dailyRate: nil,
+            hourlyRate: 150.0,
+            onCallRate: nil,
+            callOutRate: nil,
+            sessions: sessions
+        )
+
+        XCTAssertEqual(earnings, 0.0, "No sessions should mean zero earnings")
+    }
+
+    func testCalculateDailyEarnings_HourlyRate_MissingRate() {
+        let sessions: [(type: SessionType, durationHours: Double)] = [
+            (.regular, 8.0)
+        ]
+
+        let earnings = EarningsService.calculateDailyEarnings(
+            rateStructure: .hourlyRate,
+            dailyRate: nil,
+            hourlyRate: nil,     // Missing hourly rate
+            onCallRate: nil,
+            callOutRate: nil,
+            sessions: sessions
+        )
+
+        XCTAssertEqual(earnings, 0.0, "Missing hourly rate should result in zero earnings")
+    }
 }

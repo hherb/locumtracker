@@ -66,4 +66,63 @@ public struct EarningsService {
     public static func calculateCallOutEarnings(callOutRate: Double, occurrences: Int) -> Double {
         callOutRate * Double(occurrences)
     }
+
+    /// Calculates total daily earnings based on assignment rate structure and sessions
+    ///
+    /// For daily rate assignments: If any sessions are logged, the full daily rate is earned.
+    /// For hourly rate assignments: Earnings are calculated per session based on type and duration.
+    ///
+    /// - Parameters:
+    ///   - rateStructure: The assignment's rate structure (daily or hourly)
+    ///   - dailyRate: Daily rate (used if rateStructure is dailyRate)
+    ///   - hourlyRate: Hourly rate (used if rateStructure is hourlyRate)
+    ///   - onCallRate: Optional explicit on-call rate (defaults to 25% of hourly if nil)
+    ///   - callOutRate: Rate per call-out occurrence
+    ///   - sessions: Array of session data (type and duration in hours)
+    /// - Returns: Total earnings for the day
+    public static func calculateDailyEarnings(
+        rateStructure: RateStructure,
+        dailyRate: Double?,
+        hourlyRate: Double?,
+        onCallRate: Double?,
+        callOutRate: Double?,
+        sessions: [(type: SessionType, durationHours: Double)]
+    ) -> Double {
+        guard !sessions.isEmpty else { return 0 }
+
+        switch rateStructure {
+        case .dailyRate:
+            // Daily rate: any session logged counts as a full day worked
+            return dailyRate ?? 0
+
+        case .hourlyRate:
+            guard let baseRate = hourlyRate else { return 0 }
+
+            var total: Double = 0
+            for session in sessions {
+                switch session.type {
+                case .regular:
+                    total += calculateHourlyEarnings(
+                        hourlyRate: baseRate,
+                        hoursWorked: session.durationHours
+                    )
+                case .onCall:
+                    total += calculateOnCallEarnings(
+                        baseHourlyRate: baseRate,
+                        onCallRate: onCallRate,
+                        hours: session.durationHours
+                    )
+                case .callOut:
+                    // Call-outs are typically a flat rate per occurrence, not hourly
+                    if let rate = callOutRate {
+                        total += rate
+                    } else {
+                        // Fallback: use call-out percentage of base rate × hours
+                        total += baseRate * defaultCallOutPercentage * session.durationHours
+                    }
+                }
+            }
+            return total
+        }
+    }
 }

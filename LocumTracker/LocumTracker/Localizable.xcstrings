@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "(%@h)" : {
+
+    },
     "(capped)" : {
 
     },
@@ -75,6 +78,9 @@
     "$" : {
 
     },
+    "$/hr" : {
+
+    },
     "$0" : {
 
     },
@@ -110,6 +116,9 @@
     },
     "Add Session" : {
       "comment" : "Navigation title for add session sheet"
+    },
+    "Add Session Template" : {
+
     },
     "Add your first assignment to get started." : {
 
@@ -171,6 +180,9 @@
     "Call-Out Rate" : {
 
     },
+    "Called Out" : {
+
+    },
     "Camera Access Required" : {
 
     },
@@ -219,6 +231,12 @@
     "Default Rates" : {
       "comment" : "Section header in profile settings"
     },
+    "Default Sessions" : {
+
+    },
+    "Default sessions will be pre-filled when recording a work day at this location." : {
+
+    },
     "Delete" : {
       "comment" : "Button to delete an item"
     },
@@ -258,6 +276,9 @@
     "Edit Receipt" : {
 
     },
+    "Edit Session" : {
+
+    },
     "Effective Hourly Rate" : {
       "comment" : "Label in earnings summary"
     },
@@ -272,6 +293,9 @@
     },
     "Email" : {
       "comment" : "Text field placeholder for email"
+    },
+    "End" : {
+
     },
     "End Date" : {
       "comment" : "Label for end date picker"
@@ -303,6 +327,9 @@
     },
     "Filter" : {
       "comment" : "Filter button label"
+    },
+    "Finished" : {
+
     },
     "First Name" : {
       "comment" : "Text field placeholder for first name"
@@ -337,6 +364,9 @@
     "Invalid ABN - please check the number" : {
       "comment" : "ABN validation message for invalid checksum"
     },
+    "Label (optional)" : {
+
+    },
     "Last Name" : {
       "comment" : "Text field placeholder for last name"
     },
@@ -356,6 +386,9 @@
 
     },
     "LocumTracker Settings" : {
+
+    },
+    "Log Call-Out" : {
 
     },
     "Manage Locations" : {
@@ -455,6 +488,12 @@
     "OK" : {
       "comment" : "Generic OK button"
     },
+    "On call" : {
+
+    },
+    "On Call" : {
+
+    },
     "On-Call Rate" : {
 
     },
@@ -467,7 +506,13 @@
     "Open Settings" : {
 
     },
+    "Optional" : {
+
+    },
     "Optional notes" : {
+
+    },
+    "Overnight call-out" : {
 
     },
     "Period" : {
@@ -518,6 +563,9 @@
     "Rates" : {
 
     },
+    "Rates pre-filled from location defaults" : {
+
+    },
     "Receipt Details" : {
 
     },
@@ -560,7 +608,13 @@
     "Select an assignment" : {
 
     },
+    "Session" : {
+
+    },
     "Session Date" : {
+
+    },
+    "Session Details" : {
 
     },
     "Session Type" : {
@@ -586,6 +640,9 @@
     },
     "Specialty" : {
       "comment" : "Text field placeholder for medical specialty"
+    },
+    "Start" : {
+
     },
     "Start Date" : {
       "comment" : "Label for start date picker"
@@ -620,6 +677,9 @@
     "Take Photo" : {
 
     },
+    "Tap a session to apply its times" : {
+
+    },
     "Tax Deductible" : {
 
     },
@@ -627,6 +687,9 @@
 
     },
     "These rates will be suggested when creating new assignments" : {
+
+    },
+    "These rates will be used as defaults when creating assignments at this location." : {
 
     },
     "This location has %lld assignment(s). Deleting it will remove the location reference from those assignments." : {

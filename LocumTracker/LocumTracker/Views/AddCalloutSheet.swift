@@ -175,6 +175,14 @@ struct AddCalloutSheet: View {
         }
 
         modelContext.insert(session)
+
+        // Recalculate daily earnings after adding the call-out
+        EarningsCalculator.recalculateEarnings(
+            for: dailyRecord,
+            assignment: assignment,
+            in: modelContext
+        )
+
         isPresented = false
     }
 

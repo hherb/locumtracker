@@ -18,58 +18,36 @@ import SwiftUI
 import SwiftData
 import LocumTrackerCore
 
-/// Sheet view for adding a new work session
-struct AddSessionSheet: View {
+/// Sheet view for editing an existing work session
+struct EditSessionSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var dailyRecords: [DailyRecord]
 
     @Binding var isPresented: Bool
+    @Bindable var session: Session
     let assignment: Assignment
-    let mmmClassification: Int
     let location: Location?
 
     @State private var sessionDate: Date
     @State private var startTime: Date
     @State private var endTime: Date
-    @State private var sessionType: SessionType = .regular
-    @State private var travelMinutes: Int = 0
-    @State private var notes: String = ""
+    @State private var sessionType: SessionType
+    @State private var travelMinutes: Int
+    @State private var notes: String
 
-    // Track which template is selected (if any)
-    @State private var selectedTemplateIndex: Int?
-
-    init(isPresented: Binding<Bool>, assignment: Assignment, mmmClassification: Int, location: Location? = nil) {
+    init(isPresented: Binding<Bool>, session: Session, assignment: Assignment, location: Location? = nil) {
         self._isPresented = isPresented
+        self.session = session
         self.assignment = assignment
-        self.mmmClassification = mmmClassification
         self.location = location
 
-        // Initialize with sensible defaults or first template
-        let now = Date()
-        let calendar = Calendar.current
-        _sessionDate = State(initialValue: now)
-
-        // Use first default session template if available
-        if let location = location,
-           let firstTemplate = location.defaultSessionTemplates.first {
-            _startTime = State(initialValue: calendar.date(
-                bySettingHour: firstTemplate.startHour,
-                minute: firstTemplate.startMinute,
-                second: 0,
-                of: now
-            ) ?? now)
-            _endTime = State(initialValue: calendar.date(
-                bySettingHour: firstTemplate.endHour,
-                minute: firstTemplate.endMinute,
-                second: 0,
-                of: now
-            ) ?? now)
-            _selectedTemplateIndex = State(initialValue: 0)
-        } else {
-            _startTime = State(initialValue: calendar.date(bySettingHour: 8, minute: 0, second: 0, of: now) ?? now)
-            _endTime = State(initialValue: calendar.date(bySettingHour: 17, minute: 0, second: 0, of: now) ?? now)
-            _selectedTemplateIndex = State(initialValue: nil)
-        }
+        // Initialize state from existing session
+        _sessionDate = State(initialValue: session.startTime)
+        _startTime = State(initialValue: session.startTime)
+        _endTime = State(initialValue: session.endTime)
+        _sessionType = State(initialValue: session.sessionType)
+        _travelMinutes = State(initialValue: Int((session.travelTime ?? 0) / 60))
+        _notes = State(initialValue: session.notes ?? "")
 
         // Filter daily records for this assignment
         let assignmentId = assignment.id
@@ -121,7 +99,7 @@ struct AddSessionSheet: View {
                 travelSection
                 notesSection
             }
-            .navigationTitle("Add Session")
+            .navigationTitle("Edit Session")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -158,7 +136,7 @@ struct AddSessionSheet: View {
         Section {
             ForEach(Array(sessionTemplates.enumerated()), id: \.element.id) { index, template in
                 Button {
-                    applyTemplate(template, at: index)
+                    applyTemplate(template)
                 } label: {
                     HStack {
                         VStack(alignment: .leading) {
@@ -171,10 +149,6 @@ struct AddSessionSheet: View {
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        if selectedTemplateIndex == index {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(.blue)
-                        }
                     }
                 }
                 .foregroundStyle(.primary)
@@ -186,7 +160,7 @@ struct AddSessionSheet: View {
         }
     }
 
-    private func applyTemplate(_ template: DefaultSessionTemplate, at index: Int) {
+    private func applyTemplate(_ template: DefaultSessionTemplate) {
         let calendar = Calendar.current
         let now = Date()
 
@@ -203,8 +177,6 @@ struct AddSessionSheet: View {
             second: 0,
             of: now
         ) ?? now
-
-        selectedTemplateIndex = index
     }
 
     private var timeSection: some View {
@@ -277,39 +249,62 @@ struct AddSessionSheet: View {
     // MARK: - Actions
 
     private func saveSession() {
-        // Find or create daily record for this date
         let calendar = Calendar.current
-        let dailyRecord = findOrCreateDailyRecord(for: sessionDate, calendar: calendar)
+
+        // Track the original daily record ID before any changes
+        let originalDailyRecordId = session.dailyRecordId
+
+        // Check if date changed - may need to move to different daily record
+        let originalDate = session.startTime
+        let dateChanged = !calendar.isDate(originalDate, inSameDayAs: sessionDate)
+
+        var newDailyRecord: DailyRecord?
+        if dateChanged {
+            // Find or create daily record for new date
+            newDailyRecord = findOrCreateDailyRecord(for: sessionDate, calendar: calendar)
+            session.dailyRecordId = newDailyRecord!.id
+        }
 
         // Combine session date with times
         let sessionStartTime = combineDateWithTime(date: sessionDate, time: startTime, calendar: calendar)
         let sessionEndTime = combineDateWithTime(date: sessionDate, time: endTime, calendar: calendar)
 
-        let session = Session(
-            dailyRecordId: dailyRecord.id,
-            startTime: sessionStartTime,
-            endTime: sessionEndTime,
-            sessionType: sessionType,
-            mmmClassification: mmmClassification,
-            travelTime: travelMinutes > 0 ? Double(travelMinutes * 60) : nil
-        )
+        // Update session properties
+        session.startTime = sessionStartTime
+        session.endTime = sessionEndTime
+        session.sessionType = sessionType
+        session.travelTime = travelMinutes > 0 ? Double(travelMinutes * 60) : nil
+        session.notes = notes.isEmpty ? nil : notes
 
-        if !notes.isEmpty {
-            session.notes = notes
+        // Recalculate earnings for affected daily records
+        if dateChanged {
+            // Recalculate the new daily record (where session was moved to)
+            if let newRecord = newDailyRecord {
+                EarningsCalculator.recalculateEarnings(
+                    for: newRecord,
+                    assignment: assignment,
+                    in: modelContext
+                )
+            }
+
+            // Recalculate the old daily record (where session was removed from)
+            if let oldRecord = dailyRecords.first(where: { $0.id == originalDailyRecordId }) {
+                EarningsCalculator.recalculateEarnings(
+                    for: oldRecord,
+                    assignment: assignment,
+                    in: modelContext
+                )
+            }
+        } else {
+            // Date didn't change, just recalculate the current daily record
+            if let currentRecord = dailyRecords.first(where: { $0.id == session.dailyRecordId }) {
+                EarningsCalculator.recalculateEarnings(
+                    for: currentRecord,
+                    assignment: assignment,
+                    in: modelContext
+                )
+            }
         }
-
-        // Note: FPS uses annual payments based on session count, not per-session amounts.
-        // The subsidyAmount field is no longer used for FPS calculations.
-        // Sessions are tracked in QuarterlyQuota for FPS eligibility.
-
-        modelContext.insert(session)
-
-        // Recalculate daily earnings after adding the session
-        EarningsCalculator.recalculateEarnings(
-            for: dailyRecord,
-            assignment: assignment,
-            in: modelContext
-        )
 
         isPresented = false
     }
@@ -379,10 +374,28 @@ private enum TravelConstants {
     )
     container.mainContext.insert(assignment)
 
-    return AddSessionSheet(
+    let dailyRecord = DailyRecord(
+        assignmentId: assignment.id,
+        date: Date()
+    )
+    container.mainContext.insert(dailyRecord)
+
+    let session = Session(
+        dailyRecordId: dailyRecord.id,
+        startTime: Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: Date())!,
+        endTime: Calendar.current.date(bySettingHour: 16, minute: 30, second: 0, of: Date())!,
+        sessionType: .regular,
+        mmmClassification: 6,
+        travelTime: 3900
+    )
+    session.notes = "Morning shift with procedures"
+    container.mainContext.insert(session)
+
+    return EditSessionSheet(
         isPresented: .constant(true),
+        session: session,
         assignment: assignment,
-        mmmClassification: location.mmmClassification
+        location: location
     )
     .modelContainer(container)
 }

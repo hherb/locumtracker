@@ -30,6 +30,7 @@ struct SessionListView: View {
 
     @State private var showingAddSession = false
     @State private var showingAddCallout = false
+    @State private var sessionToEdit: Session?
 
     init(assignment: Assignment, location: Location?) {
         self.assignment = assignment
@@ -65,6 +66,10 @@ struct SessionListView: View {
                         if let recordSessions = sessionsByRecord[record.id], !recordSessions.isEmpty {
                             ForEach(recordSessions) { session in
                                 SessionRowView(session: session)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        sessionToEdit = session
+                                    }
                             }
                             .onDelete { offsets in
                                 deleteSessions(at: offsets, from: record)
@@ -118,6 +123,17 @@ struct SessionListView: View {
                 mmmClassification: location?.mmmClassification ?? 1
             )
         }
+        .sheet(item: $sessionToEdit) { session in
+            EditSessionSheet(
+                isPresented: Binding(
+                    get: { sessionToEdit != nil },
+                    set: { if !$0 { sessionToEdit = nil } }
+                ),
+                session: session,
+                assignment: assignment,
+                location: location
+            )
+        }
     }
 
     private var emptyStateView: some View {
@@ -137,6 +153,13 @@ struct SessionListView: View {
         for index in offsets {
             modelContext.delete(recordSessions[index])
         }
+
+        // Recalculate earnings after deletion
+        EarningsCalculator.recalculateEarnings(
+            for: record,
+            assignment: assignment,
+            in: modelContext
+        )
     }
 }
 

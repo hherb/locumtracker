@@ -47,6 +47,7 @@ struct AssignmentDetailView: View {
             ratesSection
             datesSection
             sessionsSection
+            attachmentsSection
             statusSection
             actionsSection
         }
@@ -240,6 +241,12 @@ struct AssignmentDetailView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+        }
+    }
+
+    private var attachmentsSection: some View {
+        Section("Documents") {
+            AttachmentsSummaryView(assignmentId: assignment.id)
         }
     }
 

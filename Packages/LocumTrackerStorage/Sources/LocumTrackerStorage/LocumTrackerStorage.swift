@@ -44,7 +44,8 @@ public enum LocumTrackerSchema {
             DailyRecord.self,
             Receipt.self,
             LocumProfile.self,
-            QuarterlyQuota.self
+            QuarterlyQuota.self,
+            Attachment.self
         ]
     }
 }

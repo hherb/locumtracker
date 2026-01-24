@@ -25,6 +25,9 @@ import LocumTrackerStorage
 /// the main window scene. On macOS, also provides a Settings scene.
 @main
 struct LocumTrackerApp: App {
+    /// Tracks scene phase for processing pending attachments
+    @Environment(\.scenePhase) private var scenePhase
+
     /// Shared model container - tries CloudKit first, falls back to local storage
     var sharedModelContainer: ModelContainer = {
         let schema = Schema(LocumTrackerSchema.models)
@@ -61,11 +64,22 @@ struct LocumTrackerApp: App {
         WindowGroup {
             #if os(iOS)
             MainTabView()
+                .onAppear {
+                    updateAssignmentsCache()
+                }
             #else
             ContentView()
             #endif
         }
         .modelContainer(sharedModelContainer)
+        #if os(iOS)
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            if newPhase == .active {
+                processPendingAttachments()
+                updateAssignmentsCache()
+            }
+        }
+        #endif
 
         #if os(macOS)
         Settings {
@@ -73,6 +87,56 @@ struct LocumTrackerApp: App {
         }
         #endif
     }
+
+    // MARK: - Share Extension Support
+
+    #if os(iOS)
+    /// Process any pending attachments from the Share Extension
+    @MainActor
+    private func processPendingAttachments() {
+        let context = sharedModelContainer.mainContext
+        let processor = PendingAttachmentProcessor(modelContext: context)
+        let count = processor.processAllPending()
+        if count > 0 {
+            print("Processed \(count) pending attachment(s) from Share Extension")
+        }
+    }
+
+    /// Update the cached assignment list for the Share Extension picker
+    @MainActor
+    private func updateAssignmentsCache() {
+        let context = sharedModelContainer.mainContext
+
+        // Fetch all assignments
+        let assignmentDescriptor = FetchDescriptor<Assignment>(
+            sortBy: [SortDescriptor(\.startDate, order: .reverse)]
+        )
+        guard let assignments = try? context.fetch(assignmentDescriptor) else { return }
+
+        // Fetch all locations for display names
+        let locationDescriptor = FetchDescriptor<Location>()
+        let locations = (try? context.fetch(locationDescriptor)) ?? []
+        let locationMap = Dictionary(uniqueKeysWithValues: locations.map { ($0.id, $0.name) })
+
+        // Convert to cached format
+        let cached = assignments.map { assignment in
+            CachedAssignment(
+                id: assignment.id,
+                name: assignment.name,
+                locationName: locationMap[assignment.locationId] ?? "Unknown Location",
+                startDate: assignment.startDate,
+                endDate: assignment.endDate,
+                status: assignment.status.rawValue
+            )
+        }
+
+        do {
+            try SharedDataService.writeAssignmentsCache(cached)
+        } catch {
+            print("Failed to update assignments cache: \(error)")
+        }
+    }
+    #endif
 }
 
 // MARK: - macOS Settings

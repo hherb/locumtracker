@@ -220,8 +220,34 @@ struct ReceiptListView: View {
 ///
 /// Shows category icon, description, date, attachment indicator, and amount.
 struct ReceiptRowView: View {
+    @Environment(\.modelContext) private var modelContext
+
     /// The receipt to display
     let receipt: Receipt
+
+    /// Count of attachments for this receipt
+    private var attachmentCount: Int {
+        let receiptId = receipt.id
+        let descriptor = FetchDescriptor<Attachment>(
+            predicate: #Predicate { $0.receiptId == receiptId }
+        )
+        return (try? modelContext.fetchCount(descriptor)) ?? 0
+    }
+
+    /// Whether this receipt has any attachments (including legacy imageData)
+    private var hasAttachments: Bool {
+        attachmentCount > 0 || receipt.hasImage
+    }
+
+    /// Total attachment count for display
+    private var displayAttachmentCount: Int {
+        let count = attachmentCount
+        // If we have the legacy imageData but no attachments, count as 1
+        if count == 0 && receipt.hasImage {
+            return 1
+        }
+        return count
+    }
 
     var body: some View {
         HStack(spacing: RowConstants.horizontalSpacing) {
@@ -237,11 +263,17 @@ struct ReceiptRowView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
-                    if receipt.hasImage {
-                        Image(systemName: "paperclip")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .accessibilityHidden(true)
+                    if hasAttachments {
+                        HStack(spacing: 2) {
+                            Image(systemName: "paperclip")
+                                .font(.caption2)
+                            if displayAttachmentCount > 1 {
+                                Text("\(displayAttachmentCount)")
+                                    .font(.caption2)
+                            }
+                        }
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("\(displayAttachmentCount) attachment\(displayAttachmentCount == 1 ? "" : "s")")
                     }
                 }
             }
@@ -274,7 +306,7 @@ struct ReceiptRowView: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         let dateString = formatter.string(from: receipt.date)
-        let attachmentInfo = receipt.hasImage ? ", has attachment" : ""
+        let attachmentInfo = hasAttachments ? ", \(displayAttachmentCount) attachment\(displayAttachmentCount == 1 ? "" : "s")" : ""
         return "\(receipt.receiptDescription), \(receipt.category.description), \(CurrencyFormatter.format(receipt.amount)), \(dateString)\(attachmentInfo)"
     }
 }

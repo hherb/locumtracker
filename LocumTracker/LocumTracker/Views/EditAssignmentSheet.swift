@@ -125,15 +125,15 @@ struct EditAssignmentSheet: View {
                 #endif
 
             if !providerLocations.isEmpty {
-                ForEach(Array(providerLocations.enumerated()), id: \.element.id) { index, location in
+                ForEach(Array(providerLocations.enumerated()), id: \.element.id) { index, providerLocation in
                     Button {
                         editingProviderLocationIndex = IdentifiableIndex(id: index)
                     } label: {
                         HStack {
                             VStack(alignment: .leading) {
-                                Text(location.name)
+                                Text(providerLocation.name)
                                     .fontWeight(.medium)
-                                Text(location.providerNumber)
+                                Text(providerLocation.providerNumber)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }

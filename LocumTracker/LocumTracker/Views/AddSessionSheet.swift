@@ -196,20 +196,20 @@ struct AddSessionSheet: View {
             .foregroundStyle(.primary)
 
             // Additional clinics
-            ForEach(providerLocations) { location in
+            ForEach(providerLocations) { providerLocation in
                 Button {
-                    selectedProviderLocationId = location.id
+                    selectedProviderLocationId = providerLocation.id
                 } label: {
                     HStack {
                         VStack(alignment: .leading) {
-                            Text(location.name)
+                            Text(providerLocation.name)
                                 .fontWeight(.medium)
-                            Text(location.providerNumber)
+                            Text(providerLocation.providerNumber)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        if selectedProviderLocationId == location.id {
+                        if selectedProviderLocationId == providerLocation.id {
                             Image(systemName: "checkmark")
                                 .foregroundStyle(.blue)
                         }

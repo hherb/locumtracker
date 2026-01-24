@@ -87,7 +87,7 @@ struct AddProviderLocationSheet: View {
     }
 
     private func addProviderLocation() {
-        let location = ProviderLocation(
+        let newProviderLocation = ProviderLocation(
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             providerNumber: providerNumber.trimmingCharacters(in: .whitespacesAndNewlines),
             address: address.isEmpty ? nil : address.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -95,7 +95,7 @@ struct AddProviderLocationSheet: View {
             notes: notes.isEmpty ? nil : notes.trimmingCharacters(in: .whitespacesAndNewlines)
         )
 
-        providerLocations.append(location)
+        providerLocations.append(newProviderLocation)
         isPresented = false
     }
 }
@@ -117,12 +117,12 @@ struct EditProviderLocationSheet: View {
         self._providerLocations = providerLocations
         self.editingIndex = editingIndex
 
-        let location = providerLocations.wrappedValue[editingIndex]
-        _name = State(initialValue: location.name)
-        _providerNumber = State(initialValue: location.providerNumber)
-        _address = State(initialValue: location.address ?? "")
-        _phone = State(initialValue: location.phone ?? "")
-        _notes = State(initialValue: location.notes ?? "")
+        let existingProviderLocation = providerLocations.wrappedValue[editingIndex]
+        _name = State(initialValue: existingProviderLocation.name)
+        _providerNumber = State(initialValue: existingProviderLocation.providerNumber)
+        _address = State(initialValue: existingProviderLocation.address ?? "")
+        _phone = State(initialValue: existingProviderLocation.phone ?? "")
+        _notes = State(initialValue: existingProviderLocation.notes ?? "")
     }
 
     private var isValid: Bool {
@@ -184,7 +184,7 @@ struct EditProviderLocationSheet: View {
     }
 
     private func saveProviderLocation() {
-        let location = ProviderLocation(
+        let updatedProviderLocation = ProviderLocation(
             id: providerLocations[editingIndex].id,
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             providerNumber: providerNumber.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -193,7 +193,7 @@ struct EditProviderLocationSheet: View {
             notes: notes.isEmpty ? nil : notes.trimmingCharacters(in: .whitespacesAndNewlines)
         )
 
-        providerLocations[editingIndex] = location
+        providerLocations[editingIndex] = updatedProviderLocation
         isPresented = false
     }
 }

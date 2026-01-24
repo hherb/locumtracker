@@ -229,7 +229,10 @@ struct AssignmentDetailView: View {
     private var sessionsSection: some View {
         Section("Sessions") {
             NavigationLink {
-                SessionListView(assignment: assignment, location: location)
+                SessionListWrapper(
+                    assignmentID: assignment.persistentModelID,
+                    locationID: location?.id
+                )
             } label: {
                 LabeledContent("View Sessions") {
                     Image(systemName: "chevron.right")

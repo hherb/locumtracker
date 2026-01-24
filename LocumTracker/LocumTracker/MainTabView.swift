@@ -101,7 +101,7 @@ struct AssignmentsTab: View {
                     emptyStateView
                 } else {
                     ForEach(assignments) { assignment in
-                        NavigationLink(value: assignment) {
+                        NavigationLink(value: assignment.persistentModelID) {
                             AssignmentRowView(assignment: assignment, locations: locations)
                         }
                     }
@@ -109,8 +109,8 @@ struct AssignmentsTab: View {
                 }
             }
             .navigationTitle("Assignments")
-            .navigationDestination(for: Assignment.self) { assignment in
-                AssignmentDetailView(assignment: assignment, locations: locations)
+            .navigationDestination(for: PersistentIdentifier.self) { assignmentID in
+                AssignmentDetailWrapper(assignmentID: assignmentID)
             }
             .toolbar { toolbarContent }
             .sheet(isPresented: $showingAddLocation) {

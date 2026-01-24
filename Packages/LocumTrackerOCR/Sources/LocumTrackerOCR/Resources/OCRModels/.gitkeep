@@ -1,0 +1,5 @@
+# Placeholder for OCR model files
+# The following files should be present after running scripts/prepare_ocr_models.py:
+# - en_PP-OCRv4_det.onnx (Text detection model)
+# - en_PP-OCRv4_rec.onnx (Text recognition model)
+# - en_dict.txt (Character dictionary)

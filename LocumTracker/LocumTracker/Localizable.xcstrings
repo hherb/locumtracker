@@ -1,0 +1,789 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "(%@h)" : {
+
+    },
+    "(capped)" : {
+
+    },
+    "%@, %@, %@, %@ percent of total" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@, %3$@, %4$@ percent of total"
+          }
+        }
+      }
+    },
+    "%@, MMM%lld, %@, %@ percent of total" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, MMM%2$lld, %3$@, %4$@ percent of total"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld day%@ with >2 sessions" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld day%2$@ with >2 sessions"
+          }
+        }
+      }
+    },
+    "%lld minutes" : {
+
+    },
+    "%lld more needed" : {
+
+    },
+    "%lld more sessions needed" : {
+      "comment" : "Message showing sessions remaining for quota"
+    },
+    "%lld of %lld active quarters" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld active quarters"
+          }
+        }
+      }
+    },
+    "%lld percent complete" : {
+
+    },
+    "%lld session%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld session%2$@"
+          }
+        }
+      }
+    },
+    "%lld sessions" : {
+
+    },
+    "$" : {
+
+    },
+    "$/hr" : {
+
+    },
+    "$0" : {
+
+    },
+    "0.00" : {
+
+    },
+    "ABN (optional)" : {
+
+    },
+    "ABN must be 11 digits" : {
+      "comment" : "ABN validation message for short input"
+    },
+    "ABN: %@" : {
+
+    },
+    "Active" : {
+      "comment" : "Status label for active quarter"
+    },
+    "Add" : {
+
+    },
+    "Add Assignment" : {
+      "comment" : "Navigation title for add assignment sheet"
+    },
+    "Add Location" : {
+      "comment" : "Navigation title for add location sheet"
+    },
+    "Add Location First" : {
+
+    },
+    "Add Receipt" : {
+      "comment" : "Navigation title for add receipt sheet"
+    },
+    "Add Session" : {
+      "comment" : "Navigation title for add session sheet"
+    },
+    "Add Session Template" : {
+
+    },
+    "Add your first assignment to get started." : {
+
+    },
+    "Add your first location to get started." : {
+
+    },
+    "Add your first receipt to track expenses." : {
+
+    },
+    "Added" : {
+
+    },
+    "Address" : {
+
+    },
+    "All Categories" : {
+      "comment" : "Filter option for all categories"
+    },
+    "All Classifications" : {
+
+    },
+    "Amount" : {
+      "comment" : "Label for currency amount"
+    },
+    "Are you sure you want to delete this assignment? This action cannot be undone." : {
+
+    },
+    "Are you sure you want to delete this location?" : {
+
+    },
+    "Are you sure you want to delete this receipt? This action cannot be undone." : {
+
+    },
+    "Assignment" : {
+
+    },
+    "Assignment Details" : {
+
+    },
+    "Assignments" : {
+      "comment" : "Tab bar title for assignments list"
+    },
+    "Based on predominant MMM%lld. Actual payment depends on registration status and year level." : {
+
+    },
+    "Business & Tax" : {
+
+    },
+    "Business Structure" : {
+
+    },
+    "By Assignment" : {
+      "comment" : "Section header for earnings breakdown"
+    },
+    "By Location" : {
+      "comment" : "Section header for earnings breakdown"
+    },
+    "Call-Out Rate" : {
+
+    },
+    "Called Out" : {
+
+    },
+    "Camera Access Required" : {
+
+    },
+    "Cancel" : {
+      "comment" : "Button to cancel an action"
+    },
+    "Cancel Assignment" : {
+
+    },
+    "Category" : {
+      "comment" : "Label for expense category"
+    },
+    "Category: %@" : {
+
+    },
+    "Choose Photo" : {
+
+    },
+    "Clear Filters" : {
+      "comment" : "Button to clear search filters"
+    },
+    "Configure your preferences here." : {
+
+    },
+    "Counted Sessions" : {
+      "comment" : "Label in FPS quota summary"
+    },
+    "Current Status" : {
+
+    },
+    "Daily Rate" : {
+      "comment" : "Rate type option"
+    },
+    "Date" : {
+      "comment" : "Label for date field"
+    },
+    "Dates" : {
+      "comment" : "Section header for date selection"
+    },
+    "Days Remaining" : {
+      "comment" : "Label in FPS quota summary"
+    },
+    "Deductible" : {
+
+    },
+    "Default Rates" : {
+      "comment" : "Section header in profile settings"
+    },
+    "Default Sessions" : {
+
+    },
+    "Default sessions will be pre-filled when recording a work day at this location." : {
+
+    },
+    "Delete" : {
+      "comment" : "Button to delete an item"
+    },
+    "Delete Assignment" : {
+
+    },
+    "Delete Location" : {
+
+    },
+    "Delete Receipt" : {
+
+    },
+    "Description" : {
+      "comment" : "Label for description field"
+    },
+    "Details" : {
+      "comment" : "Section header for item details"
+    },
+    "Done" : {
+
+    },
+    "Duration" : {
+
+    },
+    "Earnings" : {
+      "comment" : "Tab bar title for earnings dashboard"
+    },
+    "Edit" : {
+      "comment" : "Button to edit an item"
+    },
+    "Edit Assignment" : {
+
+    },
+    "Edit Location" : {
+
+    },
+    "Edit Receipt" : {
+
+    },
+    "Edit Session" : {
+
+    },
+    "Effective Hourly Rate" : {
+      "comment" : "Label in earnings summary"
+    },
+    "Effective hourly rate: %@ per hour" : {
+
+    },
+    "Eligible for subsidy (travel > 1 hour)" : {
+
+    },
+    "Eligible for WIP incentive payments" : {
+      "comment" : "Status message for eligible locations"
+    },
+    "Email" : {
+      "comment" : "Text field placeholder for email"
+    },
+    "End" : {
+
+    },
+    "End Date" : {
+      "comment" : "Label for end date picker"
+    },
+    "End Time" : {
+
+    },
+    "Expenses" : {
+      "comment" : "Label in earnings summary"
+    },
+    "Expenses: %@, Net earnings: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Expenses: %1$@, Net earnings: %2$@"
+          }
+        }
+      }
+    },
+    "Export" : {
+      "comment" : "Export button label"
+    },
+    "Export CSV" : {
+      "comment" : "Export menu option"
+    },
+    "Export JSON" : {
+      "comment" : "Export menu option"
+    },
+    "Filter" : {
+      "comment" : "Filter button label"
+    },
+    "Finished" : {
+
+    },
+    "First Name" : {
+      "comment" : "Text field placeholder for first name"
+    },
+    "FPS Quota" : {
+      "comment" : "Tab bar title for FPS session quota tracking"
+    },
+    "General" : {
+
+    },
+    "GST (10%) will be added to invoices" : {
+
+    },
+    "GST Registered" : {
+      "comment" : "Toggle label for GST registration status"
+    },
+    "Hourly Rate" : {
+      "comment" : "Rate type option"
+    },
+    "Hours Worked" : {
+      "comment" : "Label in earnings summary"
+    },
+    "Image capture available on iOS" : {
+
+    },
+    "Import from Image" : {
+
+    },
+    "in %lld-quarter reference period" : {
+
+    },
+    "Invalid ABN - please check the number" : {
+      "comment" : "ABN validation message for invalid checksum"
+    },
+    "Label (optional)" : {
+
+    },
+    "Last Name" : {
+      "comment" : "Text field placeholder for last name"
+    },
+    "Link to Assignment (Optional)" : {
+
+    },
+    "Linked Assignment" : {
+
+    },
+    "Location" : {
+      "comment" : "Section header for location selection"
+    },
+    "Location Details" : {
+
+    },
+    "Locations" : {
+
+    },
+    "LocumTracker Settings" : {
+
+    },
+    "Log Call-Out" : {
+
+    },
+    "Manage Locations" : {
+
+    },
+    "Mark as Active" : {
+
+    },
+    "Mark as Completed" : {
+
+    },
+    "MMM Classification" : {
+
+    },
+    "MMM Level" : {
+
+    },
+    "MMM%lld" : {
+
+    },
+    "MMM%lld: %lld session%@, %lld percent of total" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "MMM%1$lld: %2$lld session%3$@, %4$lld percent of total"
+          }
+        }
+      }
+    },
+    "Name" : {
+
+    },
+    "Net Earnings" : {
+      "comment" : "Label in earnings summary"
+    },
+    "New Participant" : {
+      "comment" : "Toggle label for new participant status"
+    },
+    "No Assignments" : {
+      "comment" : "Empty state title in assignments list"
+    },
+    "No assignments at this location" : {
+
+    },
+    "No Earnings Data" : {
+      "comment" : "Empty state title in earnings dashboard"
+    },
+    "No eligible sessions" : {
+      "comment" : "Status for quarter with no FPS-eligible sessions"
+    },
+    "No Locations" : {
+
+    },
+    "No locations match your search criteria." : {
+
+    },
+    "No Receipts" : {
+      "comment" : "Empty state title in receipts list"
+    },
+    "No receipts match your search criteria." : {
+
+    },
+    "No Sessions" : {
+      "comment" : "Empty state title in sessions list"
+    },
+    "No sessions recorded" : {
+
+    },
+    "Non-VR (Year 1)" : {
+
+    },
+    "Non-VR receives 80% of WIP FPS payment rates" : {
+
+    },
+    "None" : {
+
+    },
+    "Not Deductible" : {
+
+    },
+    "Not eligible for WIP incentive" : {
+      "comment" : "Status message for ineligible locations"
+    },
+    "Not linked to any assignment" : {
+
+    },
+    "Notes" : {
+      "comment" : "Label for notes field"
+    },
+    "OCR Import Failed" : {
+
+    },
+    "of %lld" : {
+
+    },
+    "OK" : {
+      "comment" : "Generic OK button"
+    },
+    "On call" : {
+
+    },
+    "On Call" : {
+
+    },
+    "On-Call Rate" : {
+
+    },
+    "Only 2 sessions per day are counted for FPS" : {
+
+    },
+    "Only MMM3-7 locations qualify for WIP Doctor Stream payments." : {
+
+    },
+    "Open Settings" : {
+
+    },
+    "Optional" : {
+
+    },
+    "Optional notes" : {
+
+    },
+    "Overnight call-out" : {
+
+    },
+    "Period" : {
+
+    },
+    "Personal Information" : {
+      "comment" : "Section header in profile settings"
+    },
+    "Please allow camera access in Settings to take receipt photos." : {
+
+    },
+    "Postcode" : {
+
+    },
+    "Potential Annual Payment" : {
+      "comment" : "Section header for payment estimates"
+    },
+    "Predominant MMM" : {
+      "comment" : "Label in FPS quota summary"
+    },
+    "Professional Status" : {
+      "comment" : "Section header in profile settings"
+    },
+    "Profile Saved" : {
+      "comment" : "Alert title after saving profile"
+    },
+    "Provider Number" : {
+      "comment" : "Text field placeholder for provider number"
+    },
+    "Quarter History" : {
+      "comment" : "Navigation link title and view title"
+    },
+    "Quarter quota met!" : {
+      "comment" : "Success message when FPS quota is met"
+    },
+    "Quarter Summary" : {
+      "comment" : "Section header in FPS quota view"
+    },
+    "Rate" : {
+
+    },
+    "Rate Structure" : {
+      "comment" : "Section header for rate configuration"
+    },
+    "Rate Type" : {
+
+    },
+    "Rates" : {
+
+    },
+    "Rates pre-filled from location defaults" : {
+
+    },
+    "Receipt Details" : {
+
+    },
+    "Receipt Image" : {
+
+    },
+    "Receipts" : {
+      "comment" : "Tab bar title for receipts list"
+    },
+    "Record sessions for your assignments to see earnings here." : {
+
+    },
+    "Record sessions to see potential payments" : {
+
+    },
+    "Record your first work session for this assignment." : {
+
+    },
+    "Requires 21+ sessions (3+ hours each) per quarter." : {
+
+    },
+    "Save" : {
+      "comment" : "Button to save changes"
+    },
+    "Schedule" : {
+
+    },
+    "Search locations" : {
+
+    },
+    "Search receipts" : {
+      "comment" : "Search placeholder in receipts list"
+    },
+    "Select" : {
+
+    },
+    "Select a location" : {
+
+    },
+    "Select an assignment" : {
+
+    },
+    "Session" : {
+
+    },
+    "Session Date" : {
+
+    },
+    "Session Details" : {
+
+    },
+    "Session Type" : {
+
+    },
+    "Session type: %@" : {
+
+    },
+    "sessions" : {
+      "comment" : "Unit label for session count"
+    },
+    "Sessions" : {
+
+    },
+    "Sessions by MMM" : {
+      "comment" : "Section header for MMM breakdown"
+    },
+    "Set Up Profile" : {
+      "comment" : "Navigation title for new profile setup"
+    },
+    "Settings" : {
+      "comment" : "Tab bar title for profile settings"
+    },
+    "Specialty" : {
+      "comment" : "Text field placeholder for medical specialty"
+    },
+    "Start" : {
+
+    },
+    "Start Date" : {
+      "comment" : "Label for start date picker"
+    },
+    "Start Time" : {
+
+    },
+    "State" : {
+
+    },
+    "Status" : {
+
+    },
+    "Status: %@" : {
+
+    },
+    "Street Address" : {
+
+    },
+    "Subsidy Eligible" : {
+
+    },
+    "Subsidy: %@" : {
+
+    },
+    "Suburb" : {
+
+    },
+    "Summary" : {
+      "comment" : "Section header in earnings dashboard"
+    },
+    "Take Photo" : {
+
+    },
+    "Tap a session to apply its times" : {
+
+    },
+    "Tax Deductible" : {
+
+    },
+    "Tax Status" : {
+
+    },
+    "These rates will be suggested when creating new assignments" : {
+
+    },
+    "These rates will be used as defaults when creating assignments at this location." : {
+
+    },
+    "This location has %lld assignment(s). Deleting it will remove the location reference from those assignments." : {
+
+    },
+    "Time" : {
+
+    },
+    "Title" : {
+
+    },
+    "Total Earnings" : {
+      "comment" : "Label in earnings summary"
+    },
+    "Total earnings: %@, Hours worked: %@ hours" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Total earnings: %1$@, Hours worked: %2$@ hours"
+          }
+        }
+      }
+    },
+    "Total Expenses" : {
+      "comment" : "Label in receipts summary"
+    },
+    "Track eligibility across multiple quarters" : {
+
+    },
+    "Travel must exceed 1 hour for subsidy" : {
+
+    },
+    "Travel Time" : {
+
+    },
+    "Type" : {
+
+    },
+    "Unknown Location" : {
+
+    },
+    "Up to %@/year" : {
+
+    },
+    "Used for invoicing" : {
+
+    },
+    "Valid ABN" : {
+      "comment" : "ABN validation message for valid input"
+    },
+    "Valid Sessions" : {
+      "comment" : "Label in FPS quota summary"
+    },
+    "View Sessions" : {
+
+    },
+    "Vocational registration affects WIP Doctor Stream subsidy calculations" : {
+
+    },
+    "Vocationally Registered (VR)" : {
+      "comment" : "Toggle label for vocational registration status"
+    },
+    "VR/Training (Year 1)" : {
+
+    },
+    "Warning: %lld day%@ with more than 2 sessions. Only 2 sessions per day are counted for FPS" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Warning: %1$lld day%2$@ with more than 2 sessions. Only 2 sessions per day are counted for FPS"
+          }
+        }
+      }
+    },
+    "Warnings" : {
+      "comment" : "Section header for FPS warnings"
+    },
+    "WIP Doctor Stream (FPS)" : {
+      "comment" : "Section header for WIP subsidy info"
+    },
+    "Year 1 (Non-VR)" : {
+
+    },
+    "Year 1 (VR/Training)" : {
+
+    },
+    "Your profile has been saved successfully." : {
+      "comment" : "Alert message after saving profile"
+    },
+    "Your Status" : {
+      "comment" : "Section header in quarter history"
+    }
+  },
+  "version" : "1.0"
+}

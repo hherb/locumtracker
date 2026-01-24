@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
+
+    },
     "(%@h)" : {
 
     },
@@ -39,6 +42,9 @@
           }
         }
       }
+    },
+    "%lld days" : {
+
     },
     "%lld minutes" : {
 
@@ -102,13 +108,22 @@
     "Add" : {
 
     },
+    "Add Another Session" : {
+
+    },
     "Add Assignment" : {
       "comment" : "Navigation title for add assignment sheet"
+    },
+    "Add Default Session Times" : {
+
     },
     "Add Location" : {
       "comment" : "Navigation title for add location sheet"
     },
     "Add Location First" : {
+
+    },
+    "Add Morning & Afternoon" : {
 
     },
     "Add Receipt" : {
@@ -118,6 +133,9 @@
       "comment" : "Navigation title for add session sheet"
     },
     "Add Session Template" : {
+
+    },
+    "Add Sessions" : {
 
     },
     "Add your first assignment to get started." : {
@@ -132,7 +150,13 @@
     "Added" : {
 
     },
+    "Additional Locations" : {
+
+    },
     "Address" : {
+
+    },
+    "Adds Morning (8:00-12:00) and Afternoon (13:00-17:00) sessions" : {
 
     },
     "All Categories" : {
@@ -157,6 +181,9 @@
 
     },
     "Assignment Details" : {
+
+    },
+    "Assignment Name" : {
 
     },
     "Assignments" : {
@@ -213,10 +240,16 @@
     "Configure your preferences here." : {
 
     },
+    "Copy from Location" : {
+
+    },
     "Counted Sessions" : {
       "comment" : "Label in FPS quota summary"
     },
     "Current Status" : {
+
+    },
+    "Custom Time" : {
 
     },
     "Daily Rate" : {
@@ -225,8 +258,17 @@
     "Date" : {
       "comment" : "Label for date field"
     },
+    "Date Mode" : {
+
+    },
+    "Date Range" : {
+
+    },
     "Dates" : {
       "comment" : "Section header for date selection"
+    },
+    "Days" : {
+
     },
     "Days Remaining" : {
       "comment" : "Label in FPS quota summary"
@@ -238,6 +280,9 @@
       "comment" : "Section header in profile settings"
     },
     "Default Sessions" : {
+
+    },
+    "Default Sessions (Optional)" : {
 
     },
     "Default sessions will be pre-filled when recording a work day at this location." : {
@@ -265,6 +310,9 @@
 
     },
     "Duration" : {
+
+    },
+    "e.g., Morning, Afternoon, Night Shift" : {
 
     },
     "Earnings" : {
@@ -307,6 +355,9 @@
       "comment" : "Label for end date picker"
     },
     "End Time" : {
+
+    },
+    "Enter custom start and end times below" : {
 
     },
     "Expenses" : {
@@ -373,6 +424,9 @@
     "Label (optional)" : {
 
     },
+    "Label (Optional)" : {
+
+    },
     "Last Name" : {
       "comment" : "Text field placeholder for last name"
     },
@@ -391,6 +445,9 @@
     "Locations" : {
 
     },
+    "Locations (%lld)" : {
+
+    },
     "LocumTracker Settings" : {
 
     },
@@ -407,6 +464,9 @@
 
     },
     "Medicare" : {
+
+    },
+    "MMM %lld" : {
 
     },
     "MMM Classification" : {
@@ -518,6 +578,9 @@
     "Optional" : {
 
     },
+    "Optional name (e.g., Darwin Remote Communities)" : {
+
+    },
     "Optional notes" : {
 
     },
@@ -547,6 +610,12 @@
     },
     "Predominant MMM" : {
       "comment" : "Label in FPS quota summary"
+    },
+    "Primary" : {
+
+    },
+    "Primary Location" : {
+
     },
     "Professional Status" : {
       "comment" : "Section header in profile settings"
@@ -623,6 +692,15 @@
     "Select an assignment" : {
 
     },
+    "Select one or more sessions to add" : {
+
+    },
+    "Select other locations visited during this assignment (e.g., remote communities)" : {
+
+    },
+    "Select the location where this session will be worked" : {
+
+    },
     "Session" : {
 
     },
@@ -639,6 +717,12 @@
 
     },
     "Session Details" : {
+
+    },
+    "Session templates are used when quickly adding sessions to this assignment" : {
+
+    },
+    "Session Times" : {
 
     },
     "Session Type" : {
@@ -664,6 +748,9 @@
     },
     "Settings" : {
       "comment" : "Tab bar title for profile settings"
+    },
+    "Single Day" : {
+
     },
     "Specialty" : {
       "comment" : "Text field placeholder for medical specialty"

@@ -96,21 +96,31 @@ class ShareViewController: UIViewController {
 
         // Fallback for images via UIImage
         if provider.canLoadObject(ofClass: UIImage.self) {
-            do {
-                if let image = try await provider.loadObject(ofClass: UIImage.self) as? UIImage,
-                   let data = image.jpegData(compressionQuality: ShareExtensionConstants.jpegCompressionQuality) {
-                    return SharedFile(
-                        filename: "image_\(Int(Date().timeIntervalSince1970)).jpg",
-                        fileType: .jpeg,
-                        data: data
-                    )
-                }
-            } catch {
-                print("Failed to load image: \(error)")
+            if let image = await loadImage(from: provider),
+               let data = image.jpegData(compressionQuality: ShareExtensionConstants.jpegCompressionQuality) {
+                return SharedFile(
+                    filename: "image_\(Int(Date().timeIntervalSince1970)).jpg",
+                    fileType: .jpeg,
+                    data: data
+                )
             }
         }
 
         return nil
+    }
+
+    /// Load UIImage from item provider
+    private func loadImage(from provider: NSItemProvider) async -> UIImage? {
+        await withCheckedContinuation { continuation in
+            provider.loadObject(ofClass: UIImage.self) { object, error in
+                if let error = error {
+                    print("Failed to load image: \(error)")
+                    continuation.resume(returning: nil)
+                    return
+                }
+                continuation.resume(returning: object as? UIImage)
+            }
+        }
     }
 
     /// Load file URL from item provider

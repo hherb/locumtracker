@@ -84,10 +84,28 @@ struct LocationDetailView: View {
             LabeledContent("Address") {
                 Text(location.address)
             }
+            if let phoneNumber = location.phoneNumber {
+                LabeledContent("Phone") {
+                    Text(phoneNumber)
+                }
+            }
+            if let providerNumber = location.providerNumber {
+                LabeledContent("Provider Number") {
+                    Text(providerNumber)
+                }
+            }
             HStack {
                 Text("MMM Classification")
                 Spacer()
                 MMMBadge(classification: location.mmmClassification)
+            }
+            if let notes = location.notes {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Notes")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(notes)
+                }
             }
         }
     }
@@ -245,6 +263,9 @@ struct EditLocationSheet: View {
 
     @State private var name: String
     @State private var address: String
+    @State private var phoneNumber: String
+    @State private var providerNumber: String
+    @State private var notes: String
     @State private var mmmClassification: Int
 
     // Default rates
@@ -262,6 +283,9 @@ struct EditLocationSheet: View {
         self.location = location
         _name = State(initialValue: location.name)
         _address = State(initialValue: location.address)
+        _phoneNumber = State(initialValue: location.phoneNumber ?? "")
+        _providerNumber = State(initialValue: location.providerNumber ?? "")
+        _notes = State(initialValue: location.notes ?? "")
         _mmmClassification = State(initialValue: location.mmmClassification)
 
         // Initialize rates from location (convert Double? to String)
@@ -279,6 +303,14 @@ struct EditLocationSheet: View {
                 Section("Location Details") {
                     TextField("Name", text: $name)
                     TextField("Address", text: $address)
+                    TextField("Phone Number", text: $phoneNumber)
+                        .keyboardType(.phonePad)
+                        .textContentType(.telephoneNumber)
+                }
+
+                Section("Medicare") {
+                    TextField("Provider Number", text: $providerNumber)
+                        .textInputAutocapitalization(.characters)
                 }
 
                 Section("MMM Classification") {
@@ -290,6 +322,11 @@ struct EditLocationSheet: View {
                     Text(mmmDescription(for: mmmClassification))
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+
+                Section("Notes") {
+                    TextField("Optional notes", text: $notes, axis: .vertical)
+                        .lineLimit(3...6)
                 }
 
                 defaultRatesSection
@@ -422,6 +459,9 @@ struct EditLocationSheet: View {
     private func saveChanges() {
         location.name = name
         location.address = address
+        location.phoneNumber = phoneNumber.isEmpty ? nil : phoneNumber
+        location.providerNumber = providerNumber.isEmpty ? nil : providerNumber
+        location.notes = notes.isEmpty ? nil : notes
         location.mmmClassification = mmmClassification
 
         // Update rates
@@ -445,10 +485,16 @@ private struct EditAddSessionTemplateSheet: View {
 
     @State private var label: String = ""
     @State private var startTime: Date = Calendar.current.date(
-        bySettingHour: 8, minute: 0, second: 0, of: Date()
+        bySettingHour: SessionTemplateDefaults.defaultStartHour,
+        minute: 0,
+        second: 0,
+        of: Date()
     ) ?? Date()
     @State private var endTime: Date = Calendar.current.date(
-        bySettingHour: 12, minute: 0, second: 0, of: Date()
+        bySettingHour: SessionTemplateDefaults.defaultEndHour,
+        minute: 0,
+        second: 0,
+        of: Date()
     ) ?? Date()
 
     private var duration: TimeInterval {
@@ -459,10 +505,11 @@ private struct EditAddSessionTemplateSheet: View {
         duration > 0
     }
 
+    /// Formats the duration as a human-readable string (e.g., "4h 30m")
     private var durationText: String {
         guard isValidDuration else { return "Invalid" }
-        let hours = Int(duration) / 3600
-        let minutes = (Int(duration) % 3600) / 60
+        let hours = Int(duration) / TimeConstants.secondsPerHour
+        let minutes = (Int(duration) % TimeConstants.secondsPerHour) / TimeConstants.secondsPerMinute
         if hours > 0 && minutes > 0 {
             return "\(hours)h \(minutes)m"
         } else if hours > 0 {
@@ -514,9 +561,9 @@ private struct EditAddSessionTemplateSheet: View {
         let endComponents = calendar.dateComponents([.hour, .minute], from: endTime)
 
         let template = DefaultSessionTemplate(
-            startHour: startComponents.hour ?? 8,
+            startHour: startComponents.hour ?? SessionTemplateDefaults.defaultStartHour,
             startMinute: startComponents.minute ?? 0,
-            endHour: endComponents.hour ?? 12,
+            endHour: endComponents.hour ?? SessionTemplateDefaults.defaultEndHour,
             endMinute: endComponents.minute ?? 0,
             label: label.isEmpty ? nil : label
         )
@@ -529,6 +576,7 @@ private struct EditAddSessionTemplateSheet: View {
 // MARK: - Constants
 
 private enum EditConstants {
+    /// Valid range of MMM classifications
     static let classificationRange = 1...7
 }
 

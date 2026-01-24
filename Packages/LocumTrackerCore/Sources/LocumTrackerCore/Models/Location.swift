@@ -59,6 +59,15 @@ public final class Location {
     public var createdAt: Date = Date()
     public var updatedAt: Date = Date()
 
+    // MARK: - Contact & Provider Info
+
+    /// Medicare provider number for this location (location-specific)
+    public var providerNumber: String?
+    /// Phone number for the location
+    public var phoneNumber: String?
+    /// Free-text notes about this location
+    public var notes: String?
+
     // MARK: - Default Rates
 
     /// Default daily rate for assignments at this location
@@ -95,6 +104,9 @@ public final class Location {
         latitude: Double? = nil,
         longitude: Double? = nil,
         effectiveFrom: Date = Date(),
+        providerNumber: String? = nil,
+        phoneNumber: String? = nil,
+        notes: String? = nil,
         defaultDailyRate: Double? = nil,
         defaultHourlyRate: Double? = nil,
         defaultOnCallRate: Double? = nil,
@@ -111,6 +123,9 @@ public final class Location {
         self.effectiveTo = nil
         self.createdAt = Date()
         self.updatedAt = Date()
+        self.providerNumber = providerNumber
+        self.phoneNumber = phoneNumber
+        self.notes = notes
         self.defaultDailyRate = defaultDailyRate
         self.defaultHourlyRate = defaultHourlyRate
         self.defaultOnCallRate = defaultOnCallRate

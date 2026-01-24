@@ -17,6 +17,7 @@
 import SwiftUI
 import SwiftData
 import LocumTrackerCore
+import LocumTrackerUI
 
 /// Sheet view for adding a new location to the system
 struct AddLocationSheet: View {
@@ -25,6 +26,9 @@ struct AddLocationSheet: View {
 
     @State private var name = ""
     @State private var address = ""
+    @State private var phoneNumber = ""
+    @State private var providerNumber = ""
+    @State private var notes = ""
     @State private var mmmClassification = MMMDefaults.defaultClassification
 
     // Default rates
@@ -38,11 +42,22 @@ struct AddLocationSheet: View {
     @State private var showingAddSessionTemplate = false
 
     var body: some View {
-        NavigationStack {
+        // TODO: Using NavigationView instead of NavigationStack as a workaround for
+        // a SwiftUI bug where TextField state is lost when switching between fields
+        // in sheets presented from NavigationStack. Remove when Apple fixes this issue.
+        NavigationView {
             Form {
                 Section("Location Details") {
                     TextField("Name", text: $name)
                     TextField("Address", text: $address)
+                    TextField("Phone Number", text: $phoneNumber)
+                        .keyboardType(.phonePad)
+                        .textContentType(.telephoneNumber)
+                }
+
+                Section("Medicare") {
+                    TextField("Provider Number", text: $providerNumber)
+                        .textInputAutocapitalization(.characters)
                 }
 
                 Section("MMM Classification") {
@@ -54,6 +69,11 @@ struct AddLocationSheet: View {
                     Text(mmmDescription(for: mmmClassification))
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+
+                Section("Notes") {
+                    TextField("Optional notes", text: $notes, axis: .vertical)
+                        .lineLimit(3...6)
                 }
 
                 defaultRatesSection
@@ -83,6 +103,7 @@ struct AddLocationSheet: View {
                 )
             }
         }
+        .navigationViewStyle(.stack)
     }
 
     // MARK: - Default Rates Section
@@ -210,6 +231,9 @@ struct AddLocationSheet: View {
             name: name,
             address: address,
             mmmClassification: mmmClassification,
+            providerNumber: providerNumber.isEmpty ? nil : providerNumber,
+            phoneNumber: phoneNumber.isEmpty ? nil : phoneNumber,
+            notes: notes.isEmpty ? nil : notes,
             defaultDailyRate: Double(defaultDailyRate),
             defaultHourlyRate: Double(defaultHourlyRate),
             defaultOnCallRate: Double(defaultOnCallRate),
@@ -230,10 +254,16 @@ struct AddSessionTemplateSheet: View {
 
     @State private var label: String = ""
     @State private var startTime: Date = Calendar.current.date(
-        bySettingHour: 8, minute: 0, second: 0, of: Date()
+        bySettingHour: SessionTemplateDefaults.defaultStartHour,
+        minute: 0,
+        second: 0,
+        of: Date()
     ) ?? Date()
     @State private var endTime: Date = Calendar.current.date(
-        bySettingHour: 12, minute: 0, second: 0, of: Date()
+        bySettingHour: SessionTemplateDefaults.defaultEndHour,
+        minute: 0,
+        second: 0,
+        of: Date()
     ) ?? Date()
 
     private var duration: TimeInterval {
@@ -244,10 +274,11 @@ struct AddSessionTemplateSheet: View {
         duration > 0
     }
 
+    /// Formats the duration as a human-readable string (e.g., "4h 30m")
     private var durationText: String {
         guard isValidDuration else { return "Invalid" }
-        let hours = Int(duration) / 3600
-        let minutes = (Int(duration) % 3600) / 60
+        let hours = Int(duration) / TimeConstants.secondsPerHour
+        let minutes = (Int(duration) % TimeConstants.secondsPerHour) / TimeConstants.secondsPerMinute
         if hours > 0 && minutes > 0 {
             return "\(hours)h \(minutes)m"
         } else if hours > 0 {
@@ -258,7 +289,7 @@ struct AddSessionTemplateSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             Form {
                 Section("Session Details") {
                     TextField("Label (optional)", text: $label)
@@ -291,6 +322,7 @@ struct AddSessionTemplateSheet: View {
                 }
             }
         }
+        .navigationViewStyle(.stack)
     }
 
     private func addTemplate() {
@@ -299,9 +331,9 @@ struct AddSessionTemplateSheet: View {
         let endComponents = calendar.dateComponents([.hour, .minute], from: endTime)
 
         let template = DefaultSessionTemplate(
-            startHour: startComponents.hour ?? 8,
+            startHour: startComponents.hour ?? SessionTemplateDefaults.defaultStartHour,
             startMinute: startComponents.minute ?? 0,
-            endHour: endComponents.hour ?? 12,
+            endHour: endComponents.hour ?? SessionTemplateDefaults.defaultEndHour,
             endMinute: endComponents.minute ?? 0,
             label: label.isEmpty ? nil : label
         )

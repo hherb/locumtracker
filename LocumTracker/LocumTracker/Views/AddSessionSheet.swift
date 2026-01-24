@@ -38,6 +38,9 @@ struct AddSessionSheet: View {
     // Track which template is selected (if any)
     @State private var selectedTemplateIndex: Int?
 
+    // Selected provider location (clinic) - nil means main location
+    @State private var selectedProviderLocationId: UUID?
+
     init(isPresented: Binding<Bool>, assignment: Assignment, mmmClassification: Int, location: Location? = nil) {
         self._isPresented = isPresented
         self.assignment = assignment
@@ -109,10 +112,23 @@ struct AddSessionSheet: View {
         location?.defaultSessionTemplates ?? []
     }
 
+    /// Available provider locations (clinics) from assignment
+    private var providerLocations: [ProviderLocation] {
+        assignment.providerLocations
+    }
+
+    /// Whether to show the clinic picker section
+    private var hasProviderLocations: Bool {
+        assignment.hasMainProviderNumber || !providerLocations.isEmpty
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 dateSection
+                if hasProviderLocations {
+                    clinicSection
+                }
                 if !sessionTemplates.isEmpty {
                     templateSection
                 }
@@ -151,6 +167,60 @@ struct AddSessionSheet: View {
                 in: assignment.dateRange,
                 displayedComponents: .date
             )
+        }
+    }
+
+    private var clinicSection: some View {
+        Section {
+            // Main location option
+            Button {
+                selectedProviderLocationId = nil
+            } label: {
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text("Main Location")
+                            .fontWeight(.medium)
+                        if let mainNumber = assignment.mainProviderNumber {
+                            Text(mainNumber)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                    if selectedProviderLocationId == nil {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(.blue)
+                    }
+                }
+            }
+            .foregroundStyle(.primary)
+
+            // Additional clinics
+            ForEach(providerLocations) { location in
+                Button {
+                    selectedProviderLocationId = location.id
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(location.name)
+                                .fontWeight(.medium)
+                            Text(location.providerNumber)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if selectedProviderLocationId == location.id {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.blue)
+                        }
+                    }
+                }
+                .foregroundStyle(.primary)
+            }
+        } header: {
+            Text("Clinic")
+        } footer: {
+            Text("Select the clinic where this session takes place.")
         }
     }
 
@@ -291,7 +361,8 @@ struct AddSessionSheet: View {
             endTime: sessionEndTime,
             sessionType: sessionType,
             mmmClassification: mmmClassification,
-            travelTime: travelMinutes > 0 ? Double(travelMinutes * 60) : nil
+            travelTime: travelMinutes > 0 ? Double(travelMinutes * 60) : nil,
+            providerLocationId: selectedProviderLocationId
         )
 
         if !notes.isEmpty {

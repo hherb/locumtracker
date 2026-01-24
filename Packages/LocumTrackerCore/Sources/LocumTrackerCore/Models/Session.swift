@@ -47,6 +47,10 @@ public final class Session {
     public var createdAt: Date = Date()
     public var updatedAt: Date = Date()
 
+    /// Optional reference to a specific provider location (clinic) for this session.
+    /// If nil, the session is at the main assignment location.
+    public var providerLocationId: UUID?
+
     public init(
         id: UUID = UUID(),
         dailyRecordId: UUID,
@@ -54,7 +58,8 @@ public final class Session {
         endTime: Date,
         sessionType: SessionType = .regular,
         mmmClassification: Int,
-        travelTime: TimeInterval? = nil
+        travelTime: TimeInterval? = nil,
+        providerLocationId: UUID? = nil
     ) {
         self.id = id
         self.dailyRecordId = dailyRecordId
@@ -65,8 +70,14 @@ public final class Session {
         self.travelTime = travelTime
         self.subsidyAmount = nil
         self.notes = nil
+        self.providerLocationId = providerLocationId
         self.createdAt = Date()
         self.updatedAt = Date()
+    }
+
+    /// Whether this session is at a specific provider location (not the main location)
+    public var hasSpecificProviderLocation: Bool {
+        providerLocationId != nil
     }
 
     /// Duration of the session in hours

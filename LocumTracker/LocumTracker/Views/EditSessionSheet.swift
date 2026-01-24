@@ -35,6 +35,9 @@ struct EditSessionSheet: View {
     @State private var travelMinutes: Int
     @State private var notes: String
 
+    // Selected provider location (clinic) - nil means main location
+    @State private var selectedProviderLocationId: UUID?
+
     init(isPresented: Binding<Bool>, session: Session, assignment: Assignment, location: Location? = nil) {
         self._isPresented = isPresented
         self.session = session
@@ -48,6 +51,7 @@ struct EditSessionSheet: View {
         _sessionType = State(initialValue: session.sessionType)
         _travelMinutes = State(initialValue: Int((session.travelTime ?? 0) / 60))
         _notes = State(initialValue: session.notes ?? "")
+        _selectedProviderLocationId = State(initialValue: session.providerLocationId)
 
         // Filter daily records for this assignment
         let assignmentId = assignment.id
@@ -87,10 +91,23 @@ struct EditSessionSheet: View {
         location?.defaultSessionTemplates ?? []
     }
 
+    /// Available provider locations (clinics) from assignment
+    private var providerLocations: [ProviderLocation] {
+        assignment.providerLocations
+    }
+
+    /// Whether to show the clinic picker section
+    private var hasProviderLocations: Bool {
+        assignment.hasMainProviderNumber || !providerLocations.isEmpty
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 dateSection
+                if hasProviderLocations {
+                    clinicSection
+                }
                 if !sessionTemplates.isEmpty {
                     templateSection
                 }
@@ -129,6 +146,60 @@ struct EditSessionSheet: View {
                 in: assignment.dateRange,
                 displayedComponents: .date
             )
+        }
+    }
+
+    private var clinicSection: some View {
+        Section {
+            // Main location option
+            Button {
+                selectedProviderLocationId = nil
+            } label: {
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text("Main Location")
+                            .fontWeight(.medium)
+                        if let mainNumber = assignment.mainProviderNumber {
+                            Text(mainNumber)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                    if selectedProviderLocationId == nil {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(.blue)
+                    }
+                }
+            }
+            .foregroundStyle(.primary)
+
+            // Additional clinics
+            ForEach(providerLocations) { location in
+                Button {
+                    selectedProviderLocationId = location.id
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(location.name)
+                                .fontWeight(.medium)
+                            Text(location.providerNumber)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if selectedProviderLocationId == location.id {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.blue)
+                        }
+                    }
+                }
+                .foregroundStyle(.primary)
+            }
+        } header: {
+            Text("Clinic")
+        } footer: {
+            Text("Select the clinic where this session takes place.")
         }
     }
 
@@ -275,6 +346,7 @@ struct EditSessionSheet: View {
         session.sessionType = sessionType
         session.travelTime = travelMinutes > 0 ? Double(travelMinutes * 60) : nil
         session.notes = notes.isEmpty ? nil : notes
+        session.providerLocationId = selectedProviderLocationId
 
         // Recalculate earnings for affected daily records
         if dateChanged {

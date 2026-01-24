@@ -33,6 +33,9 @@ struct AddAssignmentSheet: View {
     @State private var callOutRate: Double?
     @State private var startDate = Date()
     @State private var endDate = Date().addingTimeInterval(AssignmentDefaults.defaultDurationDays)
+    @State private var assignmentName: String = ""
+    @State private var sessionTemplates: [DefaultSessionTemplate] = []
+    @State private var showingTemplateEditor: Bool = false
 
     init(isPresented: Binding<Bool>, locations: [Location], preselectedLocationId: UUID? = nil) {
         self._isPresented = isPresented
@@ -48,9 +51,11 @@ struct AddAssignmentSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                nameSection
                 locationSection
                 rateSection
                 dateSection
+                sessionTemplatesSection
             }
             .navigationTitle("Add Assignment")
             #if os(iOS)
@@ -113,6 +118,12 @@ struct AddAssignmentSheet: View {
 
     // MARK: - View Components
 
+    private var nameSection: some View {
+        Section("Assignment Name") {
+            TextField("Optional name (e.g., Darwin Remote Communities)", text: $assignmentName)
+        }
+    }
+
     private var locationSection: some View {
         Section("Location") {
             Picker("Location", selection: $selectedLocationId) {
@@ -159,6 +170,65 @@ struct AddAssignmentSheet: View {
                 endDate: $endDate
             )
             .accessibilityIdentifier("dateRangePicker")
+        }
+    }
+
+    private var sessionTemplatesSection: some View {
+        Section {
+            if sessionTemplates.isEmpty {
+                Button {
+                    showingTemplateEditor = true
+                } label: {
+                    Label("Add Default Session Times", systemImage: "clock.badge.plus")
+                }
+
+                // Option to copy from location
+                if let location = selectedLocation, location.hasDefaultSessionTemplates {
+                    Button {
+                        sessionTemplates = location.defaultSessionTemplates
+                    } label: {
+                        Label("Copy from Location", systemImage: "doc.on.doc")
+                    }
+                }
+
+                // Quick add standard templates
+                Button {
+                    sessionTemplates = [
+                        .morningSession(),
+                        .afternoonSession()
+                    ]
+                } label: {
+                    Label("Add Morning & Afternoon", systemImage: "sun.and.horizon")
+                }
+            } else {
+                ForEach(sessionTemplates) { template in
+                    HStack {
+                        if let label = template.label {
+                            Text(label)
+                                .fontWeight(.medium)
+                        }
+                        Spacer()
+                        Text(template.timeRangeFormatted)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .onDelete { indices in
+                    sessionTemplates.remove(atOffsets: indices)
+                }
+
+                Button {
+                    showingTemplateEditor = true
+                } label: {
+                    Label("Add Another Session", systemImage: "plus")
+                }
+            }
+        } header: {
+            Text("Default Sessions (Optional)")
+        } footer: {
+            Text("Session templates are used when quickly adding sessions to this assignment")
+        }
+        .sheet(isPresented: $showingTemplateEditor) {
+            SessionTemplateEditorView(templates: $sessionTemplates)
         }
     }
 
@@ -213,7 +283,9 @@ struct AddAssignmentSheet: View {
             onCallRate: rateStructure == .hourlyRate ? onCallRate : nil,
             callOutRate: rateStructure == .hourlyRate ? callOutRate : nil,
             startDate: startDate,
-            endDate: endDate
+            endDate: endDate,
+            name: assignmentName.isEmpty ? nil : assignmentName,
+            defaultSessionTemplates: sessionTemplates
         )
         modelContext.insert(assignment)
         isPresented = false

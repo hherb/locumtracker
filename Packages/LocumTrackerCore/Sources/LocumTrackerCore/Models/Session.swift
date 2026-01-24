@@ -32,6 +32,17 @@ public enum SessionType: String, CaseIterable, Codable {
     }
 }
 
+// MARK: - Constants
+
+private enum SessionConstants {
+    /// Seconds per hour for time calculations
+    static let secondsPerHour: TimeInterval = 3600
+    /// Minimum travel time in seconds to be eligible for subsidy (1 hour)
+    static let minTravelTimeForSubsidy: TimeInterval = 3600
+    /// MMM classification range for subsidy eligibility
+    static let subsidyEligibleMMMRange = 3...7
+}
+
 /// Represents a work session within a daily record
 @Model
 public final class Session {
@@ -44,9 +55,24 @@ public final class Session {
     public var travelTime: TimeInterval?
     public var subsidyAmount: Double?
     public var notes: String?
+
+    /// Optional location override for this session.
+    /// If nil, the session uses the assignment's primary location.
+    public var locationId: UUID?
     public var createdAt: Date = Date()
     public var updatedAt: Date = Date()
 
+    /// Creates a new session.
+    ///
+    /// - Parameters:
+    ///   - id: Unique identifier (defaults to new UUID)
+    ///   - dailyRecordId: The daily record this session belongs to
+    ///   - startTime: Session start time
+    ///   - endTime: Session end time
+    ///   - sessionType: Type of session (regular, on-call, call-out)
+    ///   - mmmClassification: Modified Monash Model classification (1-7)
+    ///   - travelTime: Optional travel time in seconds
+    ///   - locationId: Optional location override (nil uses assignment's primary location)
     public init(
         id: UUID = UUID(),
         dailyRecordId: UUID,
@@ -54,7 +80,8 @@ public final class Session {
         endTime: Date,
         sessionType: SessionType = .regular,
         mmmClassification: Int,
-        travelTime: TimeInterval? = nil
+        travelTime: TimeInterval? = nil,
+        locationId: UUID? = nil
     ) {
         self.id = id
         self.dailyRecordId = dailyRecordId
@@ -63,6 +90,7 @@ public final class Session {
         self.sessionType = sessionType
         self.mmmClassification = mmmClassification
         self.travelTime = travelTime
+        self.locationId = locationId
         self.subsidyAmount = nil
         self.notes = nil
         self.createdAt = Date()
@@ -71,7 +99,7 @@ public final class Session {
 
     /// Duration of the session in hours
     public var durationHours: Double {
-        endTime.timeIntervalSince(startTime) / 3600
+        endTime.timeIntervalSince(startTime) / SessionConstants.secondsPerHour
     }
 
     /// Duration of the session in seconds
@@ -98,12 +126,14 @@ public final class Session {
     public var effectiveSubsidyHours: Double {
         let baseHours = durationHours
         // Travel time only counts if > 1 hour
-        let travelHours = (travelTime ?? 0) > 3600 ? (travelTime! / 3600) : 0
+        let travelHours = (travelTime ?? 0) > SessionConstants.minTravelTimeForSubsidy
+            ? (travelTime! / SessionConstants.secondsPerHour)
+            : 0
         return baseHours + travelHours
     }
 
     /// Whether this session is eligible for rural subsidy (MMM 3-7)
     public var isSubsidyEligible: Bool {
-        (3...7).contains(mmmClassification)
+        SessionConstants.subsidyEligibleMMMRange.contains(mmmClassification)
     }
 }

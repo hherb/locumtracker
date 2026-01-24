@@ -28,14 +28,22 @@ struct AssignmentDetailView: View {
     @State private var showingEditSheet = false
     @State private var showingDeleteConfirmation = false
 
-    /// The location associated with this assignment
+    /// The primary location for this assignment
     private var location: Location? {
         locations.first { $0.id == assignment.locationId }
     }
 
+    /// Additional locations for this assignment
+    private var additionalLocations: [Location] {
+        locations.filter { assignment.additionalLocationIds.contains($0.id) }
+    }
+
     var body: some View {
         List {
-            locationSection
+            if assignment.name != nil || assignment.hasDefaultSessionTemplates {
+                assignmentInfoSection
+            }
+            locationsSection
             ratesSection
             datesSection
             sessionsSection
@@ -76,15 +84,57 @@ struct AssignmentDetailView: View {
 
     // MARK: - View Components
 
-    private var locationSection: some View {
-        Section("Location") {
+    @ViewBuilder
+    private var assignmentInfoSection: some View {
+        Section {
+            if let name = assignment.name, !name.isEmpty {
+                LabeledContent("Name") {
+                    Text(name)
+                }
+            }
+
+            if assignment.hasDefaultSessionTemplates {
+                ForEach(assignment.defaultSessionTemplates) { template in
+                    HStack {
+                        if let label = template.label {
+                            Text(label)
+                        } else {
+                            Text("Session")
+                        }
+                        Spacer()
+                        Text(template.timeRangeFormatted)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        } header: {
+            Text("Assignment")
+        }
+    }
+
+    private var locationsSection: some View {
+        Section {
+            // Primary location
             if let location = location {
                 NavigationLink {
                     LocationDetailView(location: location)
                 } label: {
                     VStack(alignment: .leading, spacing: DetailConstants.itemSpacing) {
-                        Text(location.name)
-                            .font(.headline)
+                        HStack {
+                            Text(location.name)
+                                .font(.headline)
+                            if additionalLocations.isEmpty {
+                                Spacer()
+                            } else {
+                                Text("Primary")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.secondary.opacity(0.2))
+                                    .clipShape(Capsule())
+                            }
+                        }
                         Text(location.address)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
@@ -102,6 +152,30 @@ struct AssignmentDetailView: View {
             } else {
                 Text("Unknown Location")
                     .foregroundStyle(.secondary)
+            }
+
+            // Additional locations
+            ForEach(additionalLocations) { loc in
+                NavigationLink {
+                    LocationDetailView(location: loc)
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(loc.name)
+                            Text(loc.address)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        MMMBadge(classification: loc.mmmClassification)
+                    }
+                }
+            }
+        } header: {
+            if additionalLocations.isEmpty {
+                Text("Location")
+            } else {
+                Text("Locations (\(1 + additionalLocations.count))")
             }
         }
     }

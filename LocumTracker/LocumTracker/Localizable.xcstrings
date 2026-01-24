@@ -165,6 +165,9 @@
     "Based on predominant MMM%lld. Actual payment depends on registration status and year level." : {
 
     },
+    "Break Duration" : {
+
+    },
     "Business & Tax" : {
 
     },
@@ -190,6 +193,9 @@
       "comment" : "Button to cancel an action"
     },
     "Cancel Assignment" : {
+
+    },
+    "Cancel Split" : {
 
     },
     "Category" : {
@@ -620,6 +626,15 @@
     "Session" : {
 
     },
+    "Session 1" : {
+
+    },
+    "Session 2" : {
+
+    },
+    "Session 2 must start after Session 1 ends" : {
+
+    },
     "Session Date" : {
 
     },
@@ -630,6 +645,9 @@
 
     },
     "Session type: %@" : {
+
+    },
+    "Session will be split into two" : {
 
     },
     "sessions" : {
@@ -649,6 +667,9 @@
     },
     "Specialty" : {
       "comment" : "Text field placeholder for medical specialty"
+    },
+    "Split into two sessions" : {
+
     },
     "Start" : {
 

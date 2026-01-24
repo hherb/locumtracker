@@ -152,10 +152,13 @@ struct AddAssignmentSheet: View {
 
     private var dateSection: some View {
         Section("Dates") {
-            DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
-                .accessibilityIdentifier("startDatePicker")
-            DatePicker("End Date", selection: $endDate, displayedComponents: .date)
-                .accessibilityIdentifier("endDatePicker")
+            DateRangePicker(
+                startLabel: "Start Date",
+                endLabel: "End Date",
+                startDate: $startDate,
+                endDate: $endDate
+            )
+            .accessibilityIdentifier("dateRangePicker")
         }
     }
 

@@ -210,11 +210,10 @@ struct AddSessionSheet: View {
 
     private var dateSection: some View {
         Section("Date") {
-            DatePicker(
-                "Session Date",
+            AutoDismissDatePicker(
+                label: "Session Date",
                 selection: $sessionDate,
-                in: assignment.dateRange,
-                displayedComponents: .date
+                range: assignment.dateRange
             )
         }
     }

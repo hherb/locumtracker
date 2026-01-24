@@ -111,8 +111,12 @@ struct EditAssignmentSheet: View {
 
     private var dateSection: some View {
         Section("Dates") {
-            DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
-            DatePicker("End Date", selection: $endDate, displayedComponents: .date)
+            DateRangePicker(
+                startLabel: "Start Date",
+                endLabel: "End Date",
+                startDate: $startDate,
+                endDate: $endDate
+            )
         }
     }
 

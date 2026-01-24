@@ -192,10 +192,9 @@ struct AddReceiptSheet: View {
         Section("Details") {
             TextField("Description", text: $receiptDescription)
 
-            DatePicker(
-                "Date",
-                selection: $date,
-                displayedComponents: .date
+            AutoDismissDatePicker(
+                label: "Date",
+                selection: $date
             )
         }
     }

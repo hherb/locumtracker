@@ -38,6 +38,13 @@ struct AddSessionSheet: View {
     // Track which template is selected (if any)
     @State private var selectedTemplateIndex: Int?
 
+    // Split session state
+    @State private var isSplitMode: Bool = false
+    @State private var firstSessionEndTime: Date = Date()
+    @State private var secondSessionStartTime: Date = Date()
+    @State private var secondSessionType: SessionType = .regular
+    @State private var secondSessionNotes: String = ""
+
     init(isPresented: Binding<Bool>, assignment: Assignment, mmmClassification: Int, location: Location? = nil) {
         self._isPresented = isPresented
         self.assignment = assignment
@@ -93,14 +100,69 @@ struct AddSessionSheet: View {
     /// Duration formatted as human-readable string
     private var durationText: String {
         guard isValidDuration else { return "Invalid" }
-        let hours = Int(duration) / 3600
-        let minutes = (Int(duration) % 3600) / 60
+        return formatDuration(duration)
+    }
+
+    /// Format a duration as human-readable string
+    private func formatDuration(_ interval: TimeInterval) -> String {
+        let hours = Int(interval) / 3600
+        let minutes = (Int(interval) % 3600) / 60
         if hours > 0 && minutes > 0 {
             return "\(hours)h \(minutes)m"
         } else if hours > 0 {
             return "\(hours)h"
         } else {
             return "\(minutes)m"
+        }
+    }
+
+    /// Whether the total duration exceeds the split threshold
+    private var shouldSuggestSplit: Bool {
+        let durationHours = duration / 3600
+        return durationHours > SessionSplitConstants.splitThresholdHours
+    }
+
+    /// Duration of the first session in split mode
+    private var firstSessionDuration: TimeInterval {
+        firstSessionEndTime.timeIntervalSince(startTime)
+    }
+
+    /// Duration of the second session in split mode
+    private var secondSessionDuration: TimeInterval {
+        endTime.timeIntervalSince(secondSessionStartTime)
+    }
+
+    /// Whether the first session duration is valid
+    private var isValidFirstSessionDuration: Bool {
+        firstSessionDuration > 0
+    }
+
+    /// Whether the second session duration is valid
+    private var isValidSecondSessionDuration: Bool {
+        secondSessionDuration > 0
+    }
+
+    /// Whether all split sessions have valid durations
+    private var isValidSplitDurations: Bool {
+        isValidFirstSessionDuration && isValidSecondSessionDuration
+    }
+
+    /// Gap between first and second session
+    private var gapDuration: TimeInterval {
+        secondSessionStartTime.timeIntervalSince(firstSessionEndTime)
+    }
+
+    /// Whether the gap between sessions is valid (non-negative)
+    private var isValidGap: Bool {
+        gapDuration >= 0
+    }
+
+    /// Whether the form can be saved
+    private var canSave: Bool {
+        if isSplitMode {
+            return isValidSplitDurations && isValidGap
+        } else {
+            return isValidDuration
         }
     }
 
@@ -117,7 +179,10 @@ struct AddSessionSheet: View {
                     templateSection
                 }
                 timeSection
-                sessionTypeSection
+                splitSessionSection
+                if !isSplitMode {
+                    sessionTypeSection
+                }
                 travelSection
                 notesSection
             }
@@ -135,7 +200,7 @@ struct AddSessionSheet: View {
                     Button("Save") {
                         saveSession()
                     }
-                    .disabled(!isValidDuration)
+                    .disabled(!canSave)
                 }
             }
         }
@@ -205,15 +270,122 @@ struct AddSessionSheet: View {
         ) ?? now
 
         selectedTemplateIndex = index
+
+        // Check if we should suggest split mode
+        updateSplitSuggestion()
+    }
+
+    /// Updates split mode suggestion based on current duration
+    private func updateSplitSuggestion() {
+        if shouldSuggestSplit && !isSplitMode {
+            enableSplitMode()
+        }
+    }
+
+    /// Enables split mode with default split times
+    private func enableSplitMode() {
+        isSplitMode = true
+        calculateDefaultSplitTimes()
+    }
+
+    /// Disables split mode
+    private func disableSplitMode() {
+        isSplitMode = false
+    }
+
+    /// Calculates default split times: first session 4 hours, 30 min gap
+    private func calculateDefaultSplitTimes() {
+        let firstSessionSeconds = SessionSplitConstants.firstSessionDefaultHours * 3600
+        let gapSeconds = Double(SessionSplitConstants.defaultGapMinutes * 60)
+
+        firstSessionEndTime = startTime.addingTimeInterval(firstSessionSeconds)
+        secondSessionStartTime = firstSessionEndTime.addingTimeInterval(gapSeconds)
+        secondSessionType = sessionType
     }
 
     private var timeSection: some View {
         Section("Time") {
             DatePicker("Start Time", selection: $startTime, displayedComponents: .hourAndMinute)
+                .onChange(of: startTime) { _, _ in
+                    if isSplitMode {
+                        calculateDefaultSplitTimes()
+                    } else {
+                        updateSplitSuggestion()
+                    }
+                }
             DatePicker("End Time", selection: $endTime, displayedComponents: .hourAndMinute)
+                .onChange(of: endTime) { _, _ in
+                    updateSplitSuggestion()
+                }
             LabeledContent("Duration") {
                 Text(durationText)
                     .foregroundStyle(isValidDuration ? Color.primary : Color.red)
+            }
+
+            if shouldSuggestSplit && !isSplitMode {
+                Button {
+                    enableSplitMode()
+                } label: {
+                    Label("Split into two sessions", systemImage: "arrow.triangle.branch")
+                }
+                .foregroundStyle(.blue)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var splitSessionSection: some View {
+        if isSplitMode {
+            Section {
+                HStack {
+                    Text("Session will be split into two")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Cancel Split") {
+                        disableSplitMode()
+                    }
+                    .font(.subheadline)
+                }
+            }
+
+            Section("Session 1") {
+                LabeledContent("Start") {
+                    Text(startTime, style: .time)
+                }
+                DatePicker("End", selection: $firstSessionEndTime, displayedComponents: .hourAndMinute)
+                LabeledContent("Duration") {
+                    Text(formatDuration(firstSessionDuration))
+                        .foregroundStyle(isValidFirstSessionDuration ? Color.primary : Color.red)
+                }
+            }
+
+            Section("Session 2") {
+                DatePicker("Start", selection: $secondSessionStartTime, displayedComponents: .hourAndMinute)
+                LabeledContent("End") {
+                    Text(endTime, style: .time)
+                }
+                LabeledContent("Duration") {
+                    Text(formatDuration(secondSessionDuration))
+                        .foregroundStyle(isValidSecondSessionDuration ? Color.primary : Color.red)
+                }
+                Picker("Type", selection: $secondSessionType) {
+                    ForEach(SessionType.allCases, id: \.self) { type in
+                        Text(type.description).tag(type)
+                    }
+                }
+            }
+
+            Section {
+                LabeledContent("Break Duration") {
+                    Text(formatDuration(gapDuration))
+                        .foregroundStyle(isValidGap ? Color.secondary : Color.red)
+                }
+                if !isValidGap {
+                    Text("Session 2 must start after Session 1 ends")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
             }
         }
     }
@@ -281,6 +453,23 @@ struct AddSessionSheet: View {
         let calendar = Calendar.current
         let dailyRecord = findOrCreateDailyRecord(for: sessionDate, calendar: calendar)
 
+        if isSplitMode {
+            saveSplitSessions(dailyRecord: dailyRecord, calendar: calendar)
+        } else {
+            saveSingleSession(dailyRecord: dailyRecord, calendar: calendar)
+        }
+
+        // Recalculate daily earnings after adding the session(s)
+        EarningsCalculator.recalculateEarnings(
+            for: dailyRecord,
+            assignment: assignment,
+            in: modelContext
+        )
+
+        isPresented = false
+    }
+
+    private func saveSingleSession(dailyRecord: DailyRecord, calendar: Calendar) {
         // Combine session date with times
         let sessionStartTime = combineDateWithTime(date: sessionDate, time: startTime, calendar: calendar)
         let sessionEndTime = combineDateWithTime(date: sessionDate, time: endTime, calendar: calendar)
@@ -303,15 +492,46 @@ struct AddSessionSheet: View {
         // Sessions are tracked in QuarterlyQuota for FPS eligibility.
 
         modelContext.insert(session)
+    }
 
-        // Recalculate daily earnings after adding the session
-        EarningsCalculator.recalculateEarnings(
-            for: dailyRecord,
-            assignment: assignment,
-            in: modelContext
+    private func saveSplitSessions(dailyRecord: DailyRecord, calendar: Calendar) {
+        // First session: startTime to firstSessionEndTime
+        let firstStart = combineDateWithTime(date: sessionDate, time: startTime, calendar: calendar)
+        let firstEnd = combineDateWithTime(date: sessionDate, time: firstSessionEndTime, calendar: calendar)
+
+        let firstSession = Session(
+            dailyRecordId: dailyRecord.id,
+            startTime: firstStart,
+            endTime: firstEnd,
+            sessionType: sessionType,
+            mmmClassification: mmmClassification,
+            travelTime: travelMinutes > 0 ? Double(travelMinutes * 60) : nil
         )
 
-        isPresented = false
+        if !notes.isEmpty {
+            firstSession.notes = notes
+        }
+
+        modelContext.insert(firstSession)
+
+        // Second session: secondSessionStartTime to endTime
+        let secondStart = combineDateWithTime(date: sessionDate, time: secondSessionStartTime, calendar: calendar)
+        let secondEnd = combineDateWithTime(date: sessionDate, time: endTime, calendar: calendar)
+
+        let secondSession = Session(
+            dailyRecordId: dailyRecord.id,
+            startTime: secondStart,
+            endTime: secondEnd,
+            sessionType: secondSessionType,
+            mmmClassification: mmmClassification,
+            travelTime: nil  // Travel time only applies to first session
+        )
+
+        if !secondSessionNotes.isEmpty {
+            secondSession.notes = secondSessionNotes
+        }
+
+        modelContext.insert(secondSession)
     }
 
     private func findOrCreateDailyRecord(for date: Date, calendar: Calendar) -> DailyRecord {
@@ -353,6 +573,15 @@ private enum TravelConstants {
     static let maxMinutes = 240
     static let stepMinutes = 15
     static let eligibleThresholdMinutes = 60
+}
+
+private enum SessionSplitConstants {
+    /// Sessions exceeding this duration (in hours) will be automatically split
+    static let splitThresholdHours: Double = 5.0
+    /// Default duration for the first session when splitting (in hours)
+    static let firstSessionDefaultHours: Double = 4.0
+    /// Default gap between first and second session (in minutes)
+    static let defaultGapMinutes: Int = 30
 }
 
 // MARK: - Preview

@@ -217,9 +217,20 @@ extension FocusedValues {
 ```swift
 import SwiftUI
 
+/// View modifier that adds keyboard navigation to list views.
+///
+/// Handles arrow key navigation, Enter to open, Delete to remove,
+/// and Space for quick look actions.
+///
+/// - Parameters:
+///   - selectedItemID: Binding to the currently selected item's UUID.
+///   - itemIDs: Array of UUIDs representing the navigable items in order.
+///   - onEnter: Optional callback when Enter is pressed on a selection.
+///   - onDelete: Optional callback when Delete is pressed on a selection.
+///   - onSpace: Optional callback when Space is pressed on a selection.
 struct KeyboardHandler: ViewModifier {
     @Binding var selectedItemID: UUID?
-    let items: [any Identifiable<UUID>]
+    let itemIDs: [UUID]
     let onEnter: ((UUID) -> Void)?
     let onDelete: ((UUID) -> Void)?
     let onSpace: ((UUID) -> Void)?
@@ -254,32 +265,43 @@ struct KeyboardHandler: ViewModifier {
             }
     }
 
+    /// Navigate to the previous item in the list.
     private func navigateUp() {
         guard let currentID = selectedItemID,
-              let currentIndex = items.firstIndex(where: { $0.id == currentID }),
+              let currentIndex = itemIDs.firstIndex(of: currentID),
               currentIndex > 0 else { return }
-        selectedItemID = items[currentIndex - 1].id
+        selectedItemID = itemIDs[currentIndex - 1]
     }
 
+    /// Navigate to the next item in the list.
     private func navigateDown() {
         guard let currentID = selectedItemID,
-              let currentIndex = items.firstIndex(where: { $0.id == currentID }),
-              currentIndex < items.count - 1 else { return }
-        selectedItemID = items[currentIndex + 1].id
+              let currentIndex = itemIDs.firstIndex(of: currentID),
+              currentIndex < itemIDs.count - 1 else { return }
+        selectedItemID = itemIDs[currentIndex + 1]
     }
 }
 
 extension View {
-    func keyboardNavigation<T: Identifiable<UUID>>(
+    /// Adds keyboard navigation support to a view.
+    ///
+    /// - Parameters:
+    ///   - selection: Binding to the selected item's UUID.
+    ///   - items: Array of identifiable items to navigate through.
+    ///   - onEnter: Optional callback when Enter is pressed.
+    ///   - onDelete: Optional callback when Delete is pressed.
+    ///   - onSpace: Optional callback when Space is pressed.
+    /// - Returns: A view with keyboard navigation enabled.
+    func keyboardNavigation<T: Identifiable>(
         selection: Binding<UUID?>,
         items: [T],
         onEnter: ((UUID) -> Void)? = nil,
         onDelete: ((UUID) -> Void)? = nil,
         onSpace: ((UUID) -> Void)? = nil
-    ) -> some View {
+    ) -> some View where T.ID == UUID {
         modifier(KeyboardHandler(
             selectedItemID: selection,
-            items: items,
+            itemIDs: items.map(\.id),
             onEnter: onEnter,
             onDelete: onDelete,
             onSpace: onSpace

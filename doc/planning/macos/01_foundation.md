@@ -127,26 +127,100 @@ struct LocumTrackerMacApp: App {
 }
 ```
 
-### Step 4: Basic Sidebar Navigation
+### Step 4: Layout Constants
+
+First, define all layout constants to avoid magic numbers throughout the codebase:
+
+**LocumTrackerMac/Constants/LayoutConstants.swift**
+```swift
+import Foundation
+
+/// Layout constants for consistent UI sizing throughout the macOS app.
+///
+/// All dimension values are defined here for maintainability and consistency.
+/// Use these constants instead of hardcoded numbers in views.
+public enum LayoutConstants {
+    /// Sidebar panel dimensions.
+    public enum Sidebar {
+        /// Minimum width for the sidebar panel.
+        public static let minWidth: CGFloat = 200
+    }
+
+    /// Main window dimensions.
+    public enum MainWindow {
+        /// Minimum width for the main window.
+        public static let minWidth: CGFloat = 900
+        /// Minimum height for the main window.
+        public static let minHeight: CGFloat = 600
+    }
+
+    /// Inspector panel dimensions.
+    public enum Inspector {
+        /// Minimum width for the inspector panel.
+        public static let minWidth: CGFloat = 250
+        /// Ideal width for the inspector panel.
+        public static let idealWidth: CGFloat = 280
+        /// Maximum width for the inspector panel.
+        public static let maxWidth: CGFloat = 350
+    }
+
+    /// Content area dimensions.
+    public enum Content {
+        /// Minimum width for the content list area.
+        public static let listMinWidth: CGFloat = 300
+        /// Minimum width for the detail area.
+        public static let detailMinWidth: CGFloat = 400
+    }
+
+    /// Settings window dimensions.
+    public enum Settings {
+        /// Width of the settings window.
+        public static let width: CGFloat = 500
+        /// Height of the settings window.
+        public static let height: CGFloat = 400
+    }
+
+    /// Common spacing and padding values.
+    public enum Spacing {
+        /// Vertical padding for list rows.
+        public static let rowVerticalPadding: CGFloat = 4
+    }
+}
+```
+
+### Step 5: Basic Sidebar Navigation
 
 **LocumTrackerMac/Navigation/NavigationState.swift**
 ```swift
 import SwiftUI
 
-/// Tracks the current navigation state across the app
+/// Tracks the current navigation state across the macOS app.
+///
+/// This observable class maintains the user's navigation context including
+/// the selected sidebar section, the selected item within that section,
+/// and inspector visibility state. It serves as the single source of truth
+/// for navigation throughout the app.
 @Observable
 final class NavigationState {
-    /// Currently selected sidebar section
+    /// Currently selected sidebar section.
+    ///
+    /// When `nil`, no section is selected and a placeholder is shown.
     var selectedSection: SidebarSection? = .assignments
 
-    /// Selected item within the current section
+    /// Unique identifier of the selected item within the current section.
+    ///
+    /// When `nil`, no item is selected and the detail area shows a placeholder.
     var selectedItemID: UUID?
 
-    /// Whether the inspector panel is visible
+    /// Whether the inspector panel is visible.
+    ///
+    /// Toggle this to show/hide the right-side inspector panel.
     var showInspector: Bool = true
 }
 
-/// Sidebar navigation sections
+/// Sidebar navigation sections available in the macOS app.
+///
+/// Each section represents a major functional area of the application.
 enum SidebarSection: String, CaseIterable, Identifiable {
     case assignments = "Assignments"
     case locations = "Locations"
@@ -157,6 +231,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// SF Symbol name for this section's icon.
     var systemImage: String {
         switch self {
         case .assignments: return "calendar"
@@ -174,8 +249,12 @@ enum SidebarSection: String, CaseIterable, Identifiable {
 ```swift
 import SwiftUI
 
-/// Main sidebar navigation for macOS
+/// Main sidebar navigation for the macOS app.
+///
+/// Displays grouped navigation sections that allow users to switch
+/// between different functional areas of the application.
 struct SidebarView: View {
+    /// Shared navigation state binding.
     @Bindable var navigationState: NavigationState
 
     var body: some View {
@@ -201,12 +280,12 @@ struct SidebarView: View {
             }
         }
         .listStyle(.sidebar)
-        .frame(minWidth: 200)
+        .frame(minWidth: LayoutConstants.Sidebar.minWidth)
     }
 }
 ```
 
-### Step 5: Main Window Layout
+### Step 6: Main Window Layout
 
 **LocumTrackerMac/Views/MainWindowView.swift**
 ```swift
@@ -214,7 +293,13 @@ import SwiftUI
 import SwiftData
 import LocumTrackerCore
 
-/// Main window with three-column layout
+/// Main application window with three-column navigation layout.
+///
+/// Provides the primary user interface with:
+/// - Left: Sidebar for section navigation
+/// - Center: Content list for the selected section
+/// - Right: Detail view for the selected item
+/// - Far right (optional): Inspector panel
 struct MainWindowView: View {
     @State private var navigationState = NavigationState()
     @Environment(\.modelContext) private var modelContext
@@ -228,7 +313,10 @@ struct MainWindowView: View {
             DetailAreaView(navigationState: navigationState)
         }
         .navigationSplitViewStyle(.balanced)
-        .frame(minWidth: 900, minHeight: 600)
+        .frame(
+            minWidth: LayoutConstants.MainWindow.minWidth,
+            minHeight: LayoutConstants.MainWindow.minHeight
+        )
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 toolbarButtons
@@ -236,7 +324,11 @@ struct MainWindowView: View {
         }
         .inspector(isPresented: $navigationState.showInspector) {
             InspectorView(navigationState: navigationState)
-                .inspectorColumnWidth(min: 250, ideal: 280, max: 350)
+                .inspectorColumnWidth(
+                    min: LayoutConstants.Inspector.minWidth,
+                    ideal: LayoutConstants.Inspector.idealWidth,
+                    max: LayoutConstants.Inspector.maxWidth
+                )
         }
     }
 
@@ -259,8 +351,12 @@ struct MainWindowView: View {
 ```swift
 import SwiftUI
 
-/// Content area showing list for selected section
+/// Content area showing the list view for the currently selected section.
+///
+/// Renders the appropriate list view based on the navigation state's
+/// selected section. Shows a placeholder when no section is selected.
 struct ContentAreaView: View {
+    /// Shared navigation state binding.
     @Bindable var navigationState: NavigationState
 
     var body: some View {
@@ -286,7 +382,7 @@ struct ContentAreaView: View {
                 )
             }
         }
-        .frame(minWidth: 300)
+        .frame(minWidth: LayoutConstants.Content.listMinWidth)
     }
 }
 ```
@@ -295,8 +391,12 @@ struct ContentAreaView: View {
 ```swift
 import SwiftUI
 
-/// Detail view showing selected item
+/// Detail view showing the currently selected item.
+///
+/// Displays the full detail view for the selected item based on
+/// the current section. Shows a placeholder when no item is selected.
 struct DetailAreaView: View {
+    /// Shared navigation state binding.
     @Bindable var navigationState: NavigationState
 
     var body: some View {
@@ -316,7 +416,7 @@ struct DetailAreaView: View {
                 placeholderView
             }
         }
-        .frame(minWidth: 400)
+        .frame(minWidth: LayoutConstants.Content.detailMinWidth)
     }
 
     private var placeholderView: some View {
@@ -329,7 +429,7 @@ struct DetailAreaView: View {
 }
 ```
 
-### Step 6: Placeholder Views
+### Step 7: Placeholder Views
 
 Create placeholder implementations for each section view that will be fully implemented in Phase 2:
 
@@ -339,8 +439,15 @@ import SwiftUI
 import SwiftData
 import LocumTrackerCore
 
+/// List view displaying all assignments in the sidebar content area.
+///
+/// This is a placeholder implementation that will be expanded in Phase 2
+/// with table-based display, sorting, and filtering.
 struct AssignmentListView: View {
+    /// Shared navigation state binding.
     @Bindable var navigationState: NavigationState
+
+    /// All assignments, sorted by start date descending (most recent first).
     @Query(sort: \Assignment.startDate, order: .reverse) private var assignments: [Assignment]
 
     var body: some View {
@@ -352,7 +459,11 @@ struct AssignmentListView: View {
     }
 }
 
+/// Row view for displaying a single assignment in a list.
+///
+/// Shows the assignment name and start date in a compact format.
 struct AssignmentRowView: View {
+    /// The assignment to display.
     let assignment: Assignment
 
     var body: some View {
@@ -363,7 +474,7 @@ struct AssignmentRowView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, LayoutConstants.Spacing.rowVerticalPadding)
     }
 }
 ```
@@ -379,14 +490,20 @@ Create similar placeholder files for:
 - `ReceiptDetailView.swift`
 - `InspectorView.swift`
 
-### Step 7: Basic Commands
+### Step 8: Basic Commands
 
 **LocumTrackerMac/App/AppCommands.swift**
 ```swift
 import SwiftUI
 
-/// Custom menu commands for the app
+/// Custom menu commands for the macOS app.
+///
+/// Provides menu bar integration for common actions including
+/// creating new items and toggling the inspector panel.
 struct AppCommands: Commands {
+    /// Focused binding to access the navigation state from menu commands.
+    @FocusedBinding(\.navigationState) var navigationState: NavigationState?
+
     var body: some Commands {
         // Replace default New command
         CommandGroup(replacing: .newItem) {
@@ -419,26 +536,51 @@ struct AppCommands: Commands {
 
         // View menu additions
         CommandGroup(after: .sidebar) {
-            Toggle("Show Inspector", isOn: .constant(true))
-                .keyboardShortcut("i", modifiers: [.command, .option])
+            Toggle("Show Inspector", isOn: Binding(
+                get: { navigationState?.showInspector ?? true },
+                set: { navigationState?.showInspector = $0 }
+            ))
+            .keyboardShortcut("i", modifiers: [.command, .option])
         }
     }
 }
 
+/// Notification names for app-wide actions.
 extension Notification.Name {
+    /// Posted when user requests a new assignment.
     static let newAssignment = Notification.Name("newAssignment")
+    /// Posted when user requests a new location.
     static let newLocation = Notification.Name("newLocation")
+    /// Posted when user requests a new receipt.
     static let newReceipt = Notification.Name("newReceipt")
+}
+
+/// Focus key for accessing navigation state from menu commands.
+struct NavigationStateFocusKey: FocusedValueKey {
+    typealias Value = Binding<NavigationState>
+}
+
+extension FocusedValues {
+    /// Binding to the current window's navigation state.
+    var navigationState: Binding<NavigationState>? {
+        get { self[NavigationStateFocusKey.self] }
+        set { self[NavigationStateFocusKey.self] = newValue }
+    }
 }
 ```
 
-### Step 8: Settings Window
+### Step 9: Settings Window
 
 **LocumTrackerMac/Settings/SettingsWindowView.swift**
 ```swift
 import SwiftUI
 
+/// Settings window for macOS app preferences.
+///
+/// Provides tabbed interface for configuring general settings,
+/// user profile, and sync options.
 struct SettingsWindowView: View {
+    /// Available settings tabs.
     private enum Tabs: Hashable {
         case general
         case profile
@@ -465,11 +607,16 @@ struct SettingsWindowView: View {
                 }
                 .tag(Tabs.sync)
         }
-        .frame(width: 500, height: 400)
+        .frame(
+            width: LayoutConstants.Settings.width,
+            height: LayoutConstants.Settings.height
+        )
     }
 }
 
+/// General application settings tab.
 struct GeneralSettingsTab: View {
+    /// Default MMM classification for new locations (1-7).
     @AppStorage("defaultMMMClassification") private var defaultMMM = 3
 
     var body: some View {
@@ -484,6 +631,7 @@ struct GeneralSettingsTab: View {
     }
 }
 
+/// User profile settings tab (placeholder).
 struct ProfileSettingsTab: View {
     var body: some View {
         Text("Profile settings - connects to LocumProfile")
@@ -491,6 +639,7 @@ struct ProfileSettingsTab: View {
     }
 }
 
+/// CloudKit sync settings tab (placeholder).
 struct SyncSettingsTab: View {
     var body: some View {
         Text("CloudKit sync status and settings")
@@ -499,7 +648,7 @@ struct SyncSettingsTab: View {
 }
 ```
 
-### Step 9: Configure Entitlements
+### Step 10: Configure Entitlements
 
 **LocumTrackerMac/LocumTrackerMac.entitlements**
 ```xml
@@ -558,6 +707,8 @@ LocumTrackerMac/
     ├── App/
     │   ├── LocumTrackerMacApp.swift
     │   └── AppCommands.swift
+    ├── Constants/
+    │   └── LayoutConstants.swift
     ├── Navigation/
     │   ├── NavigationState.swift
     │   └── SidebarView.swift

@@ -651,84 +651,123 @@ public struct PaymentDetails: Sendable {
 
 **Sources/LocumTrackerReporting/Invoices/InvoiceRenderer.swift**
 ```swift
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 import Foundation
 import PDFKit
 import CoreGraphics
 import CoreText
 
-/// Renders invoice content to PDF pages
-class InvoiceRenderer {
+/// Renders invoice content to PDF pages.
+///
+/// Uses platform-appropriate graphics APIs to generate professional
+/// PDF invoices from InvoiceData.
+final class InvoiceRenderer {
+    // MARK: - Constants
+
+    private enum Layout {
+        static let margin: CGFloat = 50
+        static let titleFontSize: CGFloat = 24
+        static let headerFontSize: CGFloat = 12
+        static let bodyFontSize: CGFloat = 11
+        static let lineSpacing: CGFloat = 14
+        static let sectionSpacing: CGFloat = 20
+        static let headerLineSpacing: CGFloat = 16
+        static let partyLineSpacing: CGFloat = 18
+    }
+
+    // MARK: - Properties
+
     let invoice: InvoiceData
     let pageRect: CGRect
-    let margin: CGFloat = 50
 
+    // MARK: - Initialization
+
+    /// Creates a new invoice renderer.
+    ///
+    /// - Parameters:
+    ///   - invoice: The invoice data to render.
+    ///   - pageRect: The page dimensions (typically A4: 595x842 points).
     init(invoice: InvoiceData, pageRect: CGRect) {
         self.invoice = invoice
         self.pageRect = pageRect
     }
 
-    func render() -> [PDFPage] {
-        var pages: [PDFPage] = []
+    // MARK: - Rendering
 
-        let data = NSMutableData()
-        UIGraphicsBeginPDFContextToData(data, pageRect, nil)
+    /// Renders the invoice to PDF pages.
+    ///
+    /// - Returns: Array of PDFPage objects representing the invoice.
+    func render() -> [PDFPage] {
+        let pdfData = NSMutableData()
+
+        #if os(macOS)
+        // macOS: Use NSGraphicsContext for PDF rendering
+        guard let consumer = CGDataConsumer(data: pdfData as CFMutableData),
+              let pdfContext = CGContext(consumer: consumer, mediaBox: nil, nil) else {
+            return []
+        }
+
+        pdfContext.beginPDFPage(nil)
+        renderContent(to: pdfContext)
+        pdfContext.endPDFPage()
+        pdfContext.closePDF()
+        #else
+        // iOS: Use UIGraphics PDF context
+        UIGraphicsBeginPDFContextToData(pdfData, pageRect, nil)
         UIGraphicsBeginPDFPage()
 
         guard let context = UIGraphicsGetCurrentContext() else {
-            return pages
+            UIGraphicsEndPDFContext()
+            return []
         }
 
-        var yPosition = pageRect.height - margin
-
-        // Header
-        yPosition = drawHeader(context: context, y: yPosition)
-
-        // From/To
-        yPosition = drawParties(context: context, y: yPosition)
-
-        // Line Items Table
-        yPosition = drawLineItems(context: context, y: yPosition)
-
-        // Totals
-        yPosition = drawTotals(context: context, y: yPosition)
-
-        // Payment Details
-        yPosition = drawPaymentDetails(context: context, y: yPosition)
-
-        // Footer
-        drawFooter(context: context)
-
+        renderContent(to: context)
         UIGraphicsEndPDFContext()
+        #endif
 
-        if let pdfDoc = PDFDocument(data: data as Data) {
-            for i in 0..<pdfDoc.pageCount {
-                if let page = pdfDoc.page(at: i) {
-                    pages.append(page)
-                }
-            }
+        // Convert data to PDFDocument and extract pages
+        guard let pdfDoc = PDFDocument(data: pdfData as Data) else {
+            return []
         }
 
-        return pages
+        return (0..<pdfDoc.pageCount).compactMap { pdfDoc.page(at: $0) }
     }
+
+    /// Renders invoice content to the given graphics context.
+    private func renderContent(to context: CGContext) {
+        var yPosition = pageRect.height - Layout.margin
+
+        yPosition = drawHeader(context: context, y: yPosition)
+        yPosition = drawParties(context: context, y: yPosition)
+        yPosition = drawLineItems(context: context, y: yPosition)
+        yPosition = drawTotals(context: context, y: yPosition)
+        _ = drawPaymentDetails(context: context, y: yPosition)
+        drawFooter(context: context)
+    }
+
+    // MARK: - Section Drawing
 
     private func drawHeader(context: CGContext, y: CGFloat) -> CGFloat {
         var currentY = y
 
-        // Title
-        let titleAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.boldSystemFont(ofSize: 24),
-            .foregroundColor: NSColor.black
-        ]
+        let titleAttributes = textAttributes(
+            fontSize: Layout.titleFontSize,
+            bold: true
+        )
         let title = "TAX INVOICE"
-        title.draw(at: CGPoint(x: margin, y: currentY - 30), withAttributes: titleAttributes)
+        drawText(title, at: CGPoint(x: Layout.margin, y: currentY - 30),
+                 attributes: titleAttributes, in: context)
 
         currentY -= 50
 
-        // Invoice details (right aligned)
-        let detailsAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 11),
-            .foregroundColor: NSColor.darkGray
-        ]
+        let detailsAttributes = textAttributes(
+            fontSize: Layout.bodyFontSize,
+            color: .gray
+        )
 
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .long
@@ -740,88 +779,129 @@ class InvoiceRenderer {
         ]
 
         for detail in details {
-            let size = detail.size(withAttributes: detailsAttributes)
-            detail.draw(at: CGPoint(x: pageRect.width - margin - size.width, y: currentY),
-                       withAttributes: detailsAttributes)
-            currentY -= 16
+            let size = textSize(detail, attributes: detailsAttributes)
+            drawText(detail,
+                     at: CGPoint(x: pageRect.width - Layout.margin - size.width, y: currentY),
+                     attributes: detailsAttributes, in: context)
+            currentY -= Layout.headerLineSpacing
         }
 
-        return currentY - 20
+        return currentY - Layout.sectionSpacing
     }
 
     private func drawParties(context: CGContext, y: CGFloat) -> CGFloat {
         var currentY = y
 
-        let headerAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.boldSystemFont(ofSize: 12),
-            .foregroundColor: NSColor.black
-        ]
-        let bodyAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 11),
-            .foregroundColor: NSColor.darkGray
-        ]
+        let headerAttributes = textAttributes(fontSize: Layout.headerFontSize, bold: true)
+        let bodyAttributes = textAttributes(fontSize: Layout.bodyFontSize, color: .gray)
 
         // From (left side)
-        "FROM:".draw(at: CGPoint(x: margin, y: currentY), withAttributes: headerAttributes)
-        currentY -= 18
-        invoice.from.name.draw(at: CGPoint(x: margin, y: currentY), withAttributes: bodyAttributes)
-        currentY -= 14
+        drawText("FROM:", at: CGPoint(x: Layout.margin, y: currentY),
+                 attributes: headerAttributes, in: context)
+        currentY -= Layout.partyLineSpacing
+        drawText(invoice.from.name, at: CGPoint(x: Layout.margin, y: currentY),
+                 attributes: bodyAttributes, in: context)
+        currentY -= Layout.lineSpacing
+
         if let abn = invoice.from.abn {
-            "ABN: \(abn)".draw(at: CGPoint(x: margin, y: currentY), withAttributes: bodyAttributes)
-            currentY -= 14
-        }
-        if let address = invoice.from.address {
-            address.draw(at: CGPoint(x: margin, y: currentY), withAttributes: bodyAttributes)
+            drawText("ABN: \(abn)", at: CGPoint(x: Layout.margin, y: currentY),
+                     attributes: bodyAttributes, in: context)
+            currentY -= Layout.lineSpacing
         }
 
-        // To (right side) - reset Y for right column
+        if let address = invoice.from.address {
+            drawText(address, at: CGPoint(x: Layout.margin, y: currentY),
+                     attributes: bodyAttributes, in: context)
+        }
+
+        // To (right side)
         var rightY = y
         let rightX = pageRect.width / 2
 
-        "TO:".draw(at: CGPoint(x: rightX, y: rightY), withAttributes: headerAttributes)
-        rightY -= 18
-        invoice.to.name.draw(at: CGPoint(x: rightX, y: rightY), withAttributes: bodyAttributes)
-        rightY -= 14
+        drawText("TO:", at: CGPoint(x: rightX, y: rightY),
+                 attributes: headerAttributes, in: context)
+        rightY -= Layout.partyLineSpacing
+        drawText(invoice.to.name, at: CGPoint(x: rightX, y: rightY),
+                 attributes: bodyAttributes, in: context)
+        rightY -= Layout.lineSpacing
+
         if let abn = invoice.to.abn {
-            "ABN: \(abn)".draw(at: CGPoint(x: rightX, y: rightY), withAttributes: bodyAttributes)
-            rightY -= 14
+            drawText("ABN: \(abn)", at: CGPoint(x: rightX, y: rightY),
+                     attributes: bodyAttributes, in: context)
+            rightY -= Layout.lineSpacing
         }
+
         if let address = invoice.to.address {
-            address.draw(at: CGPoint(x: rightX, y: rightY), withAttributes: bodyAttributes)
+            drawText(address, at: CGPoint(x: rightX, y: rightY),
+                     attributes: bodyAttributes, in: context)
         }
 
         return min(currentY, rightY) - 30
     }
 
     private func drawLineItems(context: CGContext, y: CGFloat) -> CGFloat {
-        // Table implementation
-        // Draw headers, rows, and borders
-        return y - 200 // Placeholder
+        // Table implementation - draws headers, rows, and borders
+        // Full implementation would iterate through invoice.lineItems
+        return y - 200
     }
 
     private func drawTotals(context: CGContext, y: CGFloat) -> CGFloat {
-        // Totals section
+        // Draws subtotal, GST, and total
         return y - 60
     }
 
     private func drawPaymentDetails(context: CGContext, y: CGFloat) -> CGFloat {
-        // Payment details section
+        // Draws bank details and payment terms
         return y - 80
     }
 
     private func drawFooter(context: CGContext) {
         // Footer with thank you message
     }
+
+    // MARK: - Text Helpers
+
+    /// Creates text attributes for the current platform.
+    private func textAttributes(
+        fontSize: CGFloat,
+        bold: Bool = false,
+        color: PlatformColor = .black
+    ) -> [NSAttributedString.Key: Any] {
+        #if os(macOS)
+        let font = bold
+            ? NSFont.boldSystemFont(ofSize: fontSize)
+            : NSFont.systemFont(ofSize: fontSize)
+        return [.font: font, .foregroundColor: color]
+        #else
+        let font = bold
+            ? UIFont.boldSystemFont(ofSize: fontSize)
+            : UIFont.systemFont(ofSize: fontSize)
+        return [.font: font, .foregroundColor: color]
+        #endif
+    }
+
+    /// Calculates the size of text with given attributes.
+    private func textSize(_ text: String, attributes: [NSAttributedString.Key: Any]) -> CGSize {
+        (text as NSString).size(withAttributes: attributes)
+    }
+
+    /// Draws text at the specified point.
+    private func drawText(
+        _ text: String,
+        at point: CGPoint,
+        attributes: [NSAttributedString.Key: Any],
+        in context: CGContext
+    ) {
+        (text as NSString).draw(at: point, withAttributes: attributes)
+    }
 }
 
+// MARK: - Platform Color Type
+
 #if os(macOS)
-import AppKit
-typealias NSFont = AppKit.NSFont
-typealias NSColor = AppKit.NSColor
+private typealias PlatformColor = NSColor
 #else
-import UIKit
-typealias NSFont = UIFont
-typealias NSColor = UIColor
+private typealias PlatformColor = UIColor
 #endif
 ```
 
@@ -967,12 +1047,9 @@ public struct AssignmentExportData: Sendable {
     }
 }
 
-extension Calendar {
-    func startOfMonth(for date: Date) -> Date {
-        let components = dateComponents([.year, .month], from: date)
-        return self.date(from: components)!
-    }
-}
+// Note: Calendar.startOfMonth(for:) extension should be added to
+// LocumTrackerCore/Sources/LocumTrackerCore/Utilities/DateExtensions.swift
+// to be shared across the codebase. See Phase 2 for the implementation.
 ```
 
 ### Step 6: macOS Report Views
@@ -981,6 +1058,7 @@ extension Calendar {
 ```swift
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 import LocumTrackerCore
 import LocumTrackerReporting
 
@@ -1105,6 +1183,9 @@ struct ReportsView: View {
         )
     }
 
+    /// Exports the generated report in the specified format.
+    ///
+    /// - Parameter format: The export format (CSV, PDF, etc.).
     private func exportReport(format: ExportFormat) {
         guard let report = generatedReport else { return }
 
@@ -1115,18 +1196,28 @@ struct ReportsView: View {
         case .pdf:
             // Convert report to invoice format or use dedicated PDF exporter
             data = Data()
-        default:
+        case .excel:
+            // Excel export not yet implemented
             return
         }
 
         // Show save panel
         let savePanel = NSSavePanel()
-        savePanel.allowedContentTypes = [.init(filenameExtension: format.fileExtension)!]
+
+        // Safely create UTType from file extension
+        if let utType = UTType(filenameExtension: format.fileExtension) {
+            savePanel.allowedContentTypes = [utType]
+        }
         savePanel.nameFieldStringValue = "report.\(format.fileExtension)"
 
         savePanel.begin { response in
             if response == .OK, let url = savePanel.url {
-                try? data.write(to: url)
+                do {
+                    try data.write(to: url)
+                } catch {
+                    // Handle write error - would show alert in production
+                    print("Failed to write report: \(error)")
+                }
             }
         }
     }
@@ -1246,9 +1337,17 @@ struct ReportSummaryView: View {
 **LocumTrackerMac/Utilities/PrintService.swift**
 ```swift
 import AppKit
+import PDFKit
 import LocumTrackerReporting
 
+/// Service for printing reports and invoices.
+///
+/// Provides static methods for printing ReportData and InvoiceData
+/// using the native macOS print system.
 enum PrintService {
+    /// Prints a report using the macOS print panel.
+    ///
+    /// - Parameter report: The report data to print.
     static func printReport(_ report: ReportData) {
         let printInfo = NSPrintInfo.shared
         printInfo.horizontalPagination = .automatic

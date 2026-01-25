@@ -53,6 +53,9 @@ public enum ExpenseCategory: String, CaseIterable, Codable {
 }
 
 /// Represents expense receipts for reimbursement and tax purposes
+///
+/// Attachments are stored separately in the `Attachment` model and linked by `receiptId`.
+/// Use a FetchDescriptor with predicate `$0.receiptId == receipt.id` to query attachments.
 @Model
 public final class Receipt {
     public var id: UUID = UUID()
@@ -60,7 +63,12 @@ public final class Receipt {
     public var assignmentId: UUID?
     public var amount: Double = 0
     public var category: ExpenseCategory = ExpenseCategory.other
+
+    /// Legacy single image data - kept for backwards compatibility during migration
+    /// Use `Attachment` model with `receiptId` for new code
+    @available(*, deprecated, message: "Use Attachment model with receiptId instead")
     public var imageData: Data?
+
     public var date: Date = Date()
     public var receiptDescription: String = ""
     public var createdAt: Date = Date()
@@ -88,7 +96,8 @@ public final class Receipt {
         self.updatedAt = Date()
     }
 
-    /// Whether this receipt has an associated image
+    /// Whether this receipt has legacy image data (for backwards compatibility check)
+    /// Note: Use ModelContext to query Attachment model for full attachment check
     public var hasImage: Bool {
         imageData != nil
     }

@@ -19,6 +19,7 @@ import SwiftData
 import LocumTrackerCore
 import LocumTrackerUI
 import LocumTrackerOCR
+import UniformTypeIdentifiers
 
 #if canImport(UIKit)
 import UIKit
@@ -74,11 +75,6 @@ struct ReceiptDetailView: View {
         }
         .sheet(isPresented: $showingEditSheet) {
             EditReceiptSheet(isPresented: $showingEditSheet, receipt: receipt)
-        }
-        .sheet(isPresented: $showingFullImage) {
-            if let imageData = receipt.imageData {
-                FullImageView(imageData: imageData)
-            }
         }
         .sheet(isPresented: $showingAttachmentViewer) {
             if let attachment = selectedAttachment {
@@ -450,6 +446,9 @@ struct EditReceiptSheet: View {
     @State private var ocrImportState: OCRImportState = .idle
     @State private var showOCRError = false
     @State private var ocrErrorMessage = ""
+    @State private var pickedFileData: Data?
+    @State private var pickedFileType: AttachmentType?
+    @State private var pickedFilename: String?
 
     enum EditSheetType: Identifiable {
         case camera
@@ -770,9 +769,12 @@ struct EditReceiptSheet: View {
         #if os(iOS)
         HStack(spacing: 20) {
             if CameraPermissionService.isCameraHardwareAvailable {
-                CameraCaptureButton {
+                Button {
                     presentedSheet = .camera
+                } label: {
+                    Label("Camera", systemImage: "camera")
                 }
+                .buttonStyle(.bordered)
             }
 
             Button {

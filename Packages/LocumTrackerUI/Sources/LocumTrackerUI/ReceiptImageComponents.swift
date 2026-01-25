@@ -15,10 +15,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import SwiftUI
+import LocumTrackerCore
+import UniformTypeIdentifiers
 
 #if canImport(UIKit)
 import UIKit
 import AVFoundation
+import PDFKit
 #endif
 
 // MARK: - Constants
@@ -469,6 +472,542 @@ public struct ReceiptCropWrapper: View {
                 onDismiss()
             }
         }
+    }
+}
+#endif
+
+// MARK: - Attachment Preview
+
+/// Preview view for a single attachment (image or PDF)
+public struct AttachmentPreview: View {
+    /// The attachment data
+    public let data: Data
+
+    /// The type of attachment
+    public let attachmentType: AttachmentType
+
+    /// Maximum height for the preview
+    public let maxHeight: CGFloat
+
+    /// Called when tapped for full view
+    public let onTap: (() -> Void)?
+
+    /// Called when delete is tapped
+    public let onDelete: (() -> Void)?
+
+    public init(
+        data: Data,
+        attachmentType: AttachmentType,
+        maxHeight: CGFloat = ReceiptImageConstants.maxPreviewHeight,
+        onTap: (() -> Void)? = nil,
+        onDelete: (() -> Void)? = nil
+    ) {
+        self.data = data
+        self.attachmentType = attachmentType
+        self.maxHeight = maxHeight
+        self.onTap = onTap
+        self.onDelete = onDelete
+    }
+
+    public var body: some View {
+        VStack {
+            if attachmentType.isImage {
+                imagePreview
+            } else {
+                pdfPreview
+            }
+
+            if onDelete != nil {
+                Button(role: .destructive) {
+                    onDelete?()
+                } label: {
+                    Label("Remove", systemImage: "trash")
+                }
+                .font(.caption)
+                .padding(.top, 4)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var imagePreview: some View {
+        #if os(iOS)
+        if let uiImage = UIImage(data: data) {
+            Button {
+                onTap?()
+            } label: {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxHeight: maxHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: ReceiptImageConstants.cornerRadius))
+            }
+            .buttonStyle(.plain)
+            .disabled(onTap == nil)
+        }
+        #else
+        if let nsImage = NSImage(data: data) {
+            Image(nsImage: nsImage)
+                .resizable()
+                .scaledToFit()
+                .frame(maxHeight: maxHeight)
+                .clipShape(RoundedRectangle(cornerRadius: ReceiptImageConstants.cornerRadius))
+        }
+        #endif
+    }
+
+    @ViewBuilder
+    private var pdfPreview: some View {
+        #if os(iOS)
+        PDFThumbnailView(data: data, maxHeight: maxHeight)
+            .onTapGesture {
+                onTap?()
+            }
+        #else
+        // macOS: Show PDF icon placeholder
+        VStack {
+            Image(systemName: "doc.richtext")
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary)
+            Text("PDF Document")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(height: maxHeight)
+        .frame(maxWidth: .infinity)
+        .background(Color.gray.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: ReceiptImageConstants.cornerRadius))
+        #endif
+    }
+}
+
+// MARK: - PDF Thumbnail
+
+#if os(iOS)
+/// View that displays a thumbnail of a PDF's first page
+public struct PDFThumbnailView: View {
+    let data: Data
+    let maxHeight: CGFloat
+
+    public init(data: Data, maxHeight: CGFloat = ReceiptImageConstants.maxPreviewHeight) {
+        self.data = data
+        self.maxHeight = maxHeight
+    }
+
+    public var body: some View {
+        Group {
+            if let pdfDocument = PDFDocument(data: data),
+               let pdfPage = pdfDocument.page(at: 0) {
+                let pageRect = pdfPage.bounds(for: .mediaBox)
+                let scale = min(maxHeight / pageRect.height, 300 / pageRect.width)
+                let thumbnailSize = CGSize(
+                    width: pageRect.width * scale,
+                    height: pageRect.height * scale
+                )
+
+                let thumbnail = pdfPage.thumbnail(of: thumbnailSize, for: .mediaBox)
+                Image(uiImage: thumbnail)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxHeight: maxHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: ReceiptImageConstants.cornerRadius))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: ReceiptImageConstants.cornerRadius)
+                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                    )
+                    .overlay(alignment: .bottomTrailing) {
+                        pdfBadge
+                    }
+            } else {
+                pdfPlaceholder
+            }
+        }
+    }
+
+    private var pdfBadge: some View {
+        Text("PDF")
+            .font(.caption2)
+            .fontWeight(.semibold)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.red)
+            .clipShape(Capsule())
+            .padding(6)
+    }
+
+    private var pdfPlaceholder: some View {
+        VStack {
+            Image(systemName: "doc.richtext")
+                .font(.system(size: 32))
+                .foregroundStyle(.secondary)
+            Text("PDF")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(height: maxHeight)
+        .frame(maxWidth: 150)
+        .background(Color(.systemGray6))
+        .clipShape(RoundedRectangle(cornerRadius: ReceiptImageConstants.cornerRadius))
+    }
+}
+#endif
+
+// MARK: - Multiple Attachments Grid
+
+/// Grid view for displaying multiple attachments
+public struct AttachmentsGridView: View {
+    /// The attachments to display
+    public let attachments: [Attachment]
+
+    /// Called when an attachment is tapped
+    public let onSelect: ((Attachment) -> Void)?
+
+    /// Called when delete is tapped for an attachment
+    public let onDelete: ((Attachment) -> Void)?
+
+    /// Whether editing is enabled
+    public let isEditing: Bool
+
+    private let columns = [
+        GridItem(.adaptive(minimum: 100, maximum: 150), spacing: 12)
+    ]
+
+    public init(
+        attachments: [Attachment],
+        isEditing: Bool = false,
+        onSelect: ((Attachment) -> Void)? = nil,
+        onDelete: ((Attachment) -> Void)? = nil
+    ) {
+        self.attachments = attachments
+        self.isEditing = isEditing
+        self.onSelect = onSelect
+        self.onDelete = onDelete
+    }
+
+    public var body: some View {
+        LazyVGrid(columns: columns, spacing: 12) {
+            ForEach(attachments.sorted { $0.createdAt < $1.createdAt }) { attachment in
+                AttachmentGridItem(
+                    attachment: attachment,
+                    isEditing: isEditing,
+                    onTap: { onSelect?(attachment) },
+                    onDelete: { onDelete?(attachment) }
+                )
+            }
+        }
+    }
+}
+
+/// Single item in the attachments grid
+public struct AttachmentGridItem: View {
+    let attachment: Attachment
+    let isEditing: Bool
+    let onTap: () -> Void
+    let onDelete: () -> Void
+
+    public var body: some View {
+        ZStack(alignment: .topTrailing) {
+            if let data = attachment.fileData {
+                AttachmentPreview(
+                    data: data,
+                    attachmentType: attachment.fileType,
+                    maxHeight: 100,
+                    onTap: onTap,
+                    onDelete: nil
+                )
+            }
+
+            if isEditing {
+                Button {
+                    onDelete()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(.white, .red)
+                }
+                .offset(x: 8, y: -8)
+            }
+        }
+    }
+}
+
+// MARK: - Document Picker
+
+#if os(iOS)
+/// Document picker for selecting files (PDFs, images)
+public struct DocumentPicker: UIViewControllerRepresentable {
+    /// Binding to store the picked file data
+    @Binding var fileData: Data?
+
+    /// Binding to store the picked file type
+    @Binding var fileType: AttachmentType?
+
+    /// Binding to store the filename
+    @Binding var filename: String?
+
+    /// Called when picker is dismissed
+    let onDismiss: () -> Void
+
+    /// Allowed content types
+    let contentTypes: [UTType]
+
+    public init(
+        fileData: Binding<Data?>,
+        fileType: Binding<AttachmentType?>,
+        filename: Binding<String?>,
+        contentTypes: [UTType] = [.pdf, .jpeg, .png, .heic],
+        onDismiss: @escaping () -> Void
+    ) {
+        self._fileData = fileData
+        self._fileType = fileType
+        self._filename = filename
+        self.contentTypes = contentTypes
+        self.onDismiss = onDismiss
+    }
+
+    public func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: contentTypes)
+        picker.delegate = context.coordinator
+        picker.allowsMultipleSelection = false
+        return picker
+    }
+
+    public func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+
+    public func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    public class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let parent: DocumentPicker
+
+        init(_ parent: DocumentPicker) {
+            self.parent = parent
+        }
+
+        public func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            guard let url = urls.first else {
+                parent.onDismiss()
+                return
+            }
+
+            // Start accessing security-scoped resource
+            guard url.startAccessingSecurityScopedResource() else {
+                parent.onDismiss()
+                return
+            }
+
+            defer {
+                url.stopAccessingSecurityScopedResource()
+            }
+
+            do {
+                let data = try Data(contentsOf: url)
+
+                // Validate file size
+                guard data.count <= maxAttachmentSize else {
+                    parent.onDismiss()
+                    return
+                }
+
+                parent.fileData = data
+                parent.filename = url.lastPathComponent
+                parent.fileType = AttachmentType.from(filename: url.lastPathComponent)
+            } catch {
+                // Failed to read file
+            }
+
+            parent.onDismiss()
+        }
+
+        public func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            parent.onDismiss()
+        }
+    }
+}
+#endif
+
+// MARK: - Add Attachment Button
+
+#if os(iOS)
+/// Button with menu for adding attachments (camera, photo library, files)
+public struct AddAttachmentButton: View {
+    /// Called when camera is selected
+    let onCamera: () -> Void
+
+    /// Called when photo library is selected
+    let onPhotoLibrary: () -> Void
+
+    /// Called when files is selected
+    let onFiles: () -> Void
+
+    public init(
+        onCamera: @escaping () -> Void,
+        onPhotoLibrary: @escaping () -> Void,
+        onFiles: @escaping () -> Void
+    ) {
+        self.onCamera = onCamera
+        self.onPhotoLibrary = onPhotoLibrary
+        self.onFiles = onFiles
+    }
+
+    public var body: some View {
+        Menu {
+            if CameraPermissionService.isCameraHardwareAvailable {
+                Button {
+                    onCamera()
+                } label: {
+                    Label("Take Photo", systemImage: "camera")
+                }
+            }
+
+            Button {
+                onPhotoLibrary()
+            } label: {
+                Label("Photo Library", systemImage: "photo.on.rectangle")
+            }
+
+            Button {
+                onFiles()
+            } label: {
+                Label("Browse Files", systemImage: "folder")
+            }
+        } label: {
+            Label("Add Attachment", systemImage: "plus.circle")
+        }
+    }
+}
+#endif
+
+// MARK: - PDF Viewer
+
+#if os(iOS)
+/// Full-screen PDF viewer
+public struct PDFViewer: UIViewRepresentable {
+    let data: Data
+
+    public init(data: Data) {
+        self.data = data
+    }
+
+    public func makeUIView(context: Context) -> PDFView {
+        let pdfView = PDFView()
+        pdfView.autoScales = true
+        pdfView.displayMode = .singlePageContinuous
+        pdfView.displayDirection = .vertical
+        if let document = PDFDocument(data: data) {
+            pdfView.document = document
+        }
+        return pdfView
+    }
+
+    public func updateUIView(_ uiView: PDFView, context: Context) {}
+}
+
+/// Sheet wrapper for viewing a PDF
+public struct PDFViewerSheet: View {
+    let data: Data
+    let filename: String?
+    @Environment(\.dismiss) private var dismiss
+
+    public init(data: Data, filename: String? = nil) {
+        self.data = data
+        self.filename = filename
+    }
+
+    public var body: some View {
+        NavigationStack {
+            PDFViewer(data: data)
+                .navigationTitle(filename ?? "PDF Document")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") {
+                            dismiss()
+                        }
+                    }
+
+                    ToolbarItem(placement: .primaryAction) {
+                        ShareLink(item: pdfDataURL, preview: SharePreview(filename ?? "Document", image: Image(systemName: "doc.richtext")))
+                    }
+                }
+        }
+    }
+
+    private var pdfDataURL: URL {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename ?? "document.pdf")
+        try? data.write(to: tempURL)
+        return tempURL
+    }
+}
+#endif
+
+// MARK: - Attachment Viewer
+
+#if os(iOS)
+/// View for displaying an attachment full-screen (handles both images and PDFs)
+public struct AttachmentViewer: View {
+    let attachment: Attachment
+    @Environment(\.dismiss) private var dismiss
+
+    public init(attachment: Attachment) {
+        self.attachment = attachment
+    }
+
+    public var body: some View {
+        NavigationStack {
+            Group {
+                if attachment.fileType.isImage {
+                    imageViewer
+                } else if let data = attachment.fileData {
+                    PDFViewer(data: data)
+                }
+            }
+            .navigationTitle(attachment.filename.isEmpty ? attachment.fileType.displayName : attachment.filename)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .primaryAction) {
+                    shareButton
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var imageViewer: some View {
+        if let data = attachment.fileData, let uiImage = UIImage(data: data) {
+            ScrollView([.horizontal, .vertical]) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFit()
+            }
+        } else {
+            ContentUnavailableView("Unable to load image", systemImage: "photo")
+        }
+    }
+
+    @ViewBuilder
+    private var shareButton: some View {
+        let filename = attachment.filename.isEmpty ? "attachment.\(attachment.fileType.rawValue)" : attachment.filename
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+
+        let _ = try? attachment.fileData?.write(to: tempURL)
+
+        ShareLink(
+            item: tempURL,
+            preview: SharePreview(
+                attachment.filename.isEmpty ? "Attachment" : attachment.filename,
+                image: Image(systemName: attachment.fileType.isImage ? "photo" : "doc.richtext")
+            )
+        )
     }
 }
 #endif

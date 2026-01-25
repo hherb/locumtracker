@@ -68,6 +68,9 @@ struct AddReceiptSheet: View {
     @State private var ocrImportState: OCRImportState = .idle
     @State private var showOCRError = false
     @State private var ocrErrorMessage = ""
+    @State private var pickedFileData: Data?
+    @State private var pickedFileType: AttachmentType?
+    @State private var pickedFilename: String?
 
     /// Sheet types for fullScreenCover presentations
     enum SheetType: Identifiable {

@@ -55,6 +55,9 @@ struct AddSessionSheet: View {
     @State private var selectedLocationId: UUID?
     @State private var preferLocationTemplates: Bool = false
 
+    // Selected provider location (clinic) - nil means main location
+    @State private var selectedProviderLocationId: UUID?
+
     init(isPresented: Binding<Bool>, assignment: Assignment, mmmClassification: Int, location: Location? = nil) {
         self._isPresented = isPresented
         self.assignment = assignment
@@ -241,6 +244,16 @@ struct AddSessionSheet: View {
         effectiveLocation?.mmmClassification ?? mmmClassification
     }
 
+    /// Available provider locations (clinics) from assignment
+    private var providerLocations: [ProviderLocation] {
+        assignment.providerLocations
+    }
+
+    /// Whether to show the clinic picker section
+    private var hasProviderLocations: Bool {
+        assignment.hasMainProviderNumber || !providerLocations.isEmpty
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -248,6 +261,9 @@ struct AddSessionSheet: View {
                     locationSection
                 }
                 dateSection
+                if hasProviderLocations {
+                    clinicSection
+                }
                 if !sessionTemplates.isEmpty {
                     templateSection
                 }
@@ -407,6 +423,60 @@ struct AddSessionSheet: View {
             }
         } header: {
             Text("Date")
+        }
+    }
+
+    private var clinicSection: some View {
+        Section {
+            // Main location option
+            Button {
+                selectedProviderLocationId = nil
+            } label: {
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text("Main Location")
+                            .fontWeight(.medium)
+                        if let mainNumber = assignment.mainProviderNumber {
+                            Text(mainNumber)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                    if selectedProviderLocationId == nil {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(.blue)
+                    }
+                }
+            }
+            .foregroundStyle(.primary)
+
+            // Additional clinics
+            ForEach(providerLocations) { providerLocation in
+                Button {
+                    selectedProviderLocationId = providerLocation.id
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(providerLocation.name)
+                                .fontWeight(.medium)
+                            Text(providerLocation.providerNumber)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if selectedProviderLocationId == providerLocation.id {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.blue)
+                        }
+                    }
+                }
+                .foregroundStyle(.primary)
+            }
+        } header: {
+            Text("Clinic")
+        } footer: {
+            Text("Select the clinic where this session takes place.")
         }
     }
 
@@ -739,7 +809,8 @@ struct AddSessionSheet: View {
                 sessionType: sessionType,
                 mmmClassification: effectiveMMMClassification,
                 travelTime: isFirstSession && travelMinutes > 0 ? Double(travelMinutes * TimeConstants.secondsPerMinute) : nil,
-                locationId: selectedLocationId
+                locationId: selectedLocationId,
+                providerLocationId: selectedProviderLocationId
             )
 
             modelContext.insert(session)
@@ -759,7 +830,8 @@ struct AddSessionSheet: View {
             sessionType: sessionType,
             mmmClassification: effectiveMMMClassification,
             travelTime: travelMinutes > 0 ? Double(travelMinutes * TimeConstants.secondsPerMinute) : nil,
-            locationId: selectedLocationId
+            locationId: selectedLocationId,
+            providerLocationId: selectedProviderLocationId
         )
 
         if !notes.isEmpty {
@@ -781,7 +853,8 @@ struct AddSessionSheet: View {
             sessionType: sessionType,
             mmmClassification: effectiveMMMClassification,
             travelTime: travelMinutes > 0 ? Double(travelMinutes * TimeConstants.secondsPerMinute) : nil,
-            locationId: selectedLocationId
+            locationId: selectedLocationId,
+            providerLocationId: selectedProviderLocationId
         )
 
         if !notes.isEmpty {
@@ -801,7 +874,8 @@ struct AddSessionSheet: View {
             sessionType: secondSessionType,
             mmmClassification: effectiveMMMClassification,
             travelTime: nil,  // Travel time only applies to first session
-            locationId: selectedLocationId
+            locationId: selectedLocationId,
+            providerLocationId: selectedProviderLocationId
         )
 
         if !secondSessionNotes.isEmpty {

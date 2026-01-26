@@ -62,6 +62,10 @@ public final class Session {
     public var createdAt: Date = Date()
     public var updatedAt: Date = Date()
 
+    /// Optional reference to a specific provider location (clinic) for this session.
+    /// If nil, the session is at the main assignment location.
+    public var providerLocationId: UUID?
+
     /// Creates a new session.
     ///
     /// - Parameters:
@@ -73,6 +77,7 @@ public final class Session {
     ///   - mmmClassification: Modified Monash Model classification (1-7)
     ///   - travelTime: Optional travel time in seconds
     ///   - locationId: Optional location override (nil uses assignment's primary location)
+    ///   - providerLocationId: Optional provider location (clinic) for this session
     public init(
         id: UUID = UUID(),
         dailyRecordId: UUID,
@@ -81,7 +86,8 @@ public final class Session {
         sessionType: SessionType = .regular,
         mmmClassification: Int,
         travelTime: TimeInterval? = nil,
-        locationId: UUID? = nil
+        locationId: UUID? = nil,
+        providerLocationId: UUID? = nil
     ) {
         self.id = id
         self.dailyRecordId = dailyRecordId
@@ -91,10 +97,16 @@ public final class Session {
         self.mmmClassification = mmmClassification
         self.travelTime = travelTime
         self.locationId = locationId
+        self.providerLocationId = providerLocationId
         self.subsidyAmount = nil
         self.notes = nil
         self.createdAt = Date()
         self.updatedAt = Date()
+    }
+
+    /// Whether this session is at a specific provider location (not the main location)
+    public var hasSpecificProviderLocation: Bool {
+        providerLocationId != nil
     }
 
     /// Duration of the session in hours

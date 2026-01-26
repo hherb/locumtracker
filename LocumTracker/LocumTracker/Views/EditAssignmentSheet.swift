@@ -39,6 +39,12 @@ struct EditAssignmentSheet: View {
     @State private var additionalLocationIds: Set<UUID>
     @State private var showingTemplateEditor: Bool = false
 
+    // Provider locations (clinics)
+    @State private var mainProviderNumber: String
+    @State private var providerLocations: [ProviderLocation]
+    @State private var showingAddProviderLocation = false
+    @State private var editingProviderLocationIndex: IdentifiableIndex?
+
     init(isPresented: Binding<Bool>, assignment: Assignment, locations: [Location]) {
         self._isPresented = isPresented
         self.assignment = assignment
@@ -57,6 +63,8 @@ struct EditAssignmentSheet: View {
         _assignmentName = State(initialValue: assignment.name ?? "")
         _sessionTemplates = State(initialValue: assignment.defaultSessionTemplates)
         _additionalLocationIds = State(initialValue: Set(assignment.additionalLocationIds))
+        _mainProviderNumber = State(initialValue: assignment.mainProviderNumber ?? "")
+        _providerLocations = State(initialValue: assignment.providerLocations)
     }
 
     /// The primary location for the assignment
@@ -70,6 +78,7 @@ struct EditAssignmentSheet: View {
                 nameSection
                 locationSection
                 additionalLocationsSection
+                providerNumbersSection
                 rateSection
                 dateSection
                 sessionTemplatesSection
@@ -90,6 +99,22 @@ struct EditAssignmentSheet: View {
                         saveChanges()
                     }
                 }
+            }
+            .sheet(isPresented: $showingAddProviderLocation) {
+                AddProviderLocationSheet(
+                    isPresented: $showingAddProviderLocation,
+                    providerLocations: $providerLocations
+                )
+            }
+            .sheet(item: $editingProviderLocationIndex) { identifiableIndex in
+                EditProviderLocationSheet(
+                    isPresented: Binding(
+                        get: { editingProviderLocationIndex != nil },
+                        set: { if !$0 { editingProviderLocationIndex = nil } }
+                    ),
+                    providerLocations: $providerLocations,
+                    editingIndex: identifiableIndex.index
+                )
             }
         }
     }
@@ -142,6 +167,52 @@ struct EditAssignmentSheet: View {
             Text("Additional Locations")
         } footer: {
             Text("Select other locations visited during this assignment (e.g., remote communities)")
+        }
+    }
+
+    private var providerNumbersSection: some View {
+        Section {
+            TextField("Main Provider Number", text: $mainProviderNumber)
+                #if os(iOS)
+                .keyboardType(.numbersAndPunctuation)
+                .textInputAutocapitalization(.never)
+                #endif
+
+            if !providerLocations.isEmpty {
+                ForEach(Array(providerLocations.enumerated()), id: \.element.id) { index, providerLocation in
+                    Button {
+                        editingProviderLocationIndex = IdentifiableIndex(id: index)
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(providerLocation.name)
+                                    .fontWeight(.medium)
+                                Text(providerLocation.providerNumber)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                }
+                .onDelete { indexSet in
+                    providerLocations.remove(atOffsets: indexSet)
+                }
+            }
+
+            Button {
+                showingAddProviderLocation = true
+            } label: {
+                Label("Add Clinic", systemImage: "plus.circle")
+            }
+        } header: {
+            Text("Provider Numbers")
+        } footer: {
+            Text("Add Medicare provider numbers for the main location and any additional clinics where you work during this assignment.")
         }
     }
 
@@ -281,8 +352,21 @@ struct EditAssignmentSheet: View {
             assignment.callOutRate = callOutRate > 0 ? callOutRate : nil
         }
 
+        // Save provider numbers
+        let trimmedMainNumber = mainProviderNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        assignment.mainProviderNumber = trimmedMainNumber.isEmpty ? nil : trimmedMainNumber
+        assignment.providerLocations = providerLocations
+
         isPresented = false
     }
+}
+
+// MARK: - Helper Types
+
+/// Wrapper to make Int usable with sheet(item:)
+private struct IdentifiableIndex: Identifiable {
+    let id: Int
+    var index: Int { id }
 }
 
 // MARK: - Constants

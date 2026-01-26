@@ -44,6 +44,8 @@ Stop guessing — **know exactly where you stand** with your rural incentive pay
 - **Camera Capture** (iOS) — Photograph receipts on the go
 - **Share Extension** — Import documents directly from Mail, Files, Safari and other apps
 - **Attachment Support** — Link PDFs, emails, and images to assignments or receipts
+- **Multiple Attachments** — Attach multiple photos, PDFs, and documents to each receipt
+- **Share Extension** — Import documents directly from Mail, Files, Safari and other apps
 - **Smart Categorisation** — Travel, accommodation, meals, equipment
 - **Cloud Backup** — Never lose a receipt again with automatic iCloud sync
 - **Tax Time Ready** — Export organised expense reports
@@ -75,6 +77,8 @@ Stop guessing — **know exactly where you stand** with your rural incentive pay
 - Automatic session splitting for sessions exceeding 5 hours
 - Share Extension to import documents from other apps (PDFs, emails, images)
 - Receipt management with camera capture and image cropping
+- Receipt management with multiple attachments (photos, PDFs, documents)
+- Share Extension to import documents from other apps (PDFs, emails, images)
 - OCR text extraction from receipt images (PaddleOCR models)
 - Earnings dashboard and quarterly quota tracking
 - Profile settings and locum profile management
@@ -108,6 +112,7 @@ Stop guessing — **know exactly where you stand** with your rural incentive pay
 ## Roadmap
 
 ### Recently Completed
+- ✅ Multiple receipt attachments (photos, PDFs, documents per receipt)
 - ✅ iOS Share Extension for importing documents from other apps
 - ✅ Multi-location assignments with session templates
 - ✅ Automatic session splitting for long sessions (>5 hours)

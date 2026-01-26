@@ -76,6 +76,37 @@ public final class Assignment {
     /// Name for this assignment (e.g., "Darwin Remote Communities")
     public var name: String?
 
+    // MARK: - Provider Numbers
+
+    /// Medicare provider number for the main assignment location
+    public var mainProviderNumber: String?
+
+    /// JSON-encoded array of additional provider locations (clinics)
+    public var providerLocationsJSON: Data?
+
+    /// Additional provider locations (clinics) for this assignment.
+    /// Each location has its own Medicare provider number.
+    public var providerLocations: [ProviderLocation] {
+        get {
+            guard let data = providerLocationsJSON else { return [] }
+            return (try? JSONDecoder().decode([ProviderLocation].self, from: data)) ?? []
+        }
+        set {
+            providerLocationsJSON = try? JSONEncoder().encode(newValue)
+        }
+    }
+
+    /// Whether this assignment has any provider locations configured
+    public var hasProviderLocations: Bool {
+        !providerLocations.isEmpty
+    }
+
+    /// Whether this assignment has a main provider number configured
+    public var hasMainProviderNumber: Bool {
+        guard let number = mainProviderNumber else { return false }
+        return !number.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     /// Creates a new assignment.
     ///
     /// - Parameters:

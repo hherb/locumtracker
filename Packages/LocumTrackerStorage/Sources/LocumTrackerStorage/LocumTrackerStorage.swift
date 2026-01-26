@@ -33,7 +33,7 @@ public enum LocumTrackerStorage {
 /// Schema configuration for SwiftData
 public enum LocumTrackerSchema {
     /// Current schema version
-    public static let schemaVersion = 1
+    public static let schemaVersion = 2
 
     /// All model types for the schema
     public static var models: [any PersistentModel.Type] {
@@ -64,6 +64,7 @@ public enum LocumTrackerSchema {
 // - DailyRecordRepository: CRUD operations for DailyRecord model
 // - LocationRepository: CRUD operations for Location model
 // - ReceiptRepository: CRUD operations for Receipt model
+// - ReceiptAttachmentRepository: CRUD operations for ReceiptAttachment model
 // - LocumProfileRepository: CRUD operations for LocumProfile model
 // - QuarterlyQuotaRepository: CRUD operations for QuarterlyQuota model
 //

@@ -17,6 +17,9 @@
 import Foundation
 import SwiftData
 
+/// Maximum file size for attachments in bytes (10 MB)
+public let maxAttachmentSize: Int = 10 * 1024 * 1024
+
 /// Supported attachment file types for documents shared to LocumTracker
 public enum AttachmentType: String, CaseIterable, Codable {
     case pdf = "pdf"
@@ -82,6 +85,23 @@ public enum AttachmentType: String, CaseIterable, Codable {
         case "heic", "heif": self = .heic
         case "eml": self = .email
         default: self = .other
+        }
+    }
+
+    /// Infer attachment type from filename
+    /// - Parameter filename: The filename or path to check
+    /// - Returns: The matching attachment type, or nil if unknown
+    public static func from(filename: String) -> AttachmentType? {
+        let ext = (filename as NSString).pathExtension.lowercased()
+        switch ext {
+        case "pdf": return .pdf
+        case "doc": return .wordDoc
+        case "docx": return .wordDocx
+        case "jpg", "jpeg": return .jpeg
+        case "png": return .png
+        case "heic", "heif": return .heic
+        case "eml": return .email
+        default: return nil
         }
     }
 }

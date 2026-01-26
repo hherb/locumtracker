@@ -27,17 +27,27 @@ import AVFoundation
 #endif
 
 /// Represents a pending attachment before the receipt is saved
-struct PendingAttachment: Identifiable {
+struct ReceiptPendingAttachment: Identifiable {
     let id = UUID()
     let data: Data
     let type: AttachmentType
     let filename: String?
+
+    /// File size in bytes
+    var fileSize: Int64 {
+        Int64(data.count)
+    }
+
+    /// Human-readable file size
+    var fileSizeFormatted: String {
+        ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file)
+    }
 }
 
 /// Sheet view for adding a new receipt
 ///
 /// Provides a form for entering receipt details including amount, category,
-/// description, date, optional assignment link, and image capture.
+/// description, date, optional assignment link, and multiple attachments.
 struct AddReceiptSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Assignment.startDate, order: .reverse) private var assignments: [Assignment]
@@ -51,7 +61,7 @@ struct AddReceiptSheet: View {
     @State private var date: Date = Date()
     @State private var receiptDescription: String = ""
     @State private var selectedAssignmentId: UUID?
-    @State private var pendingAttachments: [PendingAttachment] = []
+    @State private var pendingAttachments: [ReceiptPendingAttachment] = []
     @State private var presentedSheet: SheetType?
     @State private var showCameraPermissionAlert = false
     @State private var isRequestingCameraPermission = false
@@ -68,10 +78,9 @@ struct AddReceiptSheet: View {
         case photoLibrary
         case documentPicker
         case fullImage(Data)
-        case viewAttachment(PendingAttachment)
+        case viewAttachment(ReceiptPendingAttachment)
         #if os(iOS)
-        /// Crop with the image data embedded to avoid state timing issues
-        case cropImage(Data)
+        case cropImage(Data, UUID)
         #endif
 
         var id: String {
@@ -82,7 +91,7 @@ struct AddReceiptSheet: View {
             case .fullImage: return "fullImage"
             case .viewAttachment(let att): return "viewAttachment-\(att.id)"
             #if os(iOS)
-            case .cropImage: return "cropImage"
+            case .cropImage(_, let id): return "cropImage-\(id)"
             #endif
             }
         }
@@ -95,8 +104,6 @@ struct AddReceiptSheet: View {
     }
 
     /// Finds the active assignment for a given date based on assignment date ranges
-    /// - Parameter date: The date to check
-    /// - Returns: The assignment that contains this date, or nil if none found
     private func findActiveAssignment(for date: Date) -> Assignment? {
         assignments.first { assignment in
             date >= assignment.startDate && date <= assignment.endDate
@@ -110,7 +117,7 @@ struct AddReceiptSheet: View {
                 categorySection
                 detailsSection
                 assignmentSection
-                imageSection
+                attachmentsSection
             }
             .navigationTitle("Add Receipt")
             #if os(iOS)
@@ -134,53 +141,53 @@ struct AddReceiptSheet: View {
         .onChange(of: presentedSheet?.id) { oldValue, newValue in
             print("[AddReceiptSheet] presentedSheet CHANGED from '\(oldValue ?? "nil")' to '\(newValue ?? "nil")'")
         }
-        .onChange(of: pickedFileData) { oldValue, newValue in
-            if let data = newValue, let type = pickedFileType {
-                let attachment = PendingAttachment(data: data, type: type, filename: pickedFilename)
-                pendingAttachments.append(attachment)
-                pickedFileData = nil
-                pickedFileType = nil
-                pickedFilename = nil
-            }
-        }
         .fullScreenCover(item: $presentedSheet) { sheet in
             let _ = print("[AddReceiptSheet] fullScreenCover presenting sheet: \(sheet.id)")
             switch sheet {
             case .camera:
-                let _ = print("[AddReceiptSheet] Creating ReceiptImagePicker with .camera")
-                CameraPickerWrapper(
-                    onImageCaptured: { data in
-                        let attachment = PendingAttachment(data: data, type: .jpeg, filename: nil)
-                        pendingAttachments.append(attachment)
-                    },
+                ReceiptImagePicker(
+                    imageData: .init(
+                        get: { nil },
+                        set: { data in
+                            if let data = data {
+                                addAttachment(data: data, type: .jpeg, filename: nil)
+                            }
+                        }
+                    ),
+                    sourceType: .camera,
                     onDismiss: { presentedSheet = nil }
                 )
             case .photoLibrary:
-                PhotoLibraryPickerWrapper(
-                    onImageSelected: { data in
-                        let attachment = PendingAttachment(data: data, type: .jpeg, filename: nil)
-                        pendingAttachments.append(attachment)
-                    },
+                ReceiptImagePicker(
+                    imageData: .init(
+                        get: { nil },
+                        set: { data in
+                            if let data = data {
+                                addAttachment(data: data, type: .jpeg, filename: nil)
+                            }
+                        }
+                    ),
+                    sourceType: .photoLibrary,
                     onDismiss: { presentedSheet = nil }
                 )
             case .documentPicker:
-                DocumentPicker(
-                    fileData: $pickedFileData,
-                    fileType: $pickedFileType,
-                    filename: $pickedFilename,
-                    onDismiss: { presentedSheet = nil }
+                DocumentPickerView(
+                    onDocumentPicked: { url in
+                        handlePickedDocument(url)
+                        presentedSheet = nil
+                    },
+                    onCancel: { presentedSheet = nil }
                 )
             case .fullImage(let imgData):
                 FullImageView(imageData: imgData)
             case .viewAttachment(let attachment):
-                AttachmentFullScreenView(attachment: attachment)
-            case .cropImage(let dataToEdit):
+                AttachmentViewerSheet(attachment: attachment, onDismiss: { presentedSheet = nil })
+            case .cropImage(let dataToEdit, let attachmentId):
                 ImageCropView(
                     originalImage: UIImage(data: dataToEdit) ?? UIImage(),
                     onCrop: { croppedImage in
-                        if let jpegData = imageToJPEGData(croppedImage) {
-                            let attachment = PendingAttachment(data: jpegData, type: .jpeg, filename: nil)
-                            pendingAttachments.append(attachment)
+                        if let newData = imageToJPEGData(croppedImage) {
+                            updateAttachment(id: attachmentId, with: newData)
                         }
                         presentedSheet = nil
                     },
@@ -233,10 +240,9 @@ struct AddReceiptSheet: View {
         Section("Details") {
             TextField("Description", text: $receiptDescription)
 
-            DatePicker(
-                "Date",
-                selection: $date,
-                displayedComponents: .date
+            AutoDismissDatePicker(
+                label: "Date",
+                selection: $date
             )
         }
     }
@@ -256,55 +262,37 @@ struct AddReceiptSheet: View {
         }
     }
 
-    private var imageSection: some View {
+    private var attachmentsSection: some View {
         Section("Attachments") {
             if !pendingAttachments.isEmpty {
-                attachmentsGrid
+                ForEach(pendingAttachments) { attachment in
+                    AttachmentRowView(
+                        attachment: attachment,
+                        onTap: {
+                            if attachment.type.isImage {
+                                presentedSheet = .fullImage(attachment.data)
+                            } else {
+                                presentedSheet = .viewAttachment(attachment)
+                            }
+                        },
+                        onCrop: attachment.type.isImage ? {
+                            presentedSheet = .cropImage(attachment.data, attachment.id)
+                        } : nil,
+                        onDelete: {
+                            removeAttachment(id: attachment.id)
+                        }
+                    )
+                }
 
                 #if os(iOS)
-                // OCR import for the first image attachment
-                if let firstImage = pendingAttachments.first(where: { $0.type.isImage }) {
-                    ocrImportButton(for: firstImage.data)
+                if let firstImageAttachment = pendingAttachments.first(where: { $0.type.isImage }) {
+                    ocrImportButton(for: firstImageAttachment.data)
                 }
                 #endif
             }
 
             attachmentPickerButtons
-
-            if !pendingAttachments.isEmpty {
-                Text("\(pendingAttachments.count) attachment\(pendingAttachments.count == 1 ? "" : "s")")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
         }
-    }
-
-    @ViewBuilder
-    private var attachmentsGrid: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 80, maximum: 100), spacing: 8)], spacing: 8) {
-            ForEach(pendingAttachments) { attachment in
-                ZStack(alignment: .topTrailing) {
-                    AttachmentPreview(
-                        data: attachment.data,
-                        attachmentType: attachment.type,
-                        maxHeight: 80,
-                        onTap: { presentedSheet = .viewAttachment(attachment) },
-                        onDelete: nil
-                    )
-
-                    Button {
-                        pendingAttachments.removeAll { $0.id == attachment.id }
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title3)
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(.white, .red)
-                    }
-                    .offset(x: 6, y: -6)
-                }
-            }
-        }
-        .padding(.vertical, 4)
     }
 
     #if os(iOS)
@@ -351,7 +339,6 @@ struct AddReceiptSheet: View {
                 return
             }
 
-            // Apply extracted data to form fields
             if let extractedAmount = receiptData.totalAmount {
                 amount = NSDecimalNumber(decimal: extractedAmount).doubleValue
                 amountText = String(format: "%.2f", amount)
@@ -359,19 +346,16 @@ struct AddReceiptSheet: View {
 
             if let merchant = receiptData.merchant {
                 receiptDescription = merchant
-                // Try to infer category from merchant name
                 category = inferCategory(from: merchant)
             }
 
             if let extractedDate = receiptData.date {
                 date = extractedDate
-                // Update assignment selection based on new date
                 selectedAssignmentId = findActiveAssignment(for: extractedDate)?.id
             }
 
             ocrImportState = .completed(receiptData)
 
-            // Show success feedback briefly then reset
             try? await Task.sleep(for: .seconds(2))
             ocrImportState = .idle
 
@@ -385,31 +369,21 @@ struct AddReceiptSheet: View {
     private func inferCategory(from merchant: String) -> ExpenseCategory {
         let upperMerchant = merchant.uppercased()
 
-        // Fuel stations
         if ["BP", "SHELL", "CALTEX", "AMPOL", "7-ELEVEN", "UNITED", "LIBERTY", "PUMA"].contains(where: { upperMerchant.contains($0) }) {
             return .travel
         }
-
-        // Accommodation
         if ["HOTEL", "MOTEL", "INN", "LODGE", "AIRBNB", "RESORT"].contains(where: { upperMerchant.contains($0) }) {
             return .accommodation
         }
-
-        // Restaurants/fast food
         if ["MCDONALD", "KFC", "SUBWAY", "HUNGRY JACK", "DOMINO", "PIZZA", "CAFE", "RESTAURANT", "NANDO"].contains(where: { upperMerchant.contains($0) }) {
             return .meals
         }
-
-        // Pharmacy/medical
         if ["CHEMIST", "PHARMACY", "PRICELINE", "AMCAL", "TERRY WHITE"].contains(where: { upperMerchant.contains($0) }) {
             return .supplies
         }
-
-        // Office supplies
         if ["OFFICEWORKS", "STAPLES"].contains(where: { upperMerchant.contains($0) }) {
             return .supplies
         }
-
         return .other
     }
     #endif
@@ -417,30 +391,36 @@ struct AddReceiptSheet: View {
     @ViewBuilder
     private var attachmentPickerButtons: some View {
         #if os(iOS)
-        Menu {
-            if CameraPermissionService.isCameraHardwareAvailable {
-                Button {
-                    handleTakePhotoTapped()
-                } label: {
-                    Label("Take Photo", systemImage: "camera")
+        VStack(spacing: 12) {
+            HStack(spacing: 20) {
+                if CameraPermissionService.isCameraHardwareAvailable {
+                    Button {
+                        handleTakePhotoTapped()
+                    } label: {
+                        if isRequestingCameraPermission {
+                            ProgressView()
+                        } else {
+                            Label("Camera", systemImage: "camera")
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isRequestingCameraPermission)
                 }
-                .disabled(isRequestingCameraPermission)
-            }
 
-            Button {
-                print("[AddReceiptSheet] Choose Photo button tapped, setting presentedSheet = .photoLibrary")
-                presentedSheet = .photoLibrary
-            } label: {
-                Label("Photo Library", systemImage: "photo.on.rectangle")
-            }
+                Button {
+                    presentedSheet = .photoLibrary
+                } label: {
+                    Label("Photos", systemImage: "photo")
+                }
+                .buttonStyle(.bordered)
 
-            Button {
-                presentedSheet = .documentPicker
-            } label: {
-                Label("Browse Files", systemImage: "folder")
+                Button {
+                    presentedSheet = .documentPicker
+                } label: {
+                    Label("Files", systemImage: "doc")
+                }
+                .buttonStyle(.bordered)
             }
-        } label: {
-            Label("Add Attachment", systemImage: "plus.circle")
         }
         .alert("Camera Access Required", isPresented: $showCameraPermissionAlert) {
             Button("Open Settings") {
@@ -453,7 +433,7 @@ struct AddReceiptSheet: View {
             Text("Please allow camera access in Settings to take receipt photos.")
         }
         #else
-        Text("Attachments available on iOS")
+        Text("Attachment capture available on iOS")
             .foregroundStyle(.secondary)
             .font(.caption)
         #endif
@@ -461,35 +441,25 @@ struct AddReceiptSheet: View {
 
     #if os(iOS)
     private func handleTakePhotoTapped() {
-        print("[AddReceiptSheet] handleTakePhotoTapped called")
-
         let status = CameraPermissionService.authorizationStatus
-        print("[AddReceiptSheet] Camera authorization status: \(status.rawValue)")
 
         switch status {
         case .authorized:
-            print("[AddReceiptSheet] Already authorized, setting presentedSheet = .camera")
             presentedSheet = .camera
-            print("[AddReceiptSheet] presentedSheet is now: \(String(describing: presentedSheet?.id))")
 
         case .notDetermined:
-            print("[AddReceiptSheet] Permission not determined, requesting...")
             isRequestingCameraPermission = true
             Task { @MainActor in
                 let granted = await CameraPermissionService.requestPermission()
                 isRequestingCameraPermission = false
-                print("[AddReceiptSheet] Permission request result: \(granted)")
                 if granted {
-                    print("[AddReceiptSheet] Permission granted, setting presentedSheet = .camera")
                     presentedSheet = .camera
-                    print("[AddReceiptSheet] presentedSheet is now: \(String(describing: presentedSheet?.id))")
                 } else {
                     showCameraPermissionAlert = true
                 }
             }
 
         case .denied, .restricted:
-            print("[AddReceiptSheet] Permission denied/restricted")
             showCameraPermissionAlert = true
 
         @unknown default:
@@ -498,11 +468,43 @@ struct AddReceiptSheet: View {
     }
     #endif
 
+    // MARK: - Attachment Management
+
+    private func addAttachment(data: Data, type: AttachmentType, filename: String?) {
+        let attachment = ReceiptPendingAttachment(data: data, type: type, filename: filename)
+        pendingAttachments.append(attachment)
+    }
+
+    private func removeAttachment(id: UUID) {
+        pendingAttachments.removeAll { $0.id == id }
+    }
+
+    private func updateAttachment(id: UUID, with newData: Data) {
+        if let index = pendingAttachments.firstIndex(where: { $0.id == id }) {
+            let old = pendingAttachments[index]
+            pendingAttachments[index] = ReceiptPendingAttachment(data: newData, type: old.type, filename: old.filename)
+        }
+    }
+
+    #if os(iOS)
+    private func handlePickedDocument(_ url: URL) {
+        guard url.startAccessingSecurityScopedResource() else { return }
+        defer { url.stopAccessingSecurityScopedResource() }
+
+        do {
+            let data = try Data(contentsOf: url)
+            let filename = url.lastPathComponent
+            let ext = url.pathExtension
+            let type = AttachmentType(fromExtension: ext)
+            addAttachment(data: data, type: type, filename: filename)
+        } catch {
+            print("Failed to read document: \(error)")
+        }
+    }
+    #endif
+
     // MARK: - Helpers
 
-    /// Formats an assignment's date range for display
-    /// - Parameter assignment: The assignment to format
-    /// - Returns: A formatted date range string
     private func formatAssignmentDateRange(_ assignment: Assignment) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .short
@@ -511,17 +513,12 @@ struct AddReceiptSheet: View {
 
     // MARK: - Actions
 
-    /// Saves the receipt to the model context and dismisses the sheet
-    ///
-    /// When saving with only attachments (no manual entry), applies defaults:
-    /// - Amount: 0.00
-    /// - Category: .other (tax deductible)
-    /// - Description: "Receipt"
-    /// - Assignment: Inferred from current date if within an assignment's date range
     private func saveReceipt() {
-        // Apply defaults for attachment-only saves
         let finalDescription = receiptDescription.isEmpty ? "Receipt" : receiptDescription
         let finalAssignmentId = selectedAssignmentId ?? findActiveAssignment(for: date)?.id
+
+        // For backwards compatibility, store first image in imageData field
+        let firstImageData = pendingAttachments.first(where: { $0.type.isImage })?.data
 
         let receipt = Receipt(
             amount: amount,
@@ -529,20 +526,20 @@ struct AddReceiptSheet: View {
             date: date,
             receiptDescription: finalDescription,
             assignmentId: finalAssignmentId,
-            imageData: nil
+            imageData: firstImageData
         )
 
         modelContext.insert(receipt)
 
-        // Create and attach ReceiptAttachment objects
-        for (index, pending) in pendingAttachments.enumerated() {
-            let attachment = ReceiptAttachment(
-                data: pending.data,
-                attachmentType: pending.type,
-                filename: pending.filename,
-                order: index
+        // Create Attachment objects for all attachments
+        for pending in pendingAttachments {
+            let attachment = Attachment(
+                receiptId: receipt.id,
+                filename: pending.filename ?? "attachment.\(pending.type.rawValue)",
+                fileType: pending.type,
+                fileSize: pending.fileSize,
+                fileData: pending.data
             )
-            receipt.addAttachment(attachment)
             modelContext.insert(attachment)
         }
 
@@ -550,86 +547,201 @@ struct AddReceiptSheet: View {
     }
 }
 
-// MARK: - Helper Views
+// MARK: - Attachment Row View
+
+struct AttachmentRowView: View {
+    let attachment: ReceiptPendingAttachment
+    let onTap: () -> Void
+    let onCrop: (() -> Void)?
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Thumbnail or icon
+            attachmentThumbnail
+                .frame(width: 50, height: 50)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(attachment.filename ?? attachment.type.displayName)
+                    .font(.subheadline)
+                    .lineLimit(1)
+                Text(attachment.fileSizeFormatted)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            HStack(spacing: 8) {
+                if let onCrop = onCrop {
+                    Button {
+                        onCrop()
+                    } label: {
+                        Image(systemName: "crop")
+                    }
+                    .buttonStyle(.borderless)
+                }
+
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap()
+        }
+    }
+
+    @ViewBuilder
+    private var attachmentThumbnail: some View {
+        if attachment.type.isImage {
+            #if os(iOS)
+            if let uiImage = UIImage(data: attachment.data) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                placeholderIcon
+            }
+            #else
+            placeholderIcon
+            #endif
+        } else {
+            placeholderIcon
+        }
+    }
+
+    private var placeholderIcon: some View {
+        Image(systemName: attachment.type.systemImage)
+            .font(.title2)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.secondary.opacity(0.1))
+    }
+}
+
+// MARK: - Document Picker
 
 #if os(iOS)
-/// Wrapper for camera picker that captures image data directly
-private struct CameraPickerWrapper: UIViewControllerRepresentable {
-    let onImageCaptured: (Data) -> Void
-    let onDismiss: () -> Void
+struct DocumentPickerView: UIViewControllerRepresentable {
+    let onDocumentPicked: (URL) -> Void
+    let onCancel: () -> Void
 
-    func makeUIViewController(context: Context) -> ImagePickerHostController {
-        let host = ImagePickerHostController()
-        host.sourceType = .camera
-        host.onImagePicked = { image in
-            if let data = imageToJPEGData(image) {
-                onImageCaptured(data)
-            }
-        }
-        host.onCancel = onDismiss
-        return host
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let supportedTypes: [UTType] = [.pdf, .image, .jpeg, .png, .heic]
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: supportedTypes)
+        picker.delegate = context.coordinator
+        picker.allowsMultipleSelection = false
+        return picker
     }
 
-    func updateUIViewController(_ uiViewController: ImagePickerHostController, context: Context) {}
-}
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
 
-/// Wrapper for photo library picker that captures image data directly
-private struct PhotoLibraryPickerWrapper: UIViewControllerRepresentable {
-    let onImageSelected: (Data) -> Void
-    let onDismiss: () -> Void
-
-    func makeUIViewController(context: Context) -> ImagePickerHostController {
-        let host = ImagePickerHostController()
-        host.sourceType = .photoLibrary
-        host.onImagePicked = { image in
-            if let data = imageToJPEGData(image) {
-                onImageSelected(data)
-            }
-        }
-        host.onCancel = onDismiss
-        return host
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onDocumentPicked: onDocumentPicked, onCancel: onCancel)
     }
 
-    func updateUIViewController(_ uiViewController: ImagePickerHostController, context: Context) {}
-}
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let onDocumentPicked: (URL) -> Void
+        let onCancel: () -> Void
 
-/// Full screen view for a pending attachment
-private struct AttachmentFullScreenView: View {
-    let attachment: PendingAttachment
-    @Environment(\.dismiss) private var dismiss
+        init(onDocumentPicked: @escaping (URL) -> Void, onCancel: @escaping () -> Void) {
+            self.onDocumentPicked = onDocumentPicked
+            self.onCancel = onCancel
+        }
+
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            if let url = urls.first {
+                onDocumentPicked(url)
+            } else {
+                onCancel()
+            }
+        }
+
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            onCancel()
+        }
+    }
+}
+#endif
+
+// MARK: - Attachment Viewer Sheet
+
+struct AttachmentViewerSheet: View {
+    let attachment: ReceiptPendingAttachment
+    let onDismiss: () -> Void
 
     var body: some View {
         NavigationStack {
             Group {
                 if attachment.type.isImage {
-                    imageViewer
+                    #if os(iOS)
+                    if let uiImage = UIImage(data: attachment.data) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFit()
+                    }
+                    #endif
+                } else if attachment.type == .pdf {
+                    PDFViewerView(data: attachment.data)
                 } else {
-                    PDFViewer(data: attachment.data)
+                    VStack {
+                        Image(systemName: attachment.type.systemImage)
+                            .font(.largeTitle)
+                        Text(attachment.filename ?? "Document")
+                        Text("Preview not available")
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
-            .navigationTitle(attachment.filename ?? attachment.type.description)
+            .navigationTitle(attachment.filename ?? "Attachment")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        dismiss()
+                        onDismiss()
                     }
                 }
             }
         }
     }
+}
 
-    @ViewBuilder
-    private var imageViewer: some View {
-        if let uiImage = UIImage(data: attachment.data) {
-            ScrollView([.horizontal, .vertical]) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFit()
-            }
-        } else {
-            ContentUnavailableView("Unable to load image", systemImage: "photo")
+// MARK: - PDF Viewer
+
+#if os(iOS)
+import PDFKit
+
+struct PDFViewerView: UIViewRepresentable {
+    let data: Data
+
+    func makeUIView(context: Context) -> PDFView {
+        let pdfView = PDFView()
+        pdfView.autoScales = true
+        pdfView.displayMode = .singlePageContinuous
+        pdfView.displayDirection = .vertical
+        if let document = PDFDocument(data: data) {
+            pdfView.document = document
         }
+        return pdfView
+    }
+
+    func updateUIView(_ uiView: PDFView, context: Context) {}
+}
+#else
+struct PDFViewerView: View {
+    let data: Data
+
+    var body: some View {
+        Text("PDF viewing not available on this platform")
+            .foregroundStyle(.secondary)
     }
 }
 #endif
@@ -638,5 +750,5 @@ private struct AttachmentFullScreenView: View {
 
 #Preview {
     AddReceiptSheet(isPresented: .constant(true))
-        .modelContainer(for: [Receipt.self, Assignment.self], inMemory: true)
+        .modelContainer(for: [Receipt.self, Assignment.self, Attachment.self], inMemory: true)
 }

@@ -63,6 +63,21 @@ public final class Assignment {
     public var createdAt: Date = Date()
     public var updatedAt: Date = Date()
 
+    // MARK: - Default Session Templates
+
+    /// JSON-encoded default session templates for this assignment (stored as Data for SwiftData compatibility)
+    public var defaultSessionTemplatesJSON: Data?
+
+    // MARK: - Multi-Location Support
+
+    /// JSON-encoded array of additional location IDs for this assignment
+    public var additionalLocationIdsJSON: Data?
+
+    /// Name for this assignment (e.g., "Darwin Remote Communities")
+    public var name: String?
+
+    // MARK: - Provider Numbers
+
     /// Medicare provider number for the main assignment location
     public var mainProviderNumber: String?
 
@@ -92,6 +107,22 @@ public final class Assignment {
         return !number.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    /// Creates a new assignment.
+    ///
+    /// - Parameters:
+    ///   - id: Unique identifier (defaults to new UUID)
+    ///   - locationId: Primary location for this assignment
+    ///   - rateStructure: Whether paid daily or hourly
+    ///   - dailyRate: Daily rate amount (if daily rate structure)
+    ///   - hourlyRate: Hourly rate amount (if hourly rate structure)
+    ///   - onCallRate: On-call rate (typically 25% of hourly)
+    ///   - callOutRate: Call-out rate (typically 50% of hourly)
+    ///   - startDate: Assignment start date
+    ///   - endDate: Assignment end date
+    ///   - status: Current status of the assignment
+    ///   - name: Optional name for the assignment
+    ///   - defaultSessionTemplates: Default session times for this assignment
+    ///   - additionalLocationIds: Additional locations besides the primary
     public init(
         id: UUID = UUID(),
         locationId: UUID,
@@ -102,7 +133,10 @@ public final class Assignment {
         callOutRate: Double? = nil,
         startDate: Date,
         endDate: Date,
-        status: AssignmentStatus = .planned
+        status: AssignmentStatus = .planned,
+        name: String? = nil,
+        defaultSessionTemplates: [DefaultSessionTemplate] = [],
+        additionalLocationIds: [UUID] = []
     ) {
         self.id = id
         self.locationId = locationId
@@ -114,8 +148,17 @@ public final class Assignment {
         self.startDate = startDate
         self.endDate = endDate
         self.status = status
+        self.name = name
         self.createdAt = Date()
         self.updatedAt = Date()
+
+        // Encode JSON fields
+        if !defaultSessionTemplates.isEmpty {
+            self.defaultSessionTemplatesJSON = try? JSONEncoder().encode(defaultSessionTemplates)
+        }
+        if !additionalLocationIds.isEmpty {
+            self.additionalLocationIdsJSON = try? JSONEncoder().encode(additionalLocationIds)
+        }
     }
 
     /// Returns date range for this assignment
@@ -131,5 +174,48 @@ public final class Assignment {
         case .hourlyRate:
             return hourlyRate != nil && hourlyRate! > 0
         }
+    }
+
+    // MARK: - Session Templates Computed Properties
+
+    /// Default session templates for this assignment.
+    /// These are used when adding sessions, with location templates as fallback.
+    public var defaultSessionTemplates: [DefaultSessionTemplate] {
+        get {
+            guard let data = defaultSessionTemplatesJSON else { return [] }
+            return (try? JSONDecoder().decode([DefaultSessionTemplate].self, from: data)) ?? []
+        }
+        set {
+            defaultSessionTemplatesJSON = newValue.isEmpty ? nil : try? JSONEncoder().encode(newValue)
+        }
+    }
+
+    /// Whether this assignment has default session templates configured
+    public var hasDefaultSessionTemplates: Bool {
+        !defaultSessionTemplates.isEmpty
+    }
+
+    // MARK: - Multi-Location Computed Properties
+
+    /// Additional locations associated with this assignment (besides the primary locationId).
+    /// For assignments where the doctor visits multiple sites.
+    public var additionalLocationIds: [UUID] {
+        get {
+            guard let data = additionalLocationIdsJSON else { return [] }
+            return (try? JSONDecoder().decode([UUID].self, from: data)) ?? []
+        }
+        set {
+            additionalLocationIdsJSON = newValue.isEmpty ? nil : try? JSONEncoder().encode(newValue)
+        }
+    }
+
+    /// All location IDs for this assignment (primary + additional)
+    public var allLocationIds: [UUID] {
+        [locationId] + additionalLocationIds
+    }
+
+    /// Whether this assignment has multiple locations
+    public var hasMultipleLocations: Bool {
+        !additionalLocationIds.isEmpty
     }
 }

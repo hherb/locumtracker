@@ -28,17 +28,26 @@ struct AssignmentDetailView: View {
     @State private var showingEditSheet = false
     @State private var showingDeleteConfirmation = false
 
-    /// The location associated with this assignment
+    /// The primary location for this assignment
     private var location: Location? {
         locations.first { $0.id == assignment.locationId }
     }
 
+    /// Additional locations for this assignment
+    private var additionalLocations: [Location] {
+        locations.filter { assignment.additionalLocationIds.contains($0.id) }
+    }
+
     var body: some View {
         List {
-            locationSection
+            if assignment.name != nil || assignment.hasDefaultSessionTemplates {
+                assignmentInfoSection
+            }
+            locationsSection
             ratesSection
             datesSection
             sessionsSection
+            attachmentsSection
             statusSection
             actionsSection
         }
@@ -76,28 +85,98 @@ struct AssignmentDetailView: View {
 
     // MARK: - View Components
 
-    private var locationSection: some View {
-        Section("Location") {
-            if let location = location {
-                VStack(alignment: .leading, spacing: DetailConstants.itemSpacing) {
-                    Text(location.name)
-                        .font(.headline)
-                    Text(location.address)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+    @ViewBuilder
+    private var assignmentInfoSection: some View {
+        Section {
+            if let name = assignment.name, !name.isEmpty {
+                LabeledContent("Name") {
+                    Text(name)
+                }
+            }
+
+            if assignment.hasDefaultSessionTemplates {
+                ForEach(assignment.defaultSessionTemplates) { template in
                     HStack {
-                        MMMBadge(classification: location.mmmClassification)
-                        if location.isRuralSubsidyEligible {
-                            Text("Subsidy Eligible")
-                                .font(.caption)
-                                .foregroundStyle(.green)
+                        if let label = template.label {
+                            Text(label)
+                        } else {
+                            Text("Session")
                         }
+                        Spacer()
+                        Text(template.timeRangeFormatted)
+                            .foregroundStyle(.secondary)
                     }
                 }
-                .padding(.vertical, DetailConstants.sectionVerticalPadding)
+            }
+        } header: {
+            Text("Assignment")
+        }
+    }
+
+    private var locationsSection: some View {
+        Section {
+            // Primary location
+            if let location = location {
+                NavigationLink {
+                    LocationDetailView(location: location)
+                } label: {
+                    VStack(alignment: .leading, spacing: DetailConstants.itemSpacing) {
+                        HStack {
+                            Text(location.name)
+                                .font(.headline)
+                            if additionalLocations.isEmpty {
+                                Spacer()
+                            } else {
+                                Text("Primary")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.secondary.opacity(0.2))
+                                    .clipShape(Capsule())
+                            }
+                        }
+                        Text(location.address)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        HStack {
+                            MMMBadge(classification: location.mmmClassification)
+                            if location.isRuralSubsidyEligible {
+                                Text("Subsidy Eligible")
+                                    .font(.caption)
+                                    .foregroundStyle(.green)
+                            }
+                        }
+                    }
+                    .padding(.vertical, DetailConstants.sectionVerticalPadding)
+                }
             } else {
                 Text("Unknown Location")
                     .foregroundStyle(.secondary)
+            }
+
+            // Additional locations
+            ForEach(additionalLocations) { loc in
+                NavigationLink {
+                    LocationDetailView(location: loc)
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(loc.name)
+                            Text(loc.address)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        MMMBadge(classification: loc.mmmClassification)
+                    }
+                }
+            }
+        } header: {
+            if additionalLocations.isEmpty {
+                Text("Location")
+            } else {
+                Text("Locations (\(1 + additionalLocations.count))")
             }
         }
     }
@@ -151,7 +230,10 @@ struct AssignmentDetailView: View {
     private var sessionsSection: some View {
         Section("Sessions") {
             NavigationLink {
-                SessionListView(assignment: assignment, location: location)
+                SessionListWrapper(
+                    assignmentID: assignment.persistentModelID,
+                    locationID: location?.id
+                )
             } label: {
                 LabeledContent("View Sessions") {
                     Image(systemName: "chevron.right")
@@ -159,6 +241,12 @@ struct AssignmentDetailView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+        }
+    }
+
+    private var attachmentsSection: some View {
+        Section("Documents") {
+            AttachmentsSummaryView(assignmentId: assignment.id)
         }
     }
 

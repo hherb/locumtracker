@@ -605,22 +605,19 @@ public struct PDFThumbnailView: View {
                     height: pageRect.height * scale
                 )
 
-                if let thumbnail = pdfPage.thumbnail(of: thumbnailSize, for: .mediaBox) {
-                    Image(uiImage: thumbnail)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxHeight: maxHeight)
-                        .clipShape(RoundedRectangle(cornerRadius: ReceiptImageConstants.cornerRadius))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: ReceiptImageConstants.cornerRadius)
-                                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                        )
-                        .overlay(alignment: .bottomTrailing) {
-                            pdfBadge
-                        }
-                } else {
-                    pdfPlaceholder
-                }
+                let thumbnail = pdfPage.thumbnail(of: thumbnailSize, for: .mediaBox)
+                Image(uiImage: thumbnail)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxHeight: maxHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: ReceiptImageConstants.cornerRadius))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: ReceiptImageConstants.cornerRadius)
+                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                    )
+                    .overlay(alignment: .bottomTrailing) {
+                        pdfBadge
+                    }
             } else {
                 pdfPlaceholder
             }
@@ -661,13 +658,13 @@ public struct PDFThumbnailView: View {
 /// Grid view for displaying multiple attachments
 public struct AttachmentsGridView: View {
     /// The attachments to display
-    public let attachments: [ReceiptAttachment]
+    public let attachments: [Attachment]
 
     /// Called when an attachment is tapped
-    public let onSelect: ((ReceiptAttachment) -> Void)?
+    public let onSelect: ((Attachment) -> Void)?
 
     /// Called when delete is tapped for an attachment
-    public let onDelete: ((ReceiptAttachment) -> Void)?
+    public let onDelete: ((Attachment) -> Void)?
 
     /// Whether editing is enabled
     public let isEditing: Bool
@@ -677,10 +674,10 @@ public struct AttachmentsGridView: View {
     ]
 
     public init(
-        attachments: [ReceiptAttachment],
+        attachments: [Attachment],
         isEditing: Bool = false,
-        onSelect: ((ReceiptAttachment) -> Void)? = nil,
-        onDelete: ((ReceiptAttachment) -> Void)? = nil
+        onSelect: ((Attachment) -> Void)? = nil,
+        onDelete: ((Attachment) -> Void)? = nil
     ) {
         self.attachments = attachments
         self.isEditing = isEditing
@@ -690,7 +687,7 @@ public struct AttachmentsGridView: View {
 
     public var body: some View {
         LazyVGrid(columns: columns, spacing: 12) {
-            ForEach(attachments.sorted { $0.order < $1.order }) { attachment in
+            ForEach(attachments.sorted { $0.createdAt < $1.createdAt }) { attachment in
                 AttachmentGridItem(
                     attachment: attachment,
                     isEditing: isEditing,
@@ -704,20 +701,22 @@ public struct AttachmentsGridView: View {
 
 /// Single item in the attachments grid
 public struct AttachmentGridItem: View {
-    let attachment: ReceiptAttachment
+    let attachment: Attachment
     let isEditing: Bool
     let onTap: () -> Void
     let onDelete: () -> Void
 
     public var body: some View {
         ZStack(alignment: .topTrailing) {
-            AttachmentPreview(
-                data: attachment.data,
-                attachmentType: attachment.attachmentType,
-                maxHeight: 100,
-                onTap: onTap,
-                onDelete: nil
-            )
+            if let data = attachment.fileData {
+                AttachmentPreview(
+                    data: data,
+                    attachmentType: attachment.fileType,
+                    maxHeight: 100,
+                    onTap: onTap,
+                    onDelete: nil
+                )
+            }
 
             if isEditing {
                 Button {
@@ -950,23 +949,23 @@ public struct PDFViewerSheet: View {
 #if os(iOS)
 /// View for displaying an attachment full-screen (handles both images and PDFs)
 public struct AttachmentViewer: View {
-    let attachment: ReceiptAttachment
+    let attachment: Attachment
     @Environment(\.dismiss) private var dismiss
 
-    public init(attachment: ReceiptAttachment) {
+    public init(attachment: Attachment) {
         self.attachment = attachment
     }
 
     public var body: some View {
         NavigationStack {
             Group {
-                if attachment.isImage {
+                if attachment.fileType.isImage {
                     imageViewer
-                } else {
-                    PDFViewer(data: attachment.data)
+                } else if let data = attachment.fileData {
+                    PDFViewer(data: data)
                 }
             }
-            .navigationTitle(attachment.filename ?? attachment.attachmentType.description)
+            .navigationTitle(attachment.filename.isEmpty ? attachment.fileType.displayName : attachment.filename)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -984,7 +983,7 @@ public struct AttachmentViewer: View {
 
     @ViewBuilder
     private var imageViewer: some View {
-        if let uiImage = UIImage(data: attachment.data) {
+        if let data = attachment.fileData, let uiImage = UIImage(data: data) {
             ScrollView([.horizontal, .vertical]) {
                 Image(uiImage: uiImage)
                     .resizable()
@@ -997,16 +996,16 @@ public struct AttachmentViewer: View {
 
     @ViewBuilder
     private var shareButton: some View {
-        let tempURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent(attachment.filename ?? "attachment.\(attachment.attachmentType.fileExtension)")
+        let filename = attachment.filename.isEmpty ? "attachment.\(attachment.fileType.rawValue)" : attachment.filename
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
 
-        let _ = try? attachment.data.write(to: tempURL)
+        let _ = try? attachment.fileData?.write(to: tempURL)
 
         ShareLink(
             item: tempURL,
             preview: SharePreview(
-                attachment.filename ?? "Attachment",
-                image: Image(systemName: attachment.isImage ? "photo" : "doc.richtext")
+                attachment.filename.isEmpty ? "Attachment" : attachment.filename,
+                image: Image(systemName: attachment.fileType.isImage ? "photo" : "doc.richtext")
             )
         )
     }

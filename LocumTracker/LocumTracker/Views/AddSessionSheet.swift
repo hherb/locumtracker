@@ -22,6 +22,7 @@ import LocumTrackerCore
 struct AddSessionSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var dailyRecords: [DailyRecord]
+    @Query private var allLocations: [Location]
 
     @Binding var isPresented: Bool
     let assignment: Assignment
@@ -29,14 +30,30 @@ struct AddSessionSheet: View {
     let location: Location?
 
     @State private var sessionDate: Date
+    @State private var endSessionDate: Date
+    @State private var isDateRangeMode: Bool = false
     @State private var startTime: Date
     @State private var endTime: Date
     @State private var sessionType: SessionType = .regular
     @State private var travelMinutes: Int = 0
     @State private var notes: String = ""
 
-    // Track which template is selected (if any)
-    @State private var selectedTemplateIndex: Int?
+    // Track which templates are selected for batch creation
+    @State private var selectedTemplateIndices: Set<Int> = []
+
+    // Mode: single custom session vs batch from templates
+    @State private var isTemplateMode: Bool = false
+
+    // Split session state
+    @State private var isSplitMode: Bool = false
+    @State private var firstSessionEndTime: Date = Date()
+    @State private var secondSessionStartTime: Date = Date()
+    @State private var secondSessionType: SessionType = .regular
+    @State private var secondSessionNotes: String = ""
+
+    // Multi-location support: nil means use assignment's primary location
+    @State private var selectedLocationId: UUID?
+    @State private var preferLocationTemplates: Bool = false
 
     // Selected provider location (clinic) - nil means main location
     @State private var selectedProviderLocationId: UUID?
@@ -51,10 +68,18 @@ struct AddSessionSheet: View {
         let now = Date()
         let calendar = Calendar.current
         _sessionDate = State(initialValue: now)
+        _endSessionDate = State(initialValue: now)
 
-        // Use first default session template if available
-        if let location = location,
-           let firstTemplate = location.defaultSessionTemplates.first {
+        // Resolve templates: assignment templates take priority, fall back to location templates
+        let assignmentTemplates = assignment.defaultSessionTemplates
+        let locationTemplates = location?.defaultSessionTemplates ?? []
+        let effectiveTemplates = SessionTemplateService.resolveTemplates(
+            assignmentTemplates: assignmentTemplates,
+            locationTemplates: locationTemplates
+        )
+
+        // Use first effective template if available, and start in template mode if templates exist
+        if let firstTemplate = effectiveTemplates.first {
             _startTime = State(initialValue: calendar.date(
                 bySettingHour: firstTemplate.startHour,
                 minute: firstTemplate.startMinute,
@@ -67,11 +92,25 @@ struct AddSessionSheet: View {
                 second: 0,
                 of: now
             ) ?? now)
-            _selectedTemplateIndex = State(initialValue: 0)
+            // Select all templates by default for quick batch creation
+            let allIndices = Set(effectiveTemplates.indices)
+            _selectedTemplateIndices = State(initialValue: allIndices)
+            _isTemplateMode = State(initialValue: true)
         } else {
-            _startTime = State(initialValue: calendar.date(bySettingHour: 8, minute: 0, second: 0, of: now) ?? now)
-            _endTime = State(initialValue: calendar.date(bySettingHour: 17, minute: 0, second: 0, of: now) ?? now)
-            _selectedTemplateIndex = State(initialValue: nil)
+            _startTime = State(initialValue: calendar.date(
+                bySettingHour: TimeConstants.defaultStartHour,
+                minute: TimeConstants.defaultMinute,
+                second: 0,
+                of: now
+            ) ?? now)
+            _endTime = State(initialValue: calendar.date(
+                bySettingHour: TimeConstants.defaultEndHour,
+                minute: TimeConstants.defaultMinute,
+                second: 0,
+                of: now
+            ) ?? now)
+            _selectedTemplateIndices = State(initialValue: [])
+            _isTemplateMode = State(initialValue: false)
         }
 
         // Filter daily records for this assignment
@@ -96,8 +135,13 @@ struct AddSessionSheet: View {
     /// Duration formatted as human-readable string
     private var durationText: String {
         guard isValidDuration else { return "Invalid" }
-        let hours = Int(duration) / 3600
-        let minutes = (Int(duration) % 3600) / 60
+        return formatDuration(duration)
+    }
+
+    /// Format a duration as human-readable string
+    private func formatDuration(_ interval: TimeInterval) -> String {
+        let hours = Int(interval) / TimeConstants.secondsPerHour
+        let minutes = (Int(interval) % TimeConstants.secondsPerHour) / TimeConstants.secondsPerMinute
         if hours > 0 && minutes > 0 {
             return "\(hours)h \(minutes)m"
         } else if hours > 0 {
@@ -107,9 +151,97 @@ struct AddSessionSheet: View {
         }
     }
 
-    /// Available session templates from location
+    /// Whether the total duration exceeds the split threshold
+    private var shouldSuggestSplit: Bool {
+        let durationHours = duration / Double(TimeConstants.secondsPerHour)
+        return durationHours > SessionSplitConstants.splitThresholdHours
+    }
+
+    /// Duration of the first session in split mode
+    private var firstSessionDuration: TimeInterval {
+        firstSessionEndTime.timeIntervalSince(startTime)
+    }
+
+    /// Duration of the second session in split mode
+    private var secondSessionDuration: TimeInterval {
+        endTime.timeIntervalSince(secondSessionStartTime)
+    }
+
+    /// Whether the first session duration is valid
+    private var isValidFirstSessionDuration: Bool {
+        firstSessionDuration > 0
+    }
+
+    /// Whether the second session duration is valid
+    private var isValidSecondSessionDuration: Bool {
+        secondSessionDuration > 0
+    }
+
+    /// Whether all split sessions have valid durations
+    private var isValidSplitDurations: Bool {
+        isValidFirstSessionDuration && isValidSecondSessionDuration
+    }
+
+    /// Gap between first and second session
+    private var gapDuration: TimeInterval {
+        secondSessionStartTime.timeIntervalSince(firstSessionEndTime)
+    }
+
+    /// Whether the gap between sessions is valid (non-negative)
+    private var isValidGap: Bool {
+        gapDuration >= 0
+    }
+
+    /// Whether the form can be saved
+    private var canSave: Bool {
+        if isTemplateMode {
+            return !selectedTemplateIndices.isEmpty
+        } else if isSplitMode {
+            return isValidSplitDurations && isValidGap
+        } else {
+            return isValidDuration
+        }
+    }
+
+    /// Available session templates, resolved from assignment and location
     private var sessionTemplates: [DefaultSessionTemplate] {
-        location?.defaultSessionTemplates ?? []
+        SessionTemplateService.resolveTemplates(
+            assignmentTemplates: assignment.defaultSessionTemplates,
+            locationTemplates: location?.defaultSessionTemplates ?? [],
+            preferLocationTemplates: preferLocationTemplates
+        )
+    }
+
+    /// Source of the current templates (for display purposes)
+    private var templateSource: TemplateSource {
+        SessionTemplateService.resolveTemplateSource(
+            assignmentTemplates: assignment.defaultSessionTemplates,
+            locationTemplates: location?.defaultSessionTemplates ?? [],
+            preferLocationTemplates: preferLocationTemplates
+        )
+    }
+
+    /// Available locations for this assignment (primary + additional)
+    private var availableLocations: [Location] {
+        allLocations.filter { assignment.allLocationIds.contains($0.id) }
+    }
+
+    /// Whether this assignment has multiple locations to choose from
+    private var hasMultipleLocations: Bool {
+        availableLocations.count > 1
+    }
+
+    /// The effective location for the session (selected or primary)
+    private var effectiveLocation: Location? {
+        if let selectedId = selectedLocationId {
+            return availableLocations.first { $0.id == selectedId }
+        }
+        return location
+    }
+
+    /// MMM classification for the effective location
+    private var effectiveMMMClassification: Int {
+        effectiveLocation?.mmmClassification ?? mmmClassification
     }
 
     /// Available provider locations (clinics) from assignment
@@ -125,6 +257,9 @@ struct AddSessionSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                if hasMultipleLocations {
+                    locationSection
+                }
                 dateSection
                 if hasProviderLocations {
                     clinicSection
@@ -132,12 +267,19 @@ struct AddSessionSheet: View {
                 if !sessionTemplates.isEmpty {
                     templateSection
                 }
-                timeSection
-                sessionTypeSection
+                if !isTemplateMode {
+                    timeSection
+                    splitSessionSection
+                    if !isSplitMode {
+                        sessionTypeSection
+                    }
+                }
                 travelSection
-                notesSection
+                if !isTemplateMode {
+                    notesSection
+                }
             }
-            .navigationTitle("Add Session")
+            .navigationTitle(isTemplateMode ? "Add Sessions" : "Add Session")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -148,25 +290,139 @@ struct AddSessionSheet: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button(saveButtonTitle) {
                         saveSession()
                     }
-                    .disabled(!isValidDuration)
+                    .disabled(!canSave)
                 }
             }
         }
     }
 
+    private var saveButtonTitle: String {
+        if isTemplateMode {
+            let totalSessions = totalSessionCount
+            return totalSessions == 1 ? "Add 1 Session" : "Add \(totalSessions) Sessions"
+        }
+        return "Save"
+    }
+
+    /// Calculate total number of sessions to be created
+    private var totalSessionCount: Int {
+        let templateCount = selectedTemplateIndices.count
+        if isDateRangeMode {
+            return templateCount * numberOfDaysInRange
+        }
+        return templateCount
+    }
+
+    /// Number of days in the selected date range
+    private var numberOfDaysInRange: Int {
+        guard isDateRangeMode else { return 1 }
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: sessionDate)
+        let end = calendar.startOfDay(for: endSessionDate)
+        let components = calendar.dateComponents([.day], from: start, to: end)
+        return max(1, (components.day ?? 0) + 1)
+    }
+
     // MARK: - View Components
 
+    private var locationSection: some View {
+        Section {
+            Picker("Location", selection: $selectedLocationId) {
+                // Primary location (nil = use assignment's primary)
+                if let primaryLocation = location {
+                    HStack {
+                        Text(primaryLocation.name)
+                        Spacer()
+                        MMMBadge(classification: primaryLocation.mmmClassification)
+                    }
+                    .tag(nil as UUID?)
+                }
+
+                // Additional locations
+                ForEach(availableLocations.filter { $0.id != location?.id }) { loc in
+                    HStack {
+                        Text(loc.name)
+                        Spacer()
+                        MMMBadge(classification: loc.mmmClassification)
+                    }
+                    .tag(loc.id as UUID?)
+                }
+            }
+            .pickerStyle(.navigationLink)
+
+            // Show effective MMM classification
+            if let effectiveLoc = effectiveLocation {
+                LabeledContent("MMM Classification") {
+                    Text("MMM \(effectiveLoc.mmmClassification)")
+                        .foregroundStyle(effectiveLoc.mmmClassification >= 3 ? .green : .secondary)
+                }
+            }
+        } header: {
+            Text("Location")
+        } footer: {
+            Text("Select the location where this session will be worked")
+        }
+    }
+
     private var dateSection: some View {
-        Section("Date") {
-            DatePicker(
-                "Session Date",
-                selection: $sessionDate,
-                in: assignment.dateRange,
-                displayedComponents: .date
-            )
+        Section {
+            if isTemplateMode {
+                // Toggle between single date and date range
+                Picker("Date Mode", selection: $isDateRangeMode) {
+                    Text("Single Day").tag(false)
+                    Text("Date Range").tag(true)
+                }
+                .pickerStyle(.segmented)
+            }
+
+            if isDateRangeMode && isTemplateMode {
+                DateRangePicker(
+                    startLabel: "Start Date",
+                    endLabel: "End Date",
+                    startDate: $sessionDate,
+                    endDate: $endSessionDate
+                )
+                .onChange(of: sessionDate) { _, newValue in
+                    // Ensure end date is not before start date
+                    if endSessionDate < newValue {
+                        endSessionDate = newValue
+                    }
+                    // Clamp to assignment range
+                    if newValue < assignment.startDate {
+                        sessionDate = assignment.startDate
+                    }
+                    if newValue > assignment.endDate {
+                        sessionDate = assignment.endDate
+                    }
+                }
+                .onChange(of: endSessionDate) { _, newValue in
+                    // Clamp to assignment range
+                    if newValue > assignment.endDate {
+                        endSessionDate = assignment.endDate
+                    }
+                    if newValue < sessionDate {
+                        endSessionDate = sessionDate
+                    }
+                }
+
+                if numberOfDaysInRange > 1 {
+                    LabeledContent("Days") {
+                        Text("\(numberOfDaysInRange) days")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } else {
+                AutoDismissDatePicker(
+                    label: "Session Date",
+                    selection: $sessionDate,
+                    range: assignment.dateRange
+                )
+            }
+        } header: {
+            Text("Date")
         }
     }
 
@@ -228,9 +484,11 @@ struct AddSessionSheet: View {
         Section {
             ForEach(Array(sessionTemplates.enumerated()), id: \.element.id) { index, template in
                 Button {
-                    applyTemplate(template, at: index)
+                    toggleTemplate(at: index)
                 } label: {
                     HStack {
+                        Image(systemName: selectedTemplateIndices.contains(index) ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(selectedTemplateIndices.contains(index) ? .blue : .secondary)
                         VStack(alignment: .leading) {
                             if let label = template.label {
                                 Text(label)
@@ -241,49 +499,178 @@ struct AddSessionSheet: View {
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        if selectedTemplateIndex == index {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(.blue)
-                        }
                     }
                 }
                 .foregroundStyle(.primary)
             }
+
+            // Option to switch to custom time entry
+            Button {
+                switchToCustomMode()
+            } label: {
+                HStack {
+                    Image(systemName: isTemplateMode ? "circle" : "checkmark.circle.fill")
+                        .foregroundStyle(isTemplateMode ? Color.secondary : Color.blue)
+                    Text("Custom Time")
+                        .fontWeight(.medium)
+                    Spacer()
+                }
+            }
+            .foregroundStyle(.primary)
         } header: {
-            Text("Default Sessions")
+            Text("Sessions")
         } footer: {
-            Text("Tap a session to apply its times")
+            if isTemplateMode {
+                Text("Select one or more sessions to add")
+            } else {
+                Text("Enter custom start and end times below")
+            }
         }
     }
 
-    private func applyTemplate(_ template: DefaultSessionTemplate, at index: Int) {
+    private func toggleTemplate(at index: Int) {
+        if selectedTemplateIndices.contains(index) {
+            selectedTemplateIndices.remove(index)
+        } else {
+            selectedTemplateIndices.insert(index)
+        }
+        // Stay in template mode if any templates selected
+        isTemplateMode = !selectedTemplateIndices.isEmpty
+    }
+
+    private func switchToCustomMode() {
+        selectedTemplateIndices.removeAll()
+        isTemplateMode = false
+        isSplitMode = false
+
+        // Reset to default times
         let calendar = Calendar.current
         let now = Date()
-
         startTime = calendar.date(
-            bySettingHour: template.startHour,
-            minute: template.startMinute,
+            bySettingHour: TimeConstants.defaultStartHour,
+            minute: TimeConstants.defaultMinute,
             second: 0,
             of: now
         ) ?? now
-
         endTime = calendar.date(
-            bySettingHour: template.endHour,
-            minute: template.endMinute,
+            bySettingHour: TimeConstants.defaultEndHour,
+            minute: TimeConstants.defaultMinute,
             second: 0,
             of: now
         ) ?? now
+    }
 
-        selectedTemplateIndex = index
+    /// Updates split mode suggestion based on current duration
+    private func updateSplitSuggestion() {
+        if shouldSuggestSplit && !isSplitMode {
+            enableSplitMode()
+        }
+    }
+
+    /// Enables split mode with default split times
+    private func enableSplitMode() {
+        isSplitMode = true
+        calculateDefaultSplitTimes()
+    }
+
+    /// Disables split mode
+    private func disableSplitMode() {
+        isSplitMode = false
+    }
+
+    /// Calculates default split times: first session 4 hours, 30 min gap
+    private func calculateDefaultSplitTimes() {
+        let firstSessionSeconds = SessionSplitConstants.firstSessionDefaultHours * Double(TimeConstants.secondsPerHour)
+        let gapSeconds = Double(SessionSplitConstants.defaultGapMinutes * TimeConstants.secondsPerMinute)
+
+        firstSessionEndTime = startTime.addingTimeInterval(firstSessionSeconds)
+        secondSessionStartTime = firstSessionEndTime.addingTimeInterval(gapSeconds)
+        secondSessionType = sessionType
     }
 
     private var timeSection: some View {
         Section("Time") {
             DatePicker("Start Time", selection: $startTime, displayedComponents: .hourAndMinute)
+                .onChange(of: startTime) { _, _ in
+                    if isSplitMode {
+                        calculateDefaultSplitTimes()
+                    } else {
+                        updateSplitSuggestion()
+                    }
+                }
             DatePicker("End Time", selection: $endTime, displayedComponents: .hourAndMinute)
+                .onChange(of: endTime) { _, _ in
+                    updateSplitSuggestion()
+                }
             LabeledContent("Duration") {
                 Text(durationText)
                     .foregroundStyle(isValidDuration ? Color.primary : Color.red)
+            }
+
+            if shouldSuggestSplit && !isSplitMode {
+                Button {
+                    enableSplitMode()
+                } label: {
+                    Label("Split into two sessions", systemImage: "arrow.triangle.branch")
+                }
+                .foregroundStyle(.blue)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var splitSessionSection: some View {
+        if isSplitMode {
+            Section {
+                HStack {
+                    Text("Session will be split into two")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Cancel Split") {
+                        disableSplitMode()
+                    }
+                    .font(.subheadline)
+                }
+            }
+
+            Section("Session 1") {
+                LabeledContent("Start") {
+                    Text(startTime, style: .time)
+                }
+                DatePicker("End", selection: $firstSessionEndTime, displayedComponents: .hourAndMinute)
+                LabeledContent("Duration") {
+                    Text(formatDuration(firstSessionDuration))
+                        .foregroundStyle(isValidFirstSessionDuration ? Color.primary : Color.red)
+                }
+            }
+
+            Section("Session 2") {
+                DatePicker("Start", selection: $secondSessionStartTime, displayedComponents: .hourAndMinute)
+                LabeledContent("End") {
+                    Text(endTime, style: .time)
+                }
+                LabeledContent("Duration") {
+                    Text(formatDuration(secondSessionDuration))
+                        .foregroundStyle(isValidSecondSessionDuration ? Color.primary : Color.red)
+                }
+                Picker("Type", selection: $secondSessionType) {
+                    ForEach(SessionType.allCases, id: \.self) { type in
+                        Text(type.description).tag(type)
+                    }
+                }
+            }
+
+            Section {
+                LabeledContent("Break Duration") {
+                    Text(formatDuration(gapDuration))
+                        .foregroundStyle(isValidGap ? Color.secondary : Color.red)
+                }
+                if !isValidGap {
+                    Text("Session 2 must start after Session 1 ends")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
             }
         }
     }
@@ -347,10 +734,91 @@ struct AddSessionSheet: View {
     // MARK: - Actions
 
     private func saveSession() {
-        // Find or create daily record for this date
         let calendar = Calendar.current
-        let dailyRecord = findOrCreateDailyRecord(for: sessionDate, calendar: calendar)
 
+        if isTemplateMode && isDateRangeMode {
+            // Save sessions for each day in the range
+            let affectedRecords = saveTemplatedSessionsForDateRange(calendar: calendar)
+
+            // Recalculate earnings for all affected daily records
+            for record in affectedRecords {
+                EarningsCalculator.recalculateEarnings(
+                    for: record,
+                    assignment: assignment,
+                    in: modelContext
+                )
+            }
+        } else {
+            // Single day mode
+            let dailyRecord = findOrCreateDailyRecord(for: sessionDate, calendar: calendar)
+
+            if isTemplateMode {
+                saveTemplatedSessions(dailyRecord: dailyRecord, calendar: calendar, date: sessionDate, isFirstDay: true)
+            } else if isSplitMode {
+                saveSplitSessions(dailyRecord: dailyRecord, calendar: calendar)
+            } else {
+                saveSingleSession(dailyRecord: dailyRecord, calendar: calendar)
+            }
+
+            // Recalculate daily earnings after adding the session(s)
+            EarningsCalculator.recalculateEarnings(
+                for: dailyRecord,
+                assignment: assignment,
+                in: modelContext
+            )
+        }
+
+        isPresented = false
+    }
+
+    private func saveTemplatedSessionsForDateRange(calendar: Calendar) -> [DailyRecord] {
+        var affectedRecords: [DailyRecord] = []
+        var currentDate = calendar.startOfDay(for: sessionDate)
+        let endDate = calendar.startOfDay(for: endSessionDate)
+        var isFirstDay = true
+
+        while currentDate <= endDate {
+            let dailyRecord = findOrCreateDailyRecord(for: currentDate, calendar: calendar)
+            saveTemplatedSessions(dailyRecord: dailyRecord, calendar: calendar, date: currentDate, isFirstDay: isFirstDay)
+            affectedRecords.append(dailyRecord)
+
+            isFirstDay = false
+            guard let nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate) else { break }
+            currentDate = nextDate
+        }
+
+        return affectedRecords
+    }
+
+    private func saveTemplatedSessions(dailyRecord: DailyRecord, calendar: Calendar, date: Date, isFirstDay: Bool) {
+        // Sort indices to save sessions in chronological order
+        let sortedIndices = selectedTemplateIndices.sorted()
+        var isFirstSession = isFirstDay
+
+        for index in sortedIndices {
+            guard index < sessionTemplates.count else { continue }
+            let template = sessionTemplates[index]
+
+            let sessionStartTime = template.startDate(on: date)
+            let sessionEndTime = template.endDate(on: date)
+
+            let session = Session(
+                dailyRecordId: dailyRecord.id,
+                startTime: sessionStartTime,
+                endTime: sessionEndTime,
+                sessionType: sessionType,
+                mmmClassification: effectiveMMMClassification,
+                travelTime: isFirstSession && travelMinutes > 0 ? Double(travelMinutes * TimeConstants.secondsPerMinute) : nil,
+                locationId: selectedLocationId,
+                providerLocationId: selectedProviderLocationId
+            )
+
+            modelContext.insert(session)
+            isFirstSession = false
+        }
+    }
+
+    private func saveSingleSession(dailyRecord: DailyRecord, calendar: Calendar) {
         // Combine session date with times
         let sessionStartTime = combineDateWithTime(date: sessionDate, time: startTime, calendar: calendar)
         let sessionEndTime = combineDateWithTime(date: sessionDate, time: endTime, calendar: calendar)
@@ -360,8 +828,9 @@ struct AddSessionSheet: View {
             startTime: sessionStartTime,
             endTime: sessionEndTime,
             sessionType: sessionType,
-            mmmClassification: mmmClassification,
-            travelTime: travelMinutes > 0 ? Double(travelMinutes * 60) : nil,
+            mmmClassification: effectiveMMMClassification,
+            travelTime: travelMinutes > 0 ? Double(travelMinutes * TimeConstants.secondsPerMinute) : nil,
+            locationId: selectedLocationId,
             providerLocationId: selectedProviderLocationId
         )
 
@@ -369,20 +838,51 @@ struct AddSessionSheet: View {
             session.notes = notes
         }
 
-        // Note: FPS uses annual payments based on session count, not per-session amounts.
-        // The subsidyAmount field is no longer used for FPS calculations.
-        // Sessions are tracked in QuarterlyQuota for FPS eligibility.
-
         modelContext.insert(session)
+    }
 
-        // Recalculate daily earnings after adding the session
-        EarningsCalculator.recalculateEarnings(
-            for: dailyRecord,
-            assignment: assignment,
-            in: modelContext
+    private func saveSplitSessions(dailyRecord: DailyRecord, calendar: Calendar) {
+        // First session: startTime to firstSessionEndTime
+        let firstStart = combineDateWithTime(date: sessionDate, time: startTime, calendar: calendar)
+        let firstEnd = combineDateWithTime(date: sessionDate, time: firstSessionEndTime, calendar: calendar)
+
+        let firstSession = Session(
+            dailyRecordId: dailyRecord.id,
+            startTime: firstStart,
+            endTime: firstEnd,
+            sessionType: sessionType,
+            mmmClassification: effectiveMMMClassification,
+            travelTime: travelMinutes > 0 ? Double(travelMinutes * TimeConstants.secondsPerMinute) : nil,
+            locationId: selectedLocationId,
+            providerLocationId: selectedProviderLocationId
         )
 
-        isPresented = false
+        if !notes.isEmpty {
+            firstSession.notes = notes
+        }
+
+        modelContext.insert(firstSession)
+
+        // Second session: secondSessionStartTime to endTime
+        let secondStart = combineDateWithTime(date: sessionDate, time: secondSessionStartTime, calendar: calendar)
+        let secondEnd = combineDateWithTime(date: sessionDate, time: endTime, calendar: calendar)
+
+        let secondSession = Session(
+            dailyRecordId: dailyRecord.id,
+            startTime: secondStart,
+            endTime: secondEnd,
+            sessionType: secondSessionType,
+            mmmClassification: effectiveMMMClassification,
+            travelTime: nil,  // Travel time only applies to first session
+            locationId: selectedLocationId,
+            providerLocationId: selectedProviderLocationId
+        )
+
+        if !secondSessionNotes.isEmpty {
+            secondSession.notes = secondSessionNotes
+        }
+
+        modelContext.insert(secondSession)
     }
 
     private func findOrCreateDailyRecord(for date: Date, calendar: Calendar) -> DailyRecord {
@@ -420,10 +920,32 @@ struct AddSessionSheet: View {
 
 // MARK: - Constants
 
+private enum TimeConstants {
+    /// Seconds per hour for time calculations
+    static let secondsPerHour = 3600
+    /// Seconds per minute for time calculations
+    static let secondsPerMinute = 60
+    /// Default start hour for custom sessions
+    static let defaultStartHour = 8
+    /// Default end hour for custom sessions
+    static let defaultEndHour = 17
+    /// Default minute value
+    static let defaultMinute = 0
+}
+
 private enum TravelConstants {
     static let maxMinutes = 240
     static let stepMinutes = 15
     static let eligibleThresholdMinutes = 60
+}
+
+private enum SessionSplitConstants {
+    /// Sessions exceeding this duration (in hours) will be automatically split
+    static let splitThresholdHours: Double = 5.0
+    /// Default duration for the first session when splitting (in hours)
+    static let firstSessionDefaultHours: Double = 4.0
+    /// Default gap between first and second session (in minutes)
+    static let defaultGapMinutes: Int = 30
 }
 
 // MARK: - Preview

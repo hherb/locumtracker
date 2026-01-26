@@ -22,6 +22,7 @@ import LocumTrackerCore
 struct EditSessionSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var dailyRecords: [DailyRecord]
+    @Query private var allLocations: [Location]
 
     @Binding var isPresented: Bool
     @Bindable var session: Session
@@ -34,6 +35,7 @@ struct EditSessionSheet: View {
     @State private var sessionType: SessionType
     @State private var travelMinutes: Int
     @State private var notes: String
+    @State private var selectedLocationId: UUID?
 
     // Selected provider location (clinic) - nil means main location
     @State private var selectedProviderLocationId: UUID?
@@ -49,8 +51,9 @@ struct EditSessionSheet: View {
         _startTime = State(initialValue: session.startTime)
         _endTime = State(initialValue: session.endTime)
         _sessionType = State(initialValue: session.sessionType)
-        _travelMinutes = State(initialValue: Int((session.travelTime ?? 0) / 60))
+        _travelMinutes = State(initialValue: Int((session.travelTime ?? 0) / Double(TimeConstants.secondsPerMinute)))
         _notes = State(initialValue: session.notes ?? "")
+        _selectedLocationId = State(initialValue: session.locationId)
         _selectedProviderLocationId = State(initialValue: session.providerLocationId)
 
         // Filter daily records for this assignment
@@ -75,8 +78,8 @@ struct EditSessionSheet: View {
     /// Duration formatted as human-readable string
     private var durationText: String {
         guard isValidDuration else { return "Invalid" }
-        let hours = Int(duration) / 3600
-        let minutes = (Int(duration) % 3600) / 60
+        let hours = Int(duration) / TimeConstants.secondsPerHour
+        let minutes = (Int(duration) % TimeConstants.secondsPerHour) / TimeConstants.secondsPerMinute
         if hours > 0 && minutes > 0 {
             return "\(hours)h \(minutes)m"
         } else if hours > 0 {
@@ -86,9 +89,35 @@ struct EditSessionSheet: View {
         }
     }
 
-    /// Available session templates from location
+    /// Available session templates, resolved from assignment and location
     private var sessionTemplates: [DefaultSessionTemplate] {
-        location?.defaultSessionTemplates ?? []
+        SessionTemplateService.resolveTemplates(
+            assignmentTemplates: assignment.defaultSessionTemplates,
+            locationTemplates: location?.defaultSessionTemplates ?? []
+        )
+    }
+
+    /// Available locations for this assignment (primary + additional)
+    private var availableLocations: [Location] {
+        allLocations.filter { assignment.allLocationIds.contains($0.id) }
+    }
+
+    /// Whether this assignment has multiple locations to choose from
+    private var hasMultipleLocations: Bool {
+        availableLocations.count > 1
+    }
+
+    /// The effective location for the session (selected or primary)
+    private var effectiveLocation: Location? {
+        if let selectedId = selectedLocationId {
+            return availableLocations.first { $0.id == selectedId }
+        }
+        return location
+    }
+
+    /// MMM classification for the effective location
+    private var effectiveMMMClassification: Int {
+        effectiveLocation?.mmmClassification ?? session.mmmClassification
     }
 
     /// Available provider locations (clinics) from assignment
@@ -104,6 +133,9 @@ struct EditSessionSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                if hasMultipleLocations {
+                    locationSection
+                }
                 dateSection
                 if hasProviderLocations {
                     clinicSection
@@ -138,13 +170,49 @@ struct EditSessionSheet: View {
 
     // MARK: - View Components
 
+    private var locationSection: some View {
+        Section {
+            Picker("Location", selection: $selectedLocationId) {
+                // Primary location (nil = use assignment's primary)
+                if let primaryLocation = location {
+                    HStack {
+                        Text(primaryLocation.name)
+                        Spacer()
+                        MMMBadge(classification: primaryLocation.mmmClassification)
+                    }
+                    .tag(nil as UUID?)
+                }
+
+                // Additional locations
+                ForEach(availableLocations.filter { $0.id != location?.id }) { loc in
+                    HStack {
+                        Text(loc.name)
+                        Spacer()
+                        MMMBadge(classification: loc.mmmClassification)
+                    }
+                    .tag(loc.id as UUID?)
+                }
+            }
+            .pickerStyle(.navigationLink)
+
+            // Show effective MMM classification
+            if let effectiveLoc = effectiveLocation {
+                LabeledContent("MMM Classification") {
+                    Text("MMM \(effectiveLoc.mmmClassification)")
+                        .foregroundStyle(effectiveLoc.mmmClassification >= 3 ? .green : .secondary)
+                }
+            }
+        } header: {
+            Text("Location")
+        }
+    }
+
     private var dateSection: some View {
         Section("Date") {
-            DatePicker(
-                "Session Date",
+            AutoDismissDatePicker(
+                label: "Session Date",
                 selection: $sessionDate,
-                in: assignment.dateRange,
-                displayedComponents: .date
+                range: assignment.dateRange
             )
         }
     }
@@ -344,8 +412,10 @@ struct EditSessionSheet: View {
         session.startTime = sessionStartTime
         session.endTime = sessionEndTime
         session.sessionType = sessionType
-        session.travelTime = travelMinutes > 0 ? Double(travelMinutes * 60) : nil
+        session.travelTime = travelMinutes > 0 ? Double(travelMinutes * TimeConstants.secondsPerMinute) : nil
         session.notes = notes.isEmpty ? nil : notes
+        session.locationId = selectedLocationId
+        session.mmmClassification = effectiveMMMClassification
         session.providerLocationId = selectedProviderLocationId
 
         // Recalculate earnings for affected daily records
@@ -415,6 +485,13 @@ struct EditSessionSheet: View {
 }
 
 // MARK: - Constants
+
+private enum TimeConstants {
+    /// Seconds per hour for time calculations
+    static let secondsPerHour = 3600
+    /// Seconds per minute for time calculations
+    static let secondsPerMinute = 60
+}
 
 private enum TravelConstants {
     static let maxMinutes = 240

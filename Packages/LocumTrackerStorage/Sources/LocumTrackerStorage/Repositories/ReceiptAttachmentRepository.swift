@@ -18,10 +18,12 @@ import Foundation
 import SwiftData
 import LocumTrackerCore
 
-/// Repository for ReceiptAttachment model CRUD operations
-public final class ReceiptAttachmentRepository: Repository {
-    public typealias Model = ReceiptAttachment
-
+/// Repository for receipt-related Attachment operations
+///
+/// This repository provides convenience methods for querying attachments
+/// associated with receipts. The `Attachment` model uses `receiptId` to
+/// link attachments to receipts.
+public final class ReceiptAttachmentRepository {
     public let modelContext: ModelContext
 
     public init(modelContext: ModelContext) {
@@ -33,87 +35,129 @@ public final class ReceiptAttachmentRepository: Repository {
     /// Finds an attachment by its UUID
     /// - Parameter id: The attachment ID
     /// - Returns: Attachment if found
-    public func findById(_ id: UUID) -> ReceiptAttachment? {
-        let predicate = #Predicate<ReceiptAttachment> { $0.id == id }
-        return fetch(predicate: predicate, sortDescriptors: [], fetchLimit: 1).first
+    public func findById(_ id: UUID) -> Attachment? {
+        let predicate = #Predicate<Attachment> { $0.id == id }
+        let descriptor = FetchDescriptor<Attachment>(predicate: predicate)
+        return (try? modelContext.fetch(descriptor))?.first
     }
 
-    // MARK: - Specialized Queries
+    // MARK: - Receipt Attachment Queries
 
     /// Fetches all attachments for a specific receipt
     /// - Parameter receiptId: The receipt's UUID
-    /// - Returns: Array of attachments ordered by their order property
-    public func fetchByReceipt(_ receiptId: UUID) -> [ReceiptAttachment] {
-        let predicate = #Predicate<ReceiptAttachment> { $0.receipt?.id == receiptId }
-        return fetch(
+    /// - Returns: Array of attachments sorted by creation date
+    public func fetchByReceipt(_ receiptId: UUID) -> [Attachment] {
+        let predicate = #Predicate<Attachment> { $0.receiptId == receiptId }
+        let descriptor = FetchDescriptor<Attachment>(
             predicate: predicate,
-            sortDescriptors: [SortDescriptor(\.order, order: .forward)]
+            sortBy: [SortDescriptor(\.createdAt, order: .forward)]
         )
+        return (try? modelContext.fetch(descriptor)) ?? []
     }
 
-    /// Fetches attachments by type (e.g., only PDFs or only images)
+    /// Fetches attachments by type for receipts
     /// - Parameter type: The attachment type to filter by
     /// - Returns: Array of attachments of that type
-    public func fetchByType(_ type: AttachmentType) -> [ReceiptAttachment] {
-        let predicate = #Predicate<ReceiptAttachment> { $0.attachmentType == type }
-        return fetch(
+    public func fetchByType(_ type: AttachmentType) -> [Attachment] {
+        // Filter in Swift since SwiftData predicates don't support enum comparisons well
+        let predicate = #Predicate<Attachment> { $0.receiptId != nil }
+        let descriptor = FetchDescriptor<Attachment>(
             predicate: predicate,
-            sortDescriptors: [SortDescriptor(\.createdAt, order: .reverse)]
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
+        let all = (try? modelContext.fetch(descriptor)) ?? []
+        return all.filter { $0.fileType == type }
     }
 
-    /// Fetches all image attachments (JPEG, PNG, HEIC)
+    /// Fetches all image attachments for receipts (JPEG, PNG, HEIC)
     /// - Returns: Array of image attachments
-    public func fetchImages() -> [ReceiptAttachment] {
-        // Use individual type checks since isImage is computed
-        let predicate = #Predicate<ReceiptAttachment> {
-            $0.attachmentType == .jpeg ||
-            $0.attachmentType == .png ||
-            $0.attachmentType == .heic
-        }
-        return fetch(
+    public func fetchImages() -> [Attachment] {
+        // Filter in Swift since SwiftData predicates don't support complex enum comparisons
+        let predicate = #Predicate<Attachment> { $0.receiptId != nil }
+        let descriptor = FetchDescriptor<Attachment>(
             predicate: predicate,
-            sortDescriptors: [SortDescriptor(\.createdAt, order: .reverse)]
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
+        let all = (try? modelContext.fetch(descriptor)) ?? []
+        return all.filter { $0.fileType.isImage }
     }
 
-    /// Fetches all PDF attachments
+    /// Fetches all PDF attachments for receipts
     /// - Returns: Array of PDF attachments
-    public func fetchPDFs() -> [ReceiptAttachment] {
-        let predicate = #Predicate<ReceiptAttachment> { $0.attachmentType == .pdf }
-        return fetch(
+    public func fetchPDFs() -> [Attachment] {
+        // Filter in Swift since SwiftData predicates don't support enum comparisons well
+        let predicate = #Predicate<Attachment> { $0.receiptId != nil }
+        let descriptor = FetchDescriptor<Attachment>(
             predicate: predicate,
-            sortDescriptors: [SortDescriptor(\.createdAt, order: .reverse)]
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
+        let all = (try? modelContext.fetch(descriptor)) ?? []
+        return all.filter { $0.fileType == .pdf }
     }
 
-    /// Fetches attachments within a date range
+    /// Fetches receipt attachments within a date range
     /// - Parameters:
     ///   - startDate: Start of range (inclusive)
     ///   - endDate: End of range (inclusive)
     /// - Returns: Array of attachments sorted by creation date (newest first)
-    public func fetchByDateRange(startDate: Date, endDate: Date) -> [ReceiptAttachment] {
-        let predicate = #Predicate<ReceiptAttachment> {
+    public func fetchByDateRange(startDate: Date, endDate: Date) -> [Attachment] {
+        let predicate = #Predicate<Attachment> {
+            $0.receiptId != nil &&
             $0.createdAt >= startDate && $0.createdAt <= endDate
         }
-        return fetch(
+        let descriptor = FetchDescriptor<Attachment>(
             predicate: predicate,
-            sortDescriptors: [SortDescriptor(\.createdAt, order: .reverse)]
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
+        return (try? modelContext.fetch(descriptor)) ?? []
     }
 
-    /// Calculates total storage used by attachments
+    /// Calculates total storage used by receipt attachments
     /// - Returns: Total file size in bytes
-    public func totalStorageUsed() -> Int {
-        let attachments = fetchAll()
+    public func totalStorageUsed() -> Int64 {
+        let predicate = #Predicate<Attachment> { $0.receiptId != nil }
+        let descriptor = FetchDescriptor<Attachment>(predicate: predicate)
+        let attachments = (try? modelContext.fetch(descriptor)) ?? []
         return attachments.reduce(0) { $0 + $1.fileSize }
     }
 
     /// Calculates storage used by attachments for a specific receipt
     /// - Parameter receiptId: The receipt's UUID
     /// - Returns: Total file size in bytes for that receipt's attachments
-    public func storageUsedByReceipt(_ receiptId: UUID) -> Int {
+    public func storageUsedByReceipt(_ receiptId: UUID) -> Int64 {
         let attachments = fetchByReceipt(receiptId)
         return attachments.reduce(0) { $0 + $1.fileSize }
+    }
+
+    /// Counts attachments for a specific receipt
+    /// - Parameter receiptId: The receipt's UUID
+    /// - Returns: Number of attachments
+    public func countByReceipt(_ receiptId: UUID) -> Int {
+        let predicate = #Predicate<Attachment> { $0.receiptId == receiptId }
+        let descriptor = FetchDescriptor<Attachment>(predicate: predicate)
+        return (try? modelContext.fetchCount(descriptor)) ?? 0
+    }
+
+    // MARK: - CRUD Operations
+
+    /// Saves an attachment to the context
+    /// - Parameter attachment: The attachment to save
+    public func save(_ attachment: Attachment) {
+        modelContext.insert(attachment)
+    }
+
+    /// Deletes an attachment
+    /// - Parameter attachment: The attachment to delete
+    public func delete(_ attachment: Attachment) {
+        modelContext.delete(attachment)
+    }
+
+    /// Deletes all attachments for a receipt
+    /// - Parameter receiptId: The receipt's UUID
+    public func deleteAllForReceipt(_ receiptId: UUID) {
+        let attachments = fetchByReceipt(receiptId)
+        for attachment in attachments {
+            modelContext.delete(attachment)
+        }
     }
 }

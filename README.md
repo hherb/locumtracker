@@ -24,9 +24,11 @@ As a locum doctor, your time is valuable. You shouldn't spend hours wrestling wi
 | Feature | What It Does For You |
 |---------|---------------------|
 | **Smart Sessions** | Log daily/hourly work with flexible rate structures — perfect for varied locum contracts |
-| **Location Intelligence** | Automatic MMM classification lookup for every workplace |
+| **Session Templates** | Create templates for common session types and batch-create sessions across date ranges |
+| **Auto Session Splitting** | Sessions over 5 hours automatically split into two for accurate subsidy tracking |
+| **Location Intelligence** | Automatic MMM classification lookup for every workplace with provider numbers and contact info |
 | **On-Call Support** | Track regular, on-call, and call-out sessions with appropriate rate calculations |
-| **Assignment Management** | Organise work by contract with date ranges, rates, and locations |
+| **Multi-Location Assignments** | Organise work by contract with multiple locations, date ranges, and rates |
 
 ### Rural Subsidy Compliance
 
@@ -40,6 +42,8 @@ Stop guessing — **know exactly where you stand** with your rural incentive pay
 ### Receipt & Expense Management
 
 - **Camera Capture** (iOS) — Photograph receipts on the go
+- **Multiple Attachments** — Attach multiple photos, PDFs, and documents to each receipt
+- **Share Extension** — Import documents directly from Mail, Files, Safari and other apps
 - **Smart Categorisation** — Travel, accommodation, meals, equipment
 - **Cloud Backup** — Never lose a receipt again with automatic iCloud sync
 - **Tax Time Ready** — Export organised expense reports
@@ -56,17 +60,21 @@ Stop guessing — **know exactly where you stand** with your rural incentive pay
 
 | Component | Status |
 |-----------|--------|
-| Core Business Logic | **Complete** — 143 tests passing |
+| Core Business Logic | **Complete** — 197 tests passing |
 | Rural Subsidy Calculations | **Complete** — Full MMM/FPS support |
 | Data Models | **Complete** — All entities defined |
 | Receipt OCR Engine | **Complete** — PaddleOCR via ONNX Runtime |
 | iOS App UI | **Functional** — All main views implemented |
+| iOS Share Extension | **Complete** — Share documents from other apps |
 | Storage Layer | **Complete** — Repositories + CloudKit sync |
 | macOS App UI | **Planned** |
 
 **What works today:**
 - Full work tracking: assignments, sessions, locations, daily records
-- Receipt management with camera capture and image cropping
+- Multi-location assignments with session templates for batch session creation
+- Automatic session splitting for sessions exceeding 5 hours
+- Receipt management with multiple attachments (photos, PDFs, documents)
+- Share Extension to import documents from other apps (PDFs, emails, images)
 - OCR text extraction from receipt images (PaddleOCR models)
 - Earnings dashboard and quarterly quota tracking
 - Profile settings and locum profile management
@@ -100,6 +108,13 @@ Stop guessing — **know exactly where you stand** with your rural incentive pay
 ## Roadmap
 
 ### Recently Completed
+- ✅ Multiple receipt attachments (photos, PDFs, documents per receipt)
+- ✅ iOS Share Extension for importing documents from other apps
+- ✅ Multi-location assignments with session templates
+- ✅ Automatic session splitting for long sessions (>5 hours)
+- ✅ Enhanced location management with provider numbers and contact info
+- ✅ Auto-dismiss date pickers and improved date range selection
+- ✅ Session editing with automatic earnings calculation
 - ✅ iOS app with full work tracking UI
 - ✅ Receipt capture with camera integration and image cropping
 - ✅ OCR engine with PaddleOCR models for receipt text extraction
@@ -107,8 +122,8 @@ Stop guessing — **know exactly where you stand** with your rural incentive pay
 - ✅ Storage layer with repositories
 
 ### In Progress
-- macOS app interface
 - LLM-powered receipt data extraction (merchant, amount, date, category from OCR text)
+- macOS app interface
 
 ### Next
 - Invoice generation and PDF export
@@ -172,7 +187,7 @@ open LocumTracker.xcodeproj
 ### Architecture
 
 Clean, modular Swift packages:
-- **LocumTrackerCore** — Pure business logic with 143 tests
+- **LocumTrackerCore** — Pure business logic with 197 tests
 - **LocumTrackerStorage** — SwiftData repositories + CloudKit sync
 - **LocumTrackerOCR** — Receipt OCR with PaddleOCR models via ONNX Runtime
 - **LocumTrackerUI** — Shared SwiftUI components

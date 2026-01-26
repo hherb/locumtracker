@@ -8,12 +8,21 @@
 
 /* Begin PBXBuildFile section */
 		6F22420F2F23C70C0051ECF7 /* LocumTrackerOCR in Frameworks */ = {isa = PBXBuildFile; productRef = 6F22420E2F23C70C0051ECF7 /* LocumTrackerOCR */; };
+		6F22429B2F25804B0051ECF7 /* LocumTrackerShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6F2242912F25804B0051ECF7 /* LocumTrackerShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		6F2242A12F258AAA0051ECF7 /* LocumTrackerCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6F2242A22F258AAA0051ECF7 /* LocumTrackerCore */; };
 		6F5748C72F1D0CFB00B07EF1 /* LocumTrackerCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6F5748C62F1D0CFB00B07EF1 /* LocumTrackerCore */; };
 		6F5748CA2F1D0D1000B07EF1 /* LocumTrackerStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 6F5748C92F1D0D1000B07EF1 /* LocumTrackerStorage */; };
 		6F5748CD2F1D0D2D00B07EF1 /* LocumTrackerUI in Frameworks */ = {isa = PBXBuildFile; productRef = 6F5748CC2F1D0D2D00B07EF1 /* LocumTrackerUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		6F2242992F25804B0051ECF7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6F57488B2F1D0C3A00B07EF1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6F2242902F25804B0051ECF7;
+			remoteInfo = LocumTrackerShare;
+		};
 		6F5748A52F1D0C3B00B07EF1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 6F57488B2F1D0C3A00B07EF1 /* Project object */;
@@ -30,13 +39,35 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		6F2242A02F25804B0051ECF7 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				6F22429B2F25804B0051ECF7 /* LocumTrackerShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		6F2242912F25804B0051ECF7 /* LocumTrackerShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LocumTrackerShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6F5748932F1D0C3A00B07EF1 /* LocumTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LocumTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6F5748A42F1D0C3B00B07EF1 /* LocumTrackerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LocumTrackerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6F5748AE2F1D0C3B00B07EF1 /* LocumTrackerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LocumTrackerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		6F22429F2F25804B0051ECF7 /* Exceptions for "LocumTrackerShare" folder in "LocumTrackerShare" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 6F2242902F25804B0051ECF7 /* LocumTrackerShare */;
+		};
 		6F5748B62F1D0C3B00B07EF1 /* Exceptions for "LocumTracker" folder in "LocumTracker" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -47,6 +78,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		6F2242922F25804B0051ECF7 /* LocumTrackerShare */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6F22429F2F25804B0051ECF7 /* Exceptions for "LocumTrackerShare" folder in "LocumTrackerShare" target */,
+			);
+			path = LocumTrackerShare;
+			sourceTree = "<group>";
+		};
 		6F5748952F1D0C3A00B07EF1 /* LocumTracker */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -68,6 +107,14 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		6F22428E2F25804B0051ECF7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6F2242A12F258AAA0051ECF7 /* LocumTrackerCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		6F5748902F1D0C3A00B07EF1 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -109,6 +156,7 @@
 				6F5748952F1D0C3A00B07EF1 /* LocumTracker */,
 				6F5748A72F1D0C3B00B07EF1 /* LocumTrackerTests */,
 				6F5748B12F1D0C3B00B07EF1 /* LocumTrackerUITests */,
+				6F2242922F25804B0051ECF7 /* LocumTrackerShare */,
 				6F22420D2F23C70C0051ECF7 /* Frameworks */,
 				6F5748942F1D0C3A00B07EF1 /* Products */,
 			);
@@ -120,6 +168,7 @@
 				6F5748932F1D0C3A00B07EF1 /* LocumTracker.app */,
 				6F5748A42F1D0C3B00B07EF1 /* LocumTrackerTests.xctest */,
 				6F5748AE2F1D0C3B00B07EF1 /* LocumTrackerUITests.xctest */,
+				6F2242912F25804B0051ECF7 /* LocumTrackerShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -127,6 +176,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		6F2242902F25804B0051ECF7 /* LocumTrackerShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6F22429C2F25804B0051ECF7 /* Build configuration list for PBXNativeTarget "LocumTrackerShare" */;
+			buildPhases = (
+				6F22428D2F25804B0051ECF7 /* Sources */,
+				6F22428E2F25804B0051ECF7 /* Frameworks */,
+				6F22428F2F25804B0051ECF7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				6F2242922F25804B0051ECF7 /* LocumTrackerShare */,
+			);
+			name = LocumTrackerShare;
+			packageProductDependencies = (
+				6F2242A22F258AAA0051ECF7 /* LocumTrackerCore */,
+			);
+			productName = LocumTrackerShare;
+			productReference = 6F2242912F25804B0051ECF7 /* LocumTrackerShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		6F5748922F1D0C3A00B07EF1 /* LocumTracker */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 6F5748B72F1D0C3B00B07EF1 /* Build configuration list for PBXNativeTarget "LocumTracker" */;
@@ -134,10 +206,12 @@
 				6F57488F2F1D0C3A00B07EF1 /* Sources */,
 				6F5748902F1D0C3A00B07EF1 /* Frameworks */,
 				6F5748912F1D0C3A00B07EF1 /* Resources */,
+				6F2242A02F25804B0051ECF7 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				6F22429A2F25804B0051ECF7 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				6F5748952F1D0C3A00B07EF1 /* LocumTracker */,
@@ -209,6 +283,9 @@
 				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
+					6F2242902F25804B0051ECF7 = {
+						CreatedOnToolsVersion = 26.2;
+					};
 					6F5748922F1D0C3A00B07EF1 = {
 						CreatedOnToolsVersion = 26.2;
 					};
@@ -245,11 +322,19 @@
 				6F5748922F1D0C3A00B07EF1 /* LocumTracker */,
 				6F5748A32F1D0C3B00B07EF1 /* LocumTrackerTests */,
 				6F5748AD2F1D0C3B00B07EF1 /* LocumTrackerUITests */,
+				6F2242902F25804B0051ECF7 /* LocumTrackerShare */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		6F22428F2F25804B0051ECF7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		6F5748912F1D0C3A00B07EF1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -274,6 +359,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		6F22428D2F25804B0051ECF7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		6F57488F2F1D0C3A00B07EF1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -298,6 +390,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		6F22429A2F25804B0051ECF7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6F2242902F25804B0051ECF7 /* LocumTrackerShare */;
+			targetProxy = 6F2242992F25804B0051ECF7 /* PBXContainerItemProxy */;
+		};
 		6F5748A62F1D0C3B00B07EF1 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 6F5748922F1D0C3A00B07EF1 /* LocumTracker */;
@@ -311,6 +408,69 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		6F22429D2F25804B0051ECF7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = LocumTrackerShare/LocumTrackerShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X5DWXB4283;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LocumTrackerShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LocumTracker;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hherb.LocumTracker.LocumTrackerShare;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		6F22429E2F25804B0051ECF7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = LocumTrackerShare/LocumTrackerShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X5DWXB4283;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LocumTrackerShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LocumTracker;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hherb.LocumTracker.LocumTrackerShare;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		6F5748B82F1D0C3B00B07EF1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -651,6 +811,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		6F22429C2F25804B0051ECF7 /* Build configuration list for PBXNativeTarget "LocumTrackerShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6F22429D2F25804B0051ECF7 /* Debug */,
+				6F22429E2F25804B0051ECF7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		6F57488E2F1D0C3A00B07EF1 /* Build configuration list for PBXProject "LocumTracker" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -713,6 +882,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 6F22420C2F23C59A0051ECF7 /* XCLocalSwiftPackageReference "../Packages/LocumTrackerOCR" */;
 			productName = LocumTrackerOCR;
+		};
+		6F2242A22F258AAA0051ECF7 /* LocumTrackerCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6F5748C52F1D0CFB00B07EF1 /* XCLocalSwiftPackageReference "../Packages/LocumTrackerCore" */;
+			productName = LocumTrackerCore;
 		};
 		6F5748C62F1D0CFB00B07EF1 /* LocumTrackerCore */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -53,6 +53,9 @@ public enum ExpenseCategory: String, CaseIterable, Codable {
 }
 
 /// Represents expense receipts for reimbursement and tax purposes
+///
+/// Attachments are stored separately in the `Attachment` model and linked by `receiptId`.
+/// Use a FetchDescriptor with predicate `$0.receiptId == receipt.id` to query attachments.
 @Model
 public final class Receipt {
     public var id: UUID = UUID()
@@ -62,18 +65,14 @@ public final class Receipt {
     public var category: ExpenseCategory = ExpenseCategory.other
 
     /// Legacy single image data - kept for backwards compatibility during migration
-    /// Use `attachments` for new code
-    @available(*, deprecated, message: "Use attachments instead")
+    /// Use `Attachment` model with `receiptId` for new code
+    @available(*, deprecated, message: "Use Attachment model with receiptId instead")
     public var imageData: Data?
 
     public var date: Date = Date()
     public var receiptDescription: String = ""
     public var createdAt: Date = Date()
     public var updatedAt: Date = Date()
-
-    /// File attachments (images and PDFs) associated with this receipt
-    @Relationship(deleteRule: .cascade)
-    public var attachments: [ReceiptAttachment]? = []
 
     public init(
         id: UUID = UUID(),
@@ -93,74 +92,13 @@ public final class Receipt {
         self.dailyRecordId = dailyRecordId
         self.assignmentId = assignmentId
         self.imageData = imageData
-        self.attachments = []
         self.createdAt = Date()
         self.updatedAt = Date()
     }
 
-    /// Whether this receipt has any attachments (images or documents)
-    public var hasAttachments: Bool {
-        if let attachments = attachments, !attachments.isEmpty {
-            return true
-        }
-        // Backwards compatibility: check legacy imageData
-        return imageData != nil
-    }
-
-    /// Whether this receipt has an associated image (legacy compatibility)
+    /// Whether this receipt has legacy image data (for backwards compatibility check)
+    /// Note: Use ModelContext to query Attachment model for full attachment check
     public var hasImage: Bool {
-        hasAttachments
-    }
-
-    /// All attachments sorted by order
-    public var sortedAttachments: [ReceiptAttachment] {
-        (attachments ?? []).sorted { $0.order < $1.order }
-    }
-
-    /// The primary (first) attachment, if any
-    public var primaryAttachment: ReceiptAttachment? {
-        sortedAttachments.first
-    }
-
-    /// Number of attachments
-    public var attachmentCount: Int {
-        (attachments?.count ?? 0) + (imageData != nil && (attachments?.isEmpty ?? true) ? 1 : 0)
-    }
-
-    /// Add an attachment to this receipt
-    /// - Parameter attachment: The attachment to add
-    public func addAttachment(_ attachment: ReceiptAttachment) {
-        if attachments == nil {
-            attachments = []
-        }
-        attachment.order = attachments?.count ?? 0
-        attachment.receipt = self
-        attachments?.append(attachment)
-        updatedAt = Date()
-    }
-
-    /// Remove an attachment from this receipt
-    /// - Parameter attachment: The attachment to remove
-    public func removeAttachment(_ attachment: ReceiptAttachment) {
-        attachments?.removeAll { $0.id == attachment.id }
-        // Reorder remaining attachments
-        for (index, att) in (attachments ?? []).enumerated() {
-            att.order = index
-        }
-        updatedAt = Date()
-    }
-
-    /// Migrate legacy imageData to attachments
-    /// Call this to convert old single-image receipts to the new attachment system
-    public func migrateLegacyImage() {
-        guard let data = imageData, !(attachments?.isEmpty == false) else { return }
-        let attachment = ReceiptAttachment(
-            data: data,
-            attachmentType: .jpeg,
-            filename: "receipt_image.jpg",
-            order: 0
-        )
-        addAttachment(attachment)
-        imageData = nil
+        imageData != nil
     }
 }

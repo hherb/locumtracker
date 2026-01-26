@@ -34,6 +34,10 @@ struct EditAssignmentSheet: View {
     @State private var startDate: Date
     @State private var endDate: Date
     @State private var status: AssignmentStatus
+    @State private var assignmentName: String
+    @State private var sessionTemplates: [DefaultSessionTemplate]
+    @State private var additionalLocationIds: Set<UUID>
+    @State private var showingTemplateEditor: Bool = false
 
     // Provider locations (clinics)
     @State private var mainProviderNumber: String
@@ -56,17 +60,28 @@ struct EditAssignmentSheet: View {
         _startDate = State(initialValue: assignment.startDate)
         _endDate = State(initialValue: assignment.endDate)
         _status = State(initialValue: assignment.status)
+        _assignmentName = State(initialValue: assignment.name ?? "")
+        _sessionTemplates = State(initialValue: assignment.defaultSessionTemplates)
+        _additionalLocationIds = State(initialValue: Set(assignment.additionalLocationIds))
         _mainProviderNumber = State(initialValue: assignment.mainProviderNumber ?? "")
         _providerLocations = State(initialValue: assignment.providerLocations)
+    }
+
+    /// The primary location for the assignment
+    private var primaryLocation: Location? {
+        locations.first { $0.id == selectedLocationId }
     }
 
     var body: some View {
         NavigationStack {
             Form {
+                nameSection
                 locationSection
+                additionalLocationsSection
                 providerNumbersSection
                 rateSection
                 dateSection
+                sessionTemplatesSection
                 statusSection
             }
             .navigationTitle("Edit Assignment")
@@ -106,13 +121,52 @@ struct EditAssignmentSheet: View {
 
     // MARK: - View Components
 
+    private var nameSection: some View {
+        Section("Assignment Name") {
+            TextField("Optional name (e.g., Darwin Remote Communities)", text: $assignmentName)
+        }
+    }
+
     private var locationSection: some View {
-        Section("Location") {
+        Section("Primary Location") {
             Picker("Location", selection: $selectedLocationId) {
                 ForEach(locations) { location in
                     Text(location.name).tag(location.id)
                 }
             }
+
+            if let primary = primaryLocation {
+                LabeledContent("MMM Classification") {
+                    MMMBadge(classification: primary.mmmClassification)
+                }
+            }
+        }
+    }
+
+    private var additionalLocationsSection: some View {
+        Section {
+            ForEach(locations.filter { $0.id != selectedLocationId }) { location in
+                Toggle(isOn: Binding(
+                    get: { additionalLocationIds.contains(location.id) },
+                    set: { isSelected in
+                        if isSelected {
+                            additionalLocationIds.insert(location.id)
+                        } else {
+                            additionalLocationIds.remove(location.id)
+                        }
+                    }
+                )) {
+                    HStack {
+                        Text(location.name)
+                        Spacer()
+                        MMMBadge(classification: location.mmmClassification)
+                    }
+                }
+            }
+        } header: {
+            Text("Additional Locations")
+        } footer: {
+            Text("Select other locations visited during this assignment (e.g., remote communities)")
         }
     }
 
@@ -182,8 +236,71 @@ struct EditAssignmentSheet: View {
 
     private var dateSection: some View {
         Section("Dates") {
-            DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
-            DatePicker("End Date", selection: $endDate, displayedComponents: .date)
+            DateRangePicker(
+                startLabel: "Start Date",
+                endLabel: "End Date",
+                startDate: $startDate,
+                endDate: $endDate
+            )
+        }
+    }
+
+    private var sessionTemplatesSection: some View {
+        Section {
+            if sessionTemplates.isEmpty {
+                Button {
+                    showingTemplateEditor = true
+                } label: {
+                    Label("Add Default Session Times", systemImage: "clock.badge.plus")
+                }
+
+                // Option to copy from location
+                if let location = primaryLocation, location.hasDefaultSessionTemplates {
+                    Button {
+                        sessionTemplates = location.defaultSessionTemplates
+                    } label: {
+                        Label("Copy from Location", systemImage: "doc.on.doc")
+                    }
+                }
+
+                // Quick add standard templates
+                Button {
+                    sessionTemplates = [
+                        .morningSession(),
+                        .afternoonSession()
+                    ]
+                } label: {
+                    Label("Add Morning & Afternoon", systemImage: "sun.and.horizon")
+                }
+            } else {
+                ForEach(sessionTemplates) { template in
+                    HStack {
+                        if let label = template.label {
+                            Text(label)
+                                .fontWeight(.medium)
+                        }
+                        Spacer()
+                        Text(template.timeRangeFormatted)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .onDelete { indices in
+                    sessionTemplates.remove(atOffsets: indices)
+                }
+
+                Button {
+                    showingTemplateEditor = true
+                } label: {
+                    Label("Add Another Session", systemImage: "plus")
+                }
+            }
+        } header: {
+            Text("Default Sessions")
+        } footer: {
+            Text("Session templates are used when quickly adding sessions to this assignment")
+        }
+        .sheet(isPresented: $showingTemplateEditor) {
+            SessionTemplateEditorView(templates: $sessionTemplates)
         }
     }
 
@@ -218,6 +335,9 @@ struct EditAssignmentSheet: View {
         assignment.startDate = startDate
         assignment.endDate = endDate
         assignment.status = status
+        assignment.name = assignmentName.isEmpty ? nil : assignmentName
+        assignment.defaultSessionTemplates = sessionTemplates
+        assignment.additionalLocationIds = Array(additionalLocationIds)
         assignment.updatedAt = Date()
 
         if rateStructure == .dailyRate {

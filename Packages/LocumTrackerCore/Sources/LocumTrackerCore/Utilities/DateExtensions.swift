@@ -18,6 +18,21 @@ import Foundation
 
 public extension Date {
 
+    /// Cached short date formatter (dd/MM/yyyy)
+    private static let shortDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd/MM/yyyy"
+        return formatter
+    }()
+
+    /// Cached medium date formatter
+    private static let mediumDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
+
     /// Start of the day
     var startOfDay: Date {
         Calendar.current.startOfDay(for: self)
@@ -37,13 +52,13 @@ public extension Date {
         return calendar.date(from: DateComponents(year: year, month: quarterMonth, day: 1)) ?? self
     }
 
-    /// Last day of the quarter this date belongs to
+    /// Last moment of the quarter this date belongs to (23:59:59 of last day)
     var endOfQuarter: Date {
         let calendar = Calendar.current
         guard let nextQuarter = calendar.date(byAdding: .month, value: 3, to: startOfQuarter) else {
             return self
         }
-        return calendar.date(byAdding: .day, value: -1, to: nextQuarter) ?? self
+        return calendar.date(byAdding: .day, value: -1, to: nextQuarter)?.endOfDay ?? self
     }
 
     /// Whether this date falls on a weekend
@@ -69,16 +84,13 @@ public extension Date {
 
     /// Formatted as short date (dd/MM/yyyy)
     var shortDateString: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd/MM/yyyy"
+        let formatter = Date.shortDateFormatter
         return formatter.string(from: self)
     }
 
     /// Formatted as medium date
     var mediumDateString: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
+        let formatter = Date.mediumDateFormatter
         return formatter.string(from: self)
     }
 }
@@ -141,8 +153,7 @@ public extension Date {
     ///   - end: End date
     /// - Returns: Formatted string like "01/01/2026 - 15/01/2026"
     static func rangeText(from start: Date, to end: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
+        let formatter = Date.shortDateFormatter
         return "\(formatter.string(from: start)) - \(formatter.string(from: end))"
     }
 

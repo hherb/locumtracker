@@ -30,6 +30,14 @@ public struct CachedAssignment: Codable, Identifiable, Sendable {
     public let endDate: Date
     public let status: String
 
+    /// Cached date formatter for display
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
+
     public init(
         id: UUID,
         name: String?,
@@ -56,9 +64,7 @@ public struct CachedAssignment: Codable, Identifiable, Sendable {
 
     /// Formatted date range for display
     public var dateRangeFormatted: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
+        let formatter = CachedAssignment.dateFormatter
         return "\(formatter.string(from: startDate)) - \(formatter.string(from: endDate))"
     }
 }

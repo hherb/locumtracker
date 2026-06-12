@@ -92,7 +92,7 @@ public final class Location {
             return (try? JSONDecoder().decode([DefaultSessionTemplate].self, from: data)) ?? []
         }
         set {
-            defaultSessionTemplatesJSON = try? JSONEncoder().encode(newValue)
+            defaultSessionTemplatesJSON = newValue.isEmpty ? nil : try? JSONEncoder().encode(newValue)
         }
     }
 
@@ -147,7 +147,7 @@ public final class Location {
 
     /// Whether this location has any default rates configured
     public var hasDefaultRates: Bool {
-        defaultDailyRate != nil || defaultHourlyRate != nil
+        defaultDailyRate != nil || defaultHourlyRate != nil || defaultOnCallRate != nil || defaultCallOutRate != nil
     }
 
     /// Whether this location has default session templates configured

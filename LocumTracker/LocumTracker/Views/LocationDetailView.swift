@@ -319,13 +319,17 @@ struct EditLocationSheet: View {
                     TextField("Name", text: $name)
                     TextField("Address", text: $address)
                     TextField("Phone Number", text: $phoneNumber)
+                    #if os(iOS)
                         .keyboardType(.phonePad)
                         .textContentType(.telephoneNumber)
+                    #endif
                 }
 
                 Section("Medicare") {
                     TextField("Provider Number", text: $providerNumber)
+                    #if os(iOS)
                         .textInputAutocapitalization(.characters)
+                    #endif
                 }
 
                 Section("MMM Classification") {
@@ -381,9 +385,11 @@ struct EditLocationSheet: View {
                 Text("Daily Rate")
                 Spacer()
                 TextField("Optional", text: $defaultDailyRate)
+                #if os(iOS)
                     .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 100)
+                #endif
+                .multilineTextAlignment(.trailing)
+                .frame(width: 100)
                 Text("$")
                     .foregroundStyle(.secondary)
             }
@@ -391,9 +397,11 @@ struct EditLocationSheet: View {
                 Text("Hourly Rate")
                 Spacer()
                 TextField("Optional", text: $defaultHourlyRate)
+                #if os(iOS)
                     .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 100)
+                #endif
+                .multilineTextAlignment(.trailing)
+                .frame(width: 100)
                 Text("$/hr")
                     .foregroundStyle(.secondary)
             }
@@ -401,9 +409,11 @@ struct EditLocationSheet: View {
                 Text("On-Call Rate")
                 Spacer()
                 TextField("Optional", text: $defaultOnCallRate)
+                #if os(iOS)
                     .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 100)
+                #endif
+                .multilineTextAlignment(.trailing)
+                .frame(width: 100)
                 Text("$/hr")
                     .foregroundStyle(.secondary)
             }
@@ -411,9 +421,11 @@ struct EditLocationSheet: View {
                 Text("Call-Out Rate")
                 Spacer()
                 TextField("Optional", text: $defaultCallOutRate)
+                #if os(iOS)
                     .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 100)
+                #endif
+                .multilineTextAlignment(.trailing)
+                .frame(width: 100)
                 Text("$/hr")
                     .foregroundStyle(.secondary)
             }

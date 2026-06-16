@@ -125,18 +125,17 @@ struct EarningsDashboardView: View {
             }
 
             // Split the day's total earnings across its sessions in proportion to
-            // hours worked. The summary total sums DailyRecord.totalEarnings, so
-            // assigning the full day total to every session row would double-count
-            // any day that has more than one session. Splitting keeps the per-row
-            // earnings reconciled with the summary while preserving per-session rows.
+            // hours worked, so multi-session days are not double-counted and per-row
+            // earnings stay reconciled with the summary total (see
+            // EarningsAggregationService.proportionalSessionEarnings).
             let recordSessions = sessionsByRecord[session.dailyRecordId] ?? [session]
             let recordHours = recordSessions.reduce(0) { $0 + $1.durationHours }
-            let earnings: Double
-            if recordHours > 0 {
-                earnings = dailyRecord.totalEarnings * (session.durationHours / recordHours)
-            } else {
-                earnings = dailyRecord.totalEarnings / Double(recordSessions.count)
-            }
+            let earnings = EarningsAggregationService.proportionalSessionEarnings(
+                dayTotal: dailyRecord.totalEarnings,
+                sessionHours: session.durationHours,
+                totalSessionHours: recordHours,
+                sessionCount: recordSessions.count
+            )
 
             return EarningsReportRow(
                 date: session.startTime,

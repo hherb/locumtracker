@@ -164,6 +164,69 @@ final class EarningsAggregationServiceTests: XCTestCase {
         XCTAssertEqual(EarningsAggregationService.sumEarnings(values), 500.0, accuracy: 0.01)
     }
 
+    // MARK: - Proportional Session Earnings Tests
+
+    func testProportionalSessionEarnings_SingleSession_GetsFullDayTotal() {
+        let result = EarningsAggregationService.proportionalSessionEarnings(
+            dayTotal: 1000,
+            sessionHours: 8,
+            totalSessionHours: 8,
+            sessionCount: 1
+        )
+        XCTAssertEqual(result, 1000, accuracy: 0.01)
+    }
+
+    func testProportionalSessionEarnings_TwoEqualSessions_SplitEvenly() {
+        let result = EarningsAggregationService.proportionalSessionEarnings(
+            dayTotal: 1000,
+            sessionHours: 4,
+            totalSessionHours: 8,
+            sessionCount: 2
+        )
+        XCTAssertEqual(result, 500, accuracy: 0.01)
+    }
+
+    func testProportionalSessionEarnings_UnequalSessions_SplitByHours() {
+        // A 6-hour and a 2-hour session sharing a $1000 day.
+        let longSession = EarningsAggregationService.proportionalSessionEarnings(
+            dayTotal: 1000,
+            sessionHours: 6,
+            totalSessionHours: 8,
+            sessionCount: 2
+        )
+        let shortSession = EarningsAggregationService.proportionalSessionEarnings(
+            dayTotal: 1000,
+            sessionHours: 2,
+            totalSessionHours: 8,
+            sessionCount: 2
+        )
+        XCTAssertEqual(longSession, 750, accuracy: 0.01)
+        XCTAssertEqual(shortSession, 250, accuracy: 0.01)
+        // The shares must reconcile with the day total (the whole point of the split).
+        XCTAssertEqual(longSession + shortSession, 1000, accuracy: 0.01)
+    }
+
+    func testProportionalSessionEarnings_ZeroTotalHours_SplitsEqually() {
+        // When no hours are recorded, fall back to an even split so earnings are not dropped.
+        let result = EarningsAggregationService.proportionalSessionEarnings(
+            dayTotal: 900,
+            sessionHours: 0,
+            totalSessionHours: 0,
+            sessionCount: 3
+        )
+        XCTAssertEqual(result, 300, accuracy: 0.01)
+    }
+
+    func testProportionalSessionEarnings_NoSessions_ReturnsZero() {
+        let result = EarningsAggregationService.proportionalSessionEarnings(
+            dayTotal: 1000,
+            sessionHours: 0,
+            totalSessionHours: 0,
+            sessionCount: 0
+        )
+        XCTAssertEqual(result, 0, accuracy: 0.01)
+    }
+
     // MARK: - EarningsPeriod CaseIterable Tests
 
     func testEarningsPeriod_AllCases() {

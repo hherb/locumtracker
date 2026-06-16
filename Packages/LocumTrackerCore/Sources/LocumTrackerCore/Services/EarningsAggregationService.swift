@@ -86,6 +86,38 @@ public struct EarningsAggregationService {
         return total - expenses
     }
 
+    // MARK: - Session Earnings Allocation
+
+    /// Splits a day's total earnings across one of its sessions in proportion to hours worked.
+    ///
+    /// A day may contain more than one session. The earnings summary sums each day's
+    /// `DailyRecord.totalEarnings`, so assigning the full day total to every session row
+    /// would double-count any multi-session day. This returns the portion of the day's
+    /// earnings attributable to a single session, keeping per-session rows reconciled with
+    /// the summary total.
+    ///
+    /// When no session hours are recorded (`totalSessionHours` is zero) the day's earnings
+    /// are split equally across its sessions, so earnings are never silently dropped.
+    ///
+    /// - Parameters:
+    ///   - dayTotal: The day's total earnings (`DailyRecord.totalEarnings`).
+    ///   - sessionHours: Hours worked for the session whose share is wanted.
+    ///   - totalSessionHours: Sum of hours worked across all sessions on that day.
+    ///   - sessionCount: Number of sessions on that day (used for the equal-split fallback).
+    /// - Returns: The portion of `dayTotal` attributable to the session, or 0 when there are no sessions.
+    public static func proportionalSessionEarnings(
+        dayTotal: Double,
+        sessionHours: Double,
+        totalSessionHours: Double,
+        sessionCount: Int
+    ) -> Double {
+        if totalSessionHours > 0 {
+            return dayTotal * (sessionHours / totalSessionHours)
+        }
+        guard sessionCount > 0 else { return 0.0 }
+        return dayTotal / Double(sessionCount)
+    }
+
     // MARK: - Summation
 
     /// Sums an array of earnings values

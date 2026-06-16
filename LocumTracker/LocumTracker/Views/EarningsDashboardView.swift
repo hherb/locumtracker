@@ -111,6 +111,10 @@ struct EarningsDashboardView: View {
         let periodStart = selectedPeriod.startDate()
         let periodEnd = Date()
 
+        // Pre-group sessions by their daily record so a day's earnings can be
+        // split across its sessions (a day may contain more than one session).
+        let sessionsByRecord = Dictionary(grouping: filteredSessions, by: { $0.dailyRecordId })
+
         // Build report rows from sessions
         let rows: [EarningsReportRow] = filteredSessions.compactMap { session in
             // Find the assignment and location for this session
@@ -120,8 +124,18 @@ struct EarningsDashboardView: View {
                 return nil
             }
 
-            // Use DailyRecord's totalEarnings for consistency with the summary
-            let earnings = dailyRecord.totalEarnings
+            // Split the day's total earnings across its sessions in proportion to
+            // hours worked, so multi-session days are not double-counted and per-row
+            // earnings stay reconciled with the summary total (see
+            // EarningsAggregationService.proportionalSessionEarnings).
+            let recordSessions = sessionsByRecord[session.dailyRecordId] ?? [session]
+            let recordHours = recordSessions.reduce(0) { $0 + $1.durationHours }
+            let earnings = EarningsAggregationService.proportionalSessionEarnings(
+                dayTotal: dailyRecord.totalEarnings,
+                sessionHours: session.durationHours,
+                totalSessionHours: recordHours,
+                sessionCount: recordSessions.count
+            )
 
             return EarningsReportRow(
                 date: session.startTime,

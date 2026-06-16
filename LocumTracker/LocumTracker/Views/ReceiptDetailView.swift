@@ -81,6 +81,11 @@ struct ReceiptDetailView: View {
                 StoredAttachmentViewerSheet(attachment: attachment)
             }
         }
+        .sheet(isPresented: $showingFullImage) {
+            if let imageData = receipt.imageData {
+                FullImageView(imageData: imageData)
+            }
+        }
         .confirmationDialog(
             "Delete Receipt",
             isPresented: $showingDeleteConfirmation,
@@ -161,13 +166,25 @@ struct ReceiptDetailView: View {
     @ViewBuilder
     private var attachmentsSection: some View {
         let allAttachments = attachments
+        // Fallback for receipts created before the multi-attachment model: their
+        // image lives in the legacy Receipt.imageData blob with no Attachment row,
+        // so it would otherwise be invisible here. Only used when no stored
+        // attachments exist for the receipt.
+        let legacyImageData = allAttachments.isEmpty ? receipt.imageData : nil
 
-        if !allAttachments.isEmpty {
-            Section("Attachments (\(allAttachments.count))") {
+        if !allAttachments.isEmpty || legacyImageData != nil {
+            let count = allAttachments.isEmpty ? 1 : allAttachments.count
+            Section("Attachments (\(count))") {
                 ForEach(allAttachments) { attachment in
                     StoredAttachmentRow(attachment: attachment) {
                         selectedAttachment = attachment
                         showingAttachmentViewer = true
+                    }
+                }
+
+                if let legacyImageData {
+                    ReceiptImagePreview(imageData: legacyImageData) {
+                        showingFullImage = true
                     }
                 }
             }

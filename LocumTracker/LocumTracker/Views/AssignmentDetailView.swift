@@ -342,6 +342,17 @@ struct AssignmentDetailView: View {
         )
         if let receipts = try? modelContext.fetch(receiptDescriptor) {
             for receipt in receipts {
+                // Delete attachments belonging to this receipt first so their
+                // stored file/image data is not left orphaned in the store.
+                let receiptId = receipt.id
+                let attachmentDescriptor = FetchDescriptor<Attachment>(
+                    predicate: #Predicate { $0.receiptId == receiptId }
+                )
+                if let attachments = try? modelContext.fetch(attachmentDescriptor) {
+                    for attachment in attachments {
+                        modelContext.delete(attachment)
+                    }
+                }
                 modelContext.delete(receipt)
             }
         }

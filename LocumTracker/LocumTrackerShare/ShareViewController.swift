@@ -43,7 +43,7 @@ class ShareViewController: UIViewController {
         // Process attachments asynchronously
         Task {
             let sharedFiles = await extractSharedFiles(from: items)
-            await presentShareUI(with: sharedFiles)
+            presentShareUI(with: sharedFiles)
         }
     }
 

@@ -314,6 +314,39 @@ struct AssignmentDetailView: View {
     }
 
     private func deleteAssignment() {
+        // First delete all related records to avoid orphans
+        let assignmentId = assignment.id
+
+        // Delete all daily records and their sessions for this assignment
+        let dailyRecordDescriptor = FetchDescriptor<DailyRecord>(
+            predicate: #Predicate { $0.assignmentId == assignmentId }
+        )
+        if let dailyRecords = try? modelContext.fetch(dailyRecordDescriptor) {
+            // Delete all sessions for these daily records
+            let allSessionDescriptor = FetchDescriptor<Session>()
+            if let allSessions = try? modelContext.fetch(allSessionDescriptor) {
+                let dailyRecordIds = Set(dailyRecords.map { $0.id })
+                for session in allSessions where dailyRecordIds.contains(session.dailyRecordId) {
+                    modelContext.delete(session)
+                }
+            }
+            // Delete the daily records
+            for record in dailyRecords {
+                modelContext.delete(record)
+            }
+        }
+
+        // Delete all receipts for this assignment
+        let receiptDescriptor = FetchDescriptor<Receipt>(
+            predicate: #Predicate { $0.assignmentId == assignmentId }
+        )
+        if let receipts = try? modelContext.fetch(receiptDescriptor) {
+            for receipt in receipts {
+                modelContext.delete(receipt)
+            }
+        }
+
+        // Finally delete the assignment itself
         modelContext.delete(assignment)
     }
 }

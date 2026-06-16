@@ -162,22 +162,13 @@ struct ReceiptDetailView: View {
     private var attachmentsSection: some View {
         let allAttachments = attachments
 
-        if !allAttachments.isEmpty || receipt.imageData != nil {
-            Section("Attachments (\(allAttachments.count + (receipt.imageData != nil && allAttachments.isEmpty ? 1 : 0)))") {
-                // Show stored attachments
+        if !allAttachments.isEmpty {
+            Section("Attachments (\(allAttachments.count))") {
                 ForEach(allAttachments) { attachment in
                     StoredAttachmentRow(attachment: attachment) {
                         selectedAttachment = attachment
                         showingAttachmentViewer = true
                     }
-                }
-
-                // Fallback: show legacy imageData if no attachments exist
-                if allAttachments.isEmpty, let imageData = receipt.imageData {
-                    ReceiptImagePreview(
-                        imageData: imageData,
-                        onTap: { showingFullImage = true }
-                    )
                 }
             }
         }
@@ -484,8 +475,7 @@ struct EditReceiptSheet: View {
     private var isValidInput: Bool {
         let hasExistingAttachments = existingAttachments.contains { !attachmentsToDelete.contains($0.id) }
         let hasReceiptPendingAttachments = !pendingAttachments.isEmpty
-        let hasLegacyImage = receipt.imageData != nil
-        return hasExistingAttachments || hasReceiptPendingAttachments || hasLegacyImage || (amount > 0 && !receiptDescription.isEmpty)
+        return hasExistingAttachments || hasReceiptPendingAttachments || (amount > 0 && !receiptDescription.isEmpty)
     }
 
     var body: some View {
@@ -860,16 +850,6 @@ struct EditReceiptSheet: View {
                 fileData: pending.data
             )
             modelContext.insert(attachment)
-        }
-
-        // Update legacy imageData with first image if any
-        let allImages = existingAttachments.filter { $0.fileType.isImage && !attachmentsToDelete.contains($0.id) }
-        let pendingImages = pendingAttachments.filter { $0.type.isImage }
-
-        if let firstPending = pendingImages.first {
-            receipt.imageData = firstPending.data
-        } else if let firstExisting = allImages.first {
-            receipt.imageData = firstExisting.fileData
         }
 
         isPresented = false

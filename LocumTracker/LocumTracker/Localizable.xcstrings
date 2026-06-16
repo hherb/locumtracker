@@ -4,6 +4,9 @@
     "" : {
 
     },
+    "·" : {
+
+    },
     "(%@h)" : {
 
     },
@@ -32,6 +35,16 @@
     },
     "%lld" : {
 
+    },
+    "%lld attachment%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld attachment%2$@"
+          }
+        }
+      }
     },
     "%lld day%@ with >2 sessions" : {
       "localizations" : {
@@ -114,6 +127,9 @@
     "Add Assignment" : {
       "comment" : "Navigation title for add assignment sheet"
     },
+    "Add Clinic" : {
+
+    },
     "Add Default Session Times" : {
 
     },
@@ -121,6 +137,9 @@
       "comment" : "Navigation title for add location sheet"
     },
     "Add Location First" : {
+
+    },
+    "Add Medicare provider numbers for the main location and any additional clinics where you work during this assignment." : {
 
     },
     "Add Morning & Afternoon" : {
@@ -168,6 +187,9 @@
     "Amount" : {
       "comment" : "Label for currency amount"
     },
+    "Are you sure you want to delete '%@'? This cannot be undone." : {
+
+    },
     "Are you sure you want to delete this assignment? This action cannot be undone." : {
 
     },
@@ -186,8 +208,17 @@
     "Assignment Name" : {
 
     },
+    "Assignment Not Found" : {
+
+    },
     "Assignments" : {
       "comment" : "Tab bar title for assignments list"
+    },
+    "Attachments" : {
+
+    },
+    "Attachments (%lld)" : {
+
     },
     "Based on predominant MMM%lld. Actual payment depends on registration status and year level." : {
 
@@ -213,6 +244,9 @@
     "Called Out" : {
 
     },
+    "Camera" : {
+
+    },
     "Camera Access Required" : {
 
     },
@@ -231,13 +265,19 @@
     "Category: %@" : {
 
     },
-    "Choose Photo" : {
-
-    },
     "Clear Filters" : {
       "comment" : "Button to clear search filters"
     },
+    "Clinic" : {
+
+    },
+    "Clinic Name" : {
+
+    },
     "Configure your preferences here." : {
+
+    },
+    "Contact" : {
 
     },
     "Copy from Location" : {
@@ -294,6 +334,9 @@
     "Delete Assignment" : {
 
     },
+    "Delete Attachment" : {
+
+    },
     "Delete Location" : {
 
     },
@@ -305,6 +348,9 @@
     },
     "Details" : {
       "comment" : "Section header for item details"
+    },
+    "Documents" : {
+
     },
     "Done" : {
 
@@ -322,6 +368,9 @@
       "comment" : "Button to edit an item"
     },
     "Edit Assignment" : {
+
+    },
+    "Edit Clinic" : {
 
     },
     "Edit Location" : {
@@ -382,6 +431,9 @@
     "Export JSON" : {
       "comment" : "Export menu option"
     },
+    "Files" : {
+
+    },
     "Filter" : {
       "comment" : "Filter button label"
     },
@@ -408,9 +460,6 @@
     },
     "Hours Worked" : {
       "comment" : "Label in earnings summary"
-    },
-    "Image capture available on iOS" : {
-
     },
     "Import from Image" : {
 
@@ -452,6 +501,12 @@
 
     },
     "Log Call-Out" : {
+
+    },
+    "Main Location" : {
+
+    },
+    "Main Provider Number" : {
 
     },
     "Manage Locations" : {
@@ -503,6 +558,9 @@
     "No assignments at this location" : {
 
     },
+    "No Attachments" : {
+
+    },
     "No Earnings Data" : {
       "comment" : "Empty state title in earnings dashboard"
     },
@@ -547,6 +605,9 @@
     },
     "Notes" : {
       "comment" : "Label for notes field"
+    },
+    "Notes (optional)" : {
+
     },
     "OCR Import Failed" : {
 
@@ -596,7 +657,13 @@
     "Phone" : {
 
     },
+    "Phone (optional)" : {
+
+    },
     "Phone Number" : {
+
+    },
+    "Photos" : {
 
     },
     "Please allow camera access in Settings to take receipt photos." : {
@@ -610,6 +677,9 @@
     },
     "Predominant MMM" : {
       "comment" : "Label in FPS quota summary"
+    },
+    "Preview not available" : {
+
     },
     "Primary" : {
 
@@ -625,6 +695,9 @@
     },
     "Provider Number" : {
       "comment" : "Text field placeholder for provider number"
+    },
+    "Provider Numbers" : {
+
     },
     "Quarter History" : {
       "comment" : "Navigation link title and view title"
@@ -668,6 +741,9 @@
     "Record your first work session for this assignment." : {
 
     },
+    "Required" : {
+
+    },
     "Requires 21+ sessions (3+ hours each) per quarter." : {
 
     },
@@ -696,6 +772,9 @@
 
     },
     "Select other locations visited during this assignment (e.g., remote communities)" : {
+
+    },
+    "Select the clinic where this session takes place." : {
 
     },
     "Select the location where this session will be worked" : {
@@ -749,6 +828,9 @@
     "Settings" : {
       "comment" : "Tab bar title for profile settings"
     },
+    "Share files from other apps using the iOS Share Sheet to attach them here." : {
+
+    },
     "Single Day" : {
 
     },
@@ -779,6 +861,9 @@
     "Street Address" : {
 
     },
+    "Street Address (optional)" : {
+
+    },
     "Subsidy Eligible" : {
 
     },
@@ -791,9 +876,6 @@
     "Summary" : {
       "comment" : "Section header in earnings dashboard"
     },
-    "Take Photo" : {
-
-    },
     "Tap a session to apply its times" : {
 
     },
@@ -801,6 +883,12 @@
 
     },
     "Tax Status" : {
+
+    },
+    "The assignment may have been deleted." : {
+
+    },
+    "The Medicare provider number for this clinic location." : {
 
     },
     "These rates will be suggested when creating new assignments" : {

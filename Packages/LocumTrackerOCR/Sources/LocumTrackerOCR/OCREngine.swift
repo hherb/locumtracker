@@ -708,14 +708,12 @@ public final class OCREngine: @unchecked Sendable {
     /// Determines if a space should be inserted between two characters.
     private func shouldInsertSpace(after current: Character, before next: Character) -> Bool {
         let currentIsLower = current.isLowercase
-        let currentIsUpper = current.isUppercase
         let currentIsDigit = current.isNumber
         let currentIsLetter = current.isLetter
 
         let nextIsLower = next.isLowercase
         let nextIsUpper = next.isUppercase
         let nextIsDigit = next.isNumber
-        let nextIsLetter = next.isLetter
 
         // Don't split currency amounts (e.g., $50.00)
         let currencySymbols: Set<Character> = ["$", "€", "£", "¥"]

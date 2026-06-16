@@ -138,9 +138,12 @@ public final class Session {
     public var effectiveSubsidyHours: Double {
         let baseHours = durationHours
         // Travel time only counts if > 1 hour
-        let travelHours = (travelTime ?? 0) > SessionConstants.minTravelTimeForSubsidy
-            ? (travelTime! / SessionConstants.secondsPerHour)
-            : 0
+        let travelHours: Double
+        if let travelTime = travelTime, travelTime > SessionConstants.minTravelTimeForSubsidy {
+            travelHours = travelTime / SessionConstants.secondsPerHour
+        } else {
+            travelHours = 0
+        }
         return baseHours + travelHours
     }
 

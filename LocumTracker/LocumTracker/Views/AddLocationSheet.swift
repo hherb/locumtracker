@@ -51,8 +51,10 @@ struct AddLocationSheet: View {
                     TextField("Name", text: $name)
                     TextField("Address", text: $address)
                     TextField("Phone Number", text: $phoneNumber)
+#if os(iOS)
                         .keyboardType(.phonePad)
                         .textContentType(.telephoneNumber)
+#endif
                 }
 
                 Section("Medicare") {
@@ -80,9 +82,9 @@ struct AddLocationSheet: View {
                 defaultSessionsSection
             }
             .navigationTitle("Add Location")
-            #if os(iOS)
+#if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
-            #endif
+#endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -103,7 +105,9 @@ struct AddLocationSheet: View {
                 )
             }
         }
+#if os(iOS)
         .navigationViewStyle(.stack)
+#endif
     }
 
     // MARK: - Default Rates Section
@@ -114,7 +118,9 @@ struct AddLocationSheet: View {
                 Text("Daily Rate")
                 Spacer()
                 TextField("Optional", text: $defaultDailyRate)
+#if os(iOS)
                     .keyboardType(.decimalPad)
+#endif
                     .multilineTextAlignment(.trailing)
                     .frame(width: 100)
                 Text("$")
@@ -124,7 +130,9 @@ struct AddLocationSheet: View {
                 Text("Hourly Rate")
                 Spacer()
                 TextField("Optional", text: $defaultHourlyRate)
+#if os(iOS)
                     .keyboardType(.decimalPad)
+#endif
                     .multilineTextAlignment(.trailing)
                     .frame(width: 100)
                 Text("$/hr")
@@ -134,7 +142,9 @@ struct AddLocationSheet: View {
                 Text("On-Call Rate")
                 Spacer()
                 TextField("Optional", text: $defaultOnCallRate)
+#if os(iOS)
                     .keyboardType(.decimalPad)
+#endif
                     .multilineTextAlignment(.trailing)
                     .frame(width: 100)
                 Text("$/hr")
@@ -144,7 +154,9 @@ struct AddLocationSheet: View {
                 Text("Call-Out Rate")
                 Spacer()
                 TextField("Optional", text: $defaultCallOutRate)
+#if os(iOS)
                     .keyboardType(.decimalPad)
+#endif
                     .multilineTextAlignment(.trailing)
                     .frame(width: 100)
                 Text("$/hr")
@@ -305,9 +317,9 @@ struct AddSessionTemplateSheet: View {
                 }
             }
             .navigationTitle("Add Session Template")
-            #if os(iOS)
+#if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
-            #endif
+#endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -322,7 +334,9 @@ struct AddSessionTemplateSheet: View {
                 }
             }
         }
+#if os(iOS)
         .navigationViewStyle(.stack)
+#endif
     }
 
     private func addTemplate() {
@@ -357,3 +371,4 @@ private enum MMMDefaults {
     AddLocationSheet(isPresented: .constant(true))
         .modelContainer(for: Location.self, inMemory: true)
 }
+

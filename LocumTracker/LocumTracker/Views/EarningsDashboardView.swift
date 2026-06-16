@@ -120,17 +120,8 @@ struct EarningsDashboardView: View {
                 return nil
             }
 
-            // Calculate session earnings based on rate structure
-            let earnings: Double
-            if assignment.rateStructure == .hourlyRate, let hourlyRate = assignment.hourlyRate {
-                earnings = session.durationHours * hourlyRate
-            } else if let dailyRate = assignment.dailyRate {
-                // For daily rate, estimate based on proportion of day
-                let dayFraction = session.durationHours / 8.0
-                earnings = dayFraction * dailyRate
-            } else {
-                earnings = 0
-            }
+            // Use DailyRecord's totalEarnings for consistency with the summary
+            let earnings = dailyRecord.totalEarnings
 
             return EarningsReportRow(
                 date: session.startTime,
@@ -365,6 +356,13 @@ struct AssignmentEarningsRow: View {
     let earnings: Double
     let totalEarnings: Double
 
+    /// Cached date formatter for display
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        return formatter
+    }()
+
     private var percentage: Double {
         totalEarnings > 0 ? (earnings / totalEarnings) * 100 : 0
     }
@@ -419,8 +417,7 @@ struct AssignmentEarningsRow: View {
     }
 
     private var dateRangeText: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
+        let formatter = AssignmentEarningsRow.dateFormatter
         return "\(formatter.string(from: assignment.startDate)) - \(formatter.string(from: assignment.endDate))"
     }
 }

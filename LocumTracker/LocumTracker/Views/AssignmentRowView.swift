@@ -28,6 +28,14 @@ struct AssignmentRowView: View {
     /// Available locations for looking up the assignment's location
     let locations: [Location]
 
+    /// Cached date formatter for display
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
+
     /// The location associated with this assignment
     private var location: Location? {
         locations.first { $0.id == assignment.locationId }
@@ -115,10 +123,7 @@ struct AssignmentRowView: View {
 
     /// Formats the assignment date range as a human-readable string
     private var formattedDateRange: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-
+        let formatter = AssignmentRowView.dateFormatter
         let start = formatter.string(from: assignment.startDate)
         let end = formatter.string(from: assignment.endDate)
 
@@ -188,15 +193,7 @@ struct MMMBadge: View {
 
     /// Color associated with the MMM classification level
     private var mmmColor: Color {
-        switch classification {
-        case 1, 2: return .gray      // Metropolitan/Regional - not eligible
-        case 3: return .blue         // Large rural town
-        case 4: return .cyan         // Medium rural town
-        case 5: return .teal         // Small rural town
-        case 6: return .orange       // Remote community
-        case 7: return .red          // Very remote community
-        default: return .gray
-        }
+        MMMColors.color(for: classification)
     }
 
     /// Human-readable description of the MMM classification for VoiceOver

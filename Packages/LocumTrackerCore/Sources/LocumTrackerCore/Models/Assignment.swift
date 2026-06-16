@@ -170,9 +170,11 @@ public final class Assignment {
     public var hasValidRateConfiguration: Bool {
         switch rateStructure {
         case .dailyRate:
-            return dailyRate != nil && dailyRate! > 0
+            guard let dailyRate = dailyRate else { return false }
+            return dailyRate > 0
         case .hourlyRate:
-            return hourlyRate != nil && hourlyRate! > 0
+            guard let hourlyRate = hourlyRate else { return false }
+            return hourlyRate > 0
         }
     }
 

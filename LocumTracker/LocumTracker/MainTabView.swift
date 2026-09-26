@@ -18,66 +18,105 @@ import SwiftUI
 import SwiftData
 import LocumTrackerCore
 
-/// Main tab view providing navigation to all major sections of the app
+/// Main navigation providing access to all major sections of the app
 ///
-/// Provides five main tabs:
+/// Provides five sections:
 /// - Assignments: Manage work assignments
 /// - FPS Quota: Track WIP FPS session quota progress
 /// - Earnings: View earnings dashboard
 /// - Receipts: Track expense receipts
 /// - Settings: User profile and app settings
+///
+/// Presented as a tab bar on iOS and a sidebar on macOS.
 struct MainTabView: View {
     @State private var selectedTab: Tab = .assignments
 
     var body: some View {
+        #if os(macOS)
+        NavigationSplitView {
+            List(Tab.allCases, selection: $selectedTab) { tab in
+                Label(tab.title, systemImage: tab.systemImage)
+                    .tag(tab)
+            }
+            .navigationSplitViewColumnWidth(min: Layout.sidebarMinWidth, ideal: Layout.sidebarIdealWidth)
+        } detail: {
+            tab(selectedTab)
+                .id(selectedTab)
+        }
+        #else
         TabView(selection: $selectedTab) {
-            AssignmentsTab()
-                .tabItem {
-                    Label("Assignments", systemImage: "calendar")
-                }
-                .tag(Tab.assignments)
+            ForEach(Tab.allCases) { tab in
+                self.tab(tab)
+                    .tabItem {
+                        Label(tab.title, systemImage: tab.systemImage)
+                    }
+                    .tag(tab)
+            }
+        }
+        #endif
+    }
 
+    /// Root view for a section
+    /// - Parameter tab: The section to show
+    /// - Returns: The section's navigation stack
+    @ViewBuilder
+    private func tab(_ tab: Tab) -> some View {
+        switch tab {
+        case .assignments:
+            AssignmentsTab()
+        case .quota:
             NavigationStack {
                 QuarterlyQuotaView()
             }
-            .tabItem {
-                Label("FPS Quota", systemImage: "chart.pie")
-            }
-            .tag(Tab.quota)
-
+        case .earnings:
             NavigationStack {
                 EarningsDashboardView()
             }
-            .tabItem {
-                Label("Earnings", systemImage: "chart.bar")
-            }
-            .tag(Tab.earnings)
-
+        case .receipts:
             NavigationStack {
                 ReceiptListView()
             }
-            .tabItem {
-                Label("Receipts", systemImage: "receipt")
-            }
-            .tag(Tab.receipts)
-
+        case .settings:
             NavigationStack {
                 ProfileSettingsView()
             }
-            .tabItem {
-                Label("Settings", systemImage: "gearshape")
-            }
-            .tag(Tab.settings)
         }
     }
 
-    /// Available tabs in the main navigation
-    enum Tab {
+    /// Available sections in the main navigation
+    enum Tab: CaseIterable, Identifiable {
         case assignments
         case quota
         case earnings
         case receipts
         case settings
+
+        var id: Self { self }
+
+        var title: String {
+            switch self {
+            case .assignments: return "Assignments"
+            case .quota: return "FPS Quota"
+            case .earnings: return "Earnings"
+            case .receipts: return "Receipts"
+            case .settings: return "Settings"
+            }
+        }
+
+        var systemImage: String {
+            switch self {
+            case .assignments: return "calendar"
+            case .quota: return "chart.pie"
+            case .earnings: return "chart.bar"
+            case .receipts: return "receipt"
+            case .settings: return "gearshape"
+            }
+        }
+    }
+
+    private enum Layout {
+        static let sidebarMinWidth: CGFloat = 180
+        static let sidebarIdealWidth: CGFloat = 200
     }
 }
 
@@ -104,6 +143,7 @@ struct AssignmentsTab: View {
                         NavigationLink(value: assignment.persistentModelID) {
                             AssignmentRowView(assignment: assignment, locations: locations)
                         }
+                        .deleteContextMenu { modelContext.delete(assignment) }
                     }
                     .onDelete(perform: deleteAssignments)
                 }

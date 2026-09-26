@@ -193,7 +193,9 @@ struct EditSessionSheet: View {
                     .tag(loc.id as UUID?)
                 }
             }
+#if os(iOS)
             .pickerStyle(.navigationLink)
+#endif
 
             // Show effective MMM classification
             if let effectiveLoc = effectiveLocation {

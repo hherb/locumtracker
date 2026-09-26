@@ -63,6 +63,7 @@ struct AddReceiptSheet: View {
     @State private var selectedAssignmentId: UUID?
     @State private var pendingAttachments: [ReceiptPendingAttachment] = []
     @State private var presentedSheet: SheetType?
+    @State private var showingFileImporter = false
     @State private var showCameraPermissionAlert = false
     @State private var isRequestingCameraPermission = false
     @State private var ocrImportState: OCRImportState = .idle
@@ -195,6 +196,22 @@ struct AddReceiptSheet: View {
                 )
             }
         }
+        #else
+        .sheet(item: $presentedSheet) { sheet in
+            switch sheet {
+            case .fullImage(let imgData):
+                FullImageView(imageData: imgData)
+                    .frame(minWidth: MacSheetSize.minWidth, minHeight: MacSheetSize.minHeight)
+            case .viewAttachment(let attachment):
+                AttachmentViewerSheet(attachment: attachment, onDismiss: { presentedSheet = nil })
+                    .frame(minWidth: MacSheetSize.minWidth, minHeight: MacSheetSize.minHeight)
+            case .camera, .photoLibrary, .documentPicker:
+                EmptyView()
+            }
+        }
+        .attachmentFileImport(isPresented: $showingFileImporter) { file in
+            addAttachment(data: file.data, type: file.type, filename: file.filename)
+        }
         #endif
     }
 
@@ -275,27 +292,29 @@ struct AddReceiptSheet: View {
                                 presentedSheet = .viewAttachment(attachment)
                             }
                         },
-                        onCrop: attachment.type.isImage ? {
-                            presentedSheet = .cropImage(attachment.data, attachment.id)
-                        } : nil,
+                        onCrop: {
+                        #if os(iOS)
+                            guard attachment.type.isImage else { return nil }
+                            return { presentedSheet = .cropImage(attachment.data, attachment.id) }
+                        #else
+                            return nil
+                        #endif
+                        }(),
                         onDelete: {
                             removeAttachment(id: attachment.id)
                         }
                     )
                 }
 
-                #if os(iOS)
                 if let firstImageAttachment = pendingAttachments.first(where: { $0.type.isImage }) {
                     ocrImportButton(for: firstImageAttachment.data)
                 }
-                #endif
             }
 
             attachmentPickerButtons
         }
     }
 
-    #if os(iOS)
     @ViewBuilder
     private func ocrImportButton(for imgData: Data) -> some View {
         HStack {
@@ -386,7 +405,6 @@ struct AddReceiptSheet: View {
         }
         return .other
     }
-    #endif
 
     @ViewBuilder
     private var attachmentPickerButtons: some View {
@@ -433,9 +451,13 @@ struct AddReceiptSheet: View {
             Text("Please allow camera access in Settings to take receipt photos.")
         }
         #else
-        Text("Attachment capture available on iOS")
-            .foregroundStyle(.secondary)
-            .font(.caption)
+        Button {
+            showingFileImporter = true
+        } label: {
+            Label("Add Files…", systemImage: "doc.badge.plus")
+        }
+        .buttonStyle(.bordered)
+        .help("Choose receipt images or PDFs, or drag them onto this window")
         #endif
     }
 
@@ -488,18 +510,8 @@ struct AddReceiptSheet: View {
 
     #if os(iOS)
     private func handlePickedDocument(_ url: URL) {
-        guard url.startAccessingSecurityScopedResource() else { return }
-        defer { url.stopAccessingSecurityScopedResource() }
-
-        do {
-            let data = try Data(contentsOf: url)
-            let filename = url.lastPathComponent
-            let ext = url.pathExtension
-            let type = AttachmentType(fromExtension: ext)
-            addAttachment(data: data, type: type, filename: filename)
-        } catch {
-            print("Failed to read document: \(error)")
-        }
+        guard let file = AttachmentFileImport.load(from: url) else { return }
+        addAttachment(data: file.data, type: file.type, filename: file.filename)
     }
     #endif
 
@@ -600,17 +612,13 @@ struct AttachmentRowView: View {
     @ViewBuilder
     private var attachmentThumbnail: some View {
         if attachment.type.isImage {
-            #if os(iOS)
-            if let uiImage = UIImage(data: attachment.data) {
-                Image(uiImage: uiImage)
+            if let image = Image(imageData: attachment.data) {
+                image
                     .resizable()
                     .scaledToFill()
             } else {
                 placeholderIcon
             }
-            #else
-            placeholderIcon
-            #endif
         } else {
             placeholderIcon
         }
@@ -680,15 +688,13 @@ struct AttachmentViewerSheet: View {
         NavigationStack {
             Group {
                 if attachment.type.isImage {
-                    #if os(iOS)
-                    if let uiImage = UIImage(data: attachment.data) {
-                        Image(uiImage: uiImage)
+                    if let image = Image(imageData: attachment.data) {
+                        image
                             .resizable()
                             .scaledToFit()
                     }
-                    #endif
                 } else if attachment.type == .pdf {
-                    PDFViewerView(data: attachment.data)
+                    PDFDocumentView(data: attachment.data)
                 } else {
                     VStack {
                         Image(systemName: attachment.type.systemImage)
@@ -713,38 +719,6 @@ struct AttachmentViewerSheet: View {
         }
     }
 }
-
-// MARK: - PDF Viewer
-
-#if os(iOS)
-import PDFKit
-
-struct PDFViewerView: UIViewRepresentable {
-    let data: Data
-
-    func makeUIView(context: Context) -> PDFView {
-        let pdfView = PDFView()
-        pdfView.autoScales = true
-        pdfView.displayMode = .singlePageContinuous
-        pdfView.displayDirection = .vertical
-        if let document = PDFDocument(data: data) {
-            pdfView.document = document
-        }
-        return pdfView
-    }
-
-    func updateUIView(_ uiView: PDFView, context: Context) {}
-}
-#else
-struct PDFViewerView: View {
-    let data: Data
-
-    var body: some View {
-        Text("PDF viewing not available on this platform")
-            .foregroundStyle(.secondary)
-    }
-}
-#endif
 
 // MARK: - Preview
 

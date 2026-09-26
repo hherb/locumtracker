@@ -231,17 +231,13 @@ struct StoredAttachmentRow: View {
     @ViewBuilder
     private var attachmentThumbnail: some View {
         if attachment.fileType.isImage, let data = attachment.fileData {
-            #if os(iOS)
-            if let uiImage = UIImage(data: data) {
-                Image(uiImage: uiImage)
+            if let image = Image(imageData: data) {
+                image
                     .resizable()
                     .scaledToFill()
             } else {
                 placeholderIcon
             }
-            #else
-            placeholderIcon
-            #endif
         } else {
             placeholderIcon
         }
@@ -266,21 +262,13 @@ struct StoredAttachmentViewerSheet: View {
         NavigationStack {
             Group {
                 if attachment.fileType.isImage, let data = attachment.fileData {
-                    #if os(iOS)
-                    if let uiImage = UIImage(data: data) {
-                        ZoomableImageView(image: Image(uiImage: uiImage))
+                    if let image = Image(imageData: data) {
+                        ZoomableImageView(image: image)
                     } else {
                         noPreviewView
                     }
-                    #else
-                    noPreviewView
-                    #endif
                 } else if attachment.fileType == .pdf, let data = attachment.fileData {
-                    #if os(iOS)
-                    StoredPDFViewer(data: data)
-                    #else
-                    noPreviewView
-                    #endif
+                    PDFDocumentView(data: data)
                 } else {
                     noPreviewView
                 }
@@ -288,6 +276,8 @@ struct StoredAttachmentViewerSheet: View {
             .navigationTitle(attachment.filename)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #else
+            .frame(minWidth: MacSheetSize.minWidth, minHeight: MacSheetSize.minHeight)
             #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -384,27 +374,6 @@ struct ZoomableImageView: View {
     }
 }
 
-// MARK: - Stored PDF Viewer
-
-#if os(iOS)
-struct StoredPDFViewer: UIViewRepresentable {
-    let data: Data
-
-    func makeUIView(context: Context) -> PDFView {
-        let pdfView = PDFView()
-        pdfView.autoScales = true
-        pdfView.displayMode = .singlePageContinuous
-        pdfView.displayDirection = .vertical
-        if let document = PDFDocument(data: data) {
-            pdfView.document = document
-        }
-        return pdfView
-    }
-
-    func updateUIView(_ uiView: PDFView, context: Context) {}
-}
-#endif
-
 // MARK: - Edit Receipt Sheet
 
 /// Sheet view for editing an existing receipt
@@ -434,6 +403,7 @@ struct EditReceiptSheet: View {
     @State private var pendingAttachments: [ReceiptPendingAttachment] = []
     @State private var attachmentsToDelete: Set<UUID> = []
     @State private var presentedSheet: EditSheetType?
+    @State private var showingFileImporter = false
     @State private var ocrImportState: OCRImportState = .idle
     @State private var showOCRError = false
     @State private var ocrErrorMessage = ""
@@ -554,6 +524,10 @@ struct EditReceiptSheet: View {
                     )
                 }
             }
+            #else
+            .attachmentFileImport(isPresented: $showingFileImporter) { file in
+                addAttachment(data: file.data, type: file.type, filename: file.filename)
+            }
             #endif
         }
     }
@@ -632,16 +606,20 @@ struct EditReceiptSheet: View {
                 AttachmentRowView(
                     attachment: attachment,
                     onTap: {},
-                    onCrop: attachment.type.isImage ? {
-                        presentedSheet = .cropImage(attachment.data, attachment.id)
-                    } : nil,
+                    onCrop: {
+                    #if os(iOS)
+                        guard attachment.type.isImage else { return nil }
+                        return { presentedSheet = .cropImage(attachment.data, attachment.id) }
+                    #else
+                        return nil
+                    #endif
+                    }(),
                     onDelete: {
                         removeAttachment(id: attachment.id)
                     }
                 )
             }
 
-            #if os(iOS)
             // OCR button if there's an image attachment
             if let firstImage = pendingAttachments.first(where: { $0.type.isImage }) {
                 ocrImportButton(for: firstImage.data)
@@ -649,13 +627,11 @@ struct EditReceiptSheet: View {
                       let data = existingImage.fileData {
                 ocrImportButton(for: data)
             }
-            #endif
 
             attachmentPickerButtons
         }
     }
 
-    #if os(iOS)
     @ViewBuilder
     private func ocrImportButton(for imgData: Data) -> some View {
         HStack {
@@ -752,7 +728,6 @@ struct EditReceiptSheet: View {
             date >= assignment.startDate && date <= assignment.endDate
         }
     }
-    #endif
 
     @ViewBuilder
     private var attachmentPickerButtons: some View {
@@ -782,9 +757,13 @@ struct EditReceiptSheet: View {
             .buttonStyle(.bordered)
         }
         #else
-        Text("Attachment capture available on iOS")
-            .foregroundStyle(.secondary)
-            .font(.caption)
+        Button {
+            showingFileImporter = true
+        } label: {
+            Label("Add Files…", systemImage: "doc.badge.plus")
+        }
+        .buttonStyle(.bordered)
+        .help("Choose receipt images or PDFs, or drag them onto this window")
         #endif
     }
 
@@ -808,18 +787,8 @@ struct EditReceiptSheet: View {
 
     #if os(iOS)
     private func handlePickedDocument(_ url: URL) {
-        guard url.startAccessingSecurityScopedResource() else { return }
-        defer { url.stopAccessingSecurityScopedResource() }
-
-        do {
-            let data = try Data(contentsOf: url)
-            let filename = url.lastPathComponent
-            let ext = url.pathExtension
-            let type = AttachmentType(fromExtension: ext)
-            addAttachment(data: data, type: type, filename: filename)
-        } catch {
-            print("Failed to read document: \(error)")
-        }
+        guard let file = AttachmentFileImport.load(from: url) else { return }
+        addAttachment(data: file.data, type: file.type, filename: file.filename)
     }
     #endif
 
@@ -891,17 +860,13 @@ struct ExistingAttachmentRow: View {
     @ViewBuilder
     private var attachmentThumbnail: some View {
         if attachment.fileType.isImage, let data = attachment.fileData {
-            #if os(iOS)
-            if let uiImage = UIImage(data: data) {
-                Image(uiImage: uiImage)
+            if let image = Image(imageData: data) {
+                image
                     .resizable()
                     .scaledToFill()
             } else {
                 placeholderIcon
             }
-            #else
-            placeholderIcon
-            #endif
         } else {
             placeholderIcon
         }

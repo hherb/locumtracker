@@ -16,6 +16,7 @@
 
 import Foundation
 import CoreGraphics
+import ImageIO
 
 #if canImport(UIKit)
 import UIKit
@@ -100,20 +101,20 @@ public final class ReceiptOCRService {
         return ReceiptDataExtractor.extract(from: ocrResults)
     }
 
-    #if canImport(UIKit)
-    /// Extracts receipt data from image data (JPEG/PNG).
+    /// Extracts receipt data from encoded image data (JPEG, PNG, HEIC, ...).
     ///
     /// - Parameter imageData: The image data to process.
     /// - Returns: Extracted receipt data, or nil if image data is invalid.
     /// - Throws: `OCRError` if processing fails.
     public func extractReceiptData(from imageData: Data) async throws -> ReceiptData? {
-        guard let uiImage = UIImage(data: imageData),
-              let cgImage = uiImage.cgImage else {
+        guard let source = CGImageSourceCreateWithData(imageData as CFData, nil),
+              let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
             return nil
         }
         return try await extractReceiptData(from: cgImage)
     }
 
+    #if canImport(UIKit)
     /// Extracts receipt data from a UIImage.
     ///
     /// - Parameter image: The UIImage to process.

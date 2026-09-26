@@ -45,3 +45,7 @@ fastlane/test_output
 
 # Claude settings (local only)
 .claude/settings.local.json
+
+# macOS installer build output
+/build/
+/dist/

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <mask id="pinCutout">
+      <rect width="1024" height="1024" fill="black"/>
+      <path d="M512 132C329 132 184 276 184 458c0 194 205 382 328 454 123-72 328-260 328-454 0-182-145-326-328-326Z" fill="white"/>
+      <path d="M470 292c-13 0-24 11-24 24v82h-82c-13 0-24 11-24 24v84c0 13 11 24 24 24h82v82c0 13 11 24 24 24h84c13 0 24-11 24-24v-82h82c13 0 24-11 24-24v-84c0-13-11-24-24-24h-82v-82c0-13-11-24-24-24h-84Z" fill="black"/>
+    </mask>
+  </defs>
+  <rect width="1024" height="1024" fill="#F8FAF7" mask="url(#pinCutout)"/>
+</svg>

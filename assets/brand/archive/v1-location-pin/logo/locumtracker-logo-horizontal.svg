@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1720 360" role="img" aria-labelledby="title desc">
+  <title id="title">LocumTracker logo</title>
+  <desc id="desc">LocumTracker wordmark with medical location pin and tracking tick.</desc>
+  <defs>
+    <mask id="pinCutout">
+      <rect width="360" height="360" fill="black"/>
+      <path d="M172 27C99 27 41 85 41 158c0 77 82 152 131 181 49-29 131-104 131-181 0-73-58-131-131-131Z" fill="white"/>
+      <path d="M156 91c-5 0-9 4-9 9v32h-32c-5 0-9 4-9 9v34c0 5 4 9 9 9h32v32c0 5 4 9 9 9h34c5 0 9-4 9-9v-32h32c5 0 9-4 9-9v-34c0-5-4-9-9-9h-32v-32c0-5-4-9-9-9h-34Z" fill="black"/>
+    </mask>
+  </defs>
+  <rect width="360" height="360" fill="#087F5B" mask="url(#pinCutout)"/>
+  <circle cx="258" cy="263" r="55" fill="#FFFFFF"/>
+  <circle cx="258" cy="263" r="45" fill="#F5B942"/>
+  <path d="m233 264 16 16 34-39" fill="none" stroke="#064E3B" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="380" y="232" fill="#064E3B" font-family="Avenir Next, Inter, Segoe UI, sans-serif" font-size="168" font-weight="700" letter-spacing="-6">Locum</text>
+  <text x="900" y="232" fill="#087F5B" font-family="Avenir Next, Inter, Segoe UI, sans-serif" font-size="168" font-weight="500" letter-spacing="-6">Tracker</text>
+</svg>

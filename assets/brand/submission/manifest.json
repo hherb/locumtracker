@@ -1,0 +1,27 @@
+{
+  "source": "assets/brand/app-icon/icon-master.svg",
+  "generatedBy": "scripts/generate_brand_assets.sh",
+  "storeAssets": [
+    {
+      "platform": "Apple App Store",
+      "file": "app-store/locumtracker-app-store-1024.png",
+      "width": 1024,
+      "height": 1024,
+      "alpha": false
+    },
+    {
+      "platform": "Google Play",
+      "file": "play-store/locumtracker-play-store-512.png",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "maximumBytes": 1048576
+    }
+  ],
+  "installedAppAssets": {
+    "ios": "../platform/ios",
+    "ipados": "../platform/ipados",
+    "macos": "../platform/macos",
+    "android": "../platform/android/launcher"
+  }
+}

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">LocumTracker app icon</title>
+  <desc id="desc">A medical location pin with a tracking tick on an emerald background.</desc>
+  <defs>
+    <linearGradient id="background" x1="160" y1="96" x2="864" y2="928" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0CA678"/>
+      <stop offset="0.5" stop-color="#087F5B"/>
+      <stop offset="1" stop-color="#064E3B"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(400 270) rotate(54) scale(610)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#42D6A4" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#42D6A4" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="badge" x1="642" y1="620" x2="814" y2="810" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD66B"/>
+      <stop offset="1" stop-color="#F5A623"/>
+    </linearGradient>
+    <filter id="pinShadow" x="120" y="90" width="790" height="900" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="20" stdDeviation="22" flood-color="#022C22" flood-opacity="0.34"/>
+    </filter>
+    <filter id="badgeShadow" x="555" y="545" width="355" height="355" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#022C22" flood-opacity="0.35"/>
+    </filter>
+    <mask id="pinCutout">
+      <rect width="1024" height="1024" fill="black"/>
+      <path d="M512 132C329 132 184 276 184 458c0 194 205 382 328 454 123-72 328-260 328-454 0-182-145-326-328-326Z" fill="white"/>
+      <path d="M470 292c-13 0-24 11-24 24v82h-82c-13 0-24 11-24 24v84c0 13 11 24 24 24h82v82c0 13 11 24 24 24h84c13 0 24-11 24-24v-82h82c13 0 24-11 24-24v-84c0-13-11-24-24-24h-82v-82c0-13-11-24-24-24h-84Z" fill="black"/>
+    </mask>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#background)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <g filter="url(#pinShadow)">
+    <rect width="1024" height="1024" fill="#F8FAF7" mask="url(#pinCutout)"/>
+  </g>
+  <g filter="url(#badgeShadow)">
+    <circle cx="724" cy="716" r="141" fill="#064E3B"/>
+    <circle cx="724" cy="716" r="119" fill="url(#badge)"/>
+    <path d="m657 718 43 43 91-103" fill="none" stroke="#064E3B" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

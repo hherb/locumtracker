@@ -1,57 +1,21 @@
+<!-- Compatibility copy: the canonical editable master lives in assets/brand/app-icon/icon-master.svg. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <defs>
-    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#2E7D32;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#1B5E20;stop-opacity:1" />
+    <linearGradient id="background" x1="140" y1="110" x2="870" y2="920" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0CA678"/>
+      <stop offset="0.5" stop-color="#087F5B"/>
+      <stop offset="1" stop-color="#064E3B"/>
     </linearGradient>
-    <linearGradient id="crossGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#E8F5E9;stop-opacity:1" />
-    </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.25"/>
-    </filter>
   </defs>
-
-  <!-- Background -->
-  <rect width="1024" height="1024" fill="url(#bgGradient)"/>
-
-  <!-- Subtle grid pattern for "tracking" feel -->
-  <g opacity="0.08">
-    <line x1="256" y1="0" x2="256" y2="1024" stroke="white" stroke-width="2"/>
-    <line x1="512" y1="0" x2="512" y2="1024" stroke="white" stroke-width="2"/>
-    <line x1="768" y1="0" x2="768" y2="1024" stroke="white" stroke-width="2"/>
-    <line x1="0" y1="256" x2="1024" y2="256" stroke="white" stroke-width="2"/>
-    <line x1="0" y1="512" x2="1024" y2="512" stroke="white" stroke-width="2"/>
-    <line x1="0" y1="768" x2="1024" y2="768" stroke="white" stroke-width="2"/>
+  <rect width="1024" height="1024" fill="url(#background)"/>
+  <g fill="#F8FAF7" stroke="#F8FAF7" stroke-width="16" stroke-linejoin="round">
+    <path d="M475.7 563.4 340.7 591.2 330 608.9 258.5 610.5 223 631.2 196.4 630.5 166 614.7 180.7 576.9 133.9 461.2 142.3 469.4 135.9 451.8 150.9 464.7 135 428.3 141.5 392 149.3 378.4 150.8 392.8 198 358.3 276.8 339 317.7 276.7 325.7 293.1 333.8 289.3 327.1 280.3 333 271.1 341.4 275.2 368.5 235.4 394.8 227.5 419.3 247.5 443.3 249.4 439.3 239 462.2 203.2 499.4 195.2 485.2 179.2 495.3 176.4 551.2 197.7 573.9 190.3 582.6 199.7 563.8 218.2 555 250 644.6 301.5 664.7 276.4 672.6 200.7 688.3 167.7 715 241.4 727.2 234.3 742.6 249.7 761.9 325.2 808.6 352.4 824.4 389.5 844.3 390.6 847.6 410.8 884.7 445.1 898.3 499.1 885.4 566.2 836.7 642.8 830.4 676.1 760.5 706.7 733.2 694.9 736.1 685 709.1 702.4 652.6 687.4 632.4 651.6 604.8 641.6 606.4 618.3 580.3 635 600.4 604.2 598.9 590.1 564.3 627.9 549.5 620.1 531.7 584.7 475.7 563.4Z"/>
+    <path d="M761.4 746.6 798 741.6 790.9 786 755.4 792.4 730.6 738.4 761.4 746.6Z"/>
   </g>
-
-  <!-- Location pin shape (outer) -->
-  <path d="M512 140
-           C340 140 200 280 200 440
-           C200 620 512 884 512 884
-           C512 884 824 620 824 440
-           C824 280 684 140 512 140 Z"
-        fill="white"
-        filter="url(#shadow)"
-        opacity="0.95"/>
-
-  <!-- Inner circle of pin -->
-  <circle cx="512" cy="420" r="180" fill="url(#bgGradient)"/>
-
-  <!-- Medical cross -->
-  <g fill="white">
-    <!-- Vertical bar -->
-    <rect x="472" y="300" width="80" height="240" rx="12"/>
-    <!-- Horizontal bar -->
-    <rect x="392" y="380" width="240" height="80" rx="12"/>
+  <g fill="none" stroke="#064E3B" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m426 310 21 34m167-34-21 34M447 344v38c0 88 29 130 73 130s73-42 73-130v-38" stroke-width="48"/>
+    <path d="M520 512v58" stroke-width="42"/>
   </g>
-
-  <!-- Small clock/time indicator (bottom right of pin) -->
-  <circle cx="680" cy="680" r="80" fill="#FFC107" stroke="white" stroke-width="8" filter="url(#shadow)"/>
-  <circle cx="680" cy="680" r="60" fill="white"/>
-  <!-- Clock hands -->
-  <line x1="680" y1="680" x2="680" y2="640" stroke="#1B5E20" stroke-width="8" stroke-linecap="round"/>
-  <line x1="680" y1="680" x2="710" y2="690" stroke="#1B5E20" stroke-width="6" stroke-linecap="round"/>
-  <circle cx="680" cy="680" r="8" fill="#1B5E20"/>
+  <circle cx="520" cy="580" r="62" fill="#064E3B"/>
+  <circle cx="520" cy="580" r="34" fill="#F5B942"/>
 </svg>

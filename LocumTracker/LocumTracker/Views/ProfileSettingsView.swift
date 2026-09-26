@@ -85,7 +85,11 @@ struct ProfileSettingsView: View {
             businessTaxSection
             professionalStatusSection
             defaultRatesSection
+            DataImportSection()
         }
+        #if os(macOS)
+        .formStyle(.grouped)
+        #endif
         .navigationTitle(isNewProfile ? "Set Up Profile" : "Settings")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
@@ -301,6 +305,7 @@ struct ProfileSettingsView: View {
                 Text("Daily Rate")
                 Spacer()
                 TextField("$0", value: $defaultDailyRate, format: .currency(code: "AUD"))
+                    .labelsHidden()
                     .multilineTextAlignment(.trailing)
                     .accessibilityIdentifier("defaultDailyRateField")
                     #if os(iOS)
@@ -313,6 +318,7 @@ struct ProfileSettingsView: View {
                 Text("Hourly Rate")
                 Spacer()
                 TextField("$0", value: $defaultHourlyRate, format: .currency(code: "AUD"))
+                    .labelsHidden()
                     .multilineTextAlignment(.trailing)
                     .accessibilityIdentifier("defaultHourlyRateField")
                     #if os(iOS)
@@ -325,6 +331,7 @@ struct ProfileSettingsView: View {
                 Text("On-Call Rate")
                 Spacer()
                 TextField("$0", value: $defaultOnCallRate, format: .currency(code: "AUD"))
+                    .labelsHidden()
                     .multilineTextAlignment(.trailing)
                     .accessibilityIdentifier("defaultOnCallRateField")
                     #if os(iOS)
@@ -337,6 +344,7 @@ struct ProfileSettingsView: View {
                 Text("Call-Out Rate")
                 Spacer()
                 TextField("$0", value: $defaultCallOutRate, format: .currency(code: "AUD"))
+                    .labelsHidden()
                     .multilineTextAlignment(.trailing)
                     .accessibilityIdentifier("defaultCallOutRateField")
                     #if os(iOS)

@@ -133,6 +133,9 @@
     "Add Default Session Times" : {
 
     },
+    "Add Files…" : {
+
+    },
     "Add Location" : {
       "comment" : "Navigation title for add location sheet"
     },
@@ -265,6 +268,9 @@
     "Category: %@" : {
 
     },
+    "Choose receipt images or PDFs, or drag them onto this window" : {
+
+    },
     "Clear Filters" : {
       "comment" : "Button to clear search filters"
     },
@@ -272,9 +278,6 @@
 
     },
     "Clinic Name" : {
-
-    },
-    "Configure your preferences here." : {
 
     },
     "Contact" : {
@@ -294,6 +297,9 @@
     },
     "Daily Rate" : {
       "comment" : "Rate type option"
+    },
+    "Data" : {
+
     },
     "Date" : {
       "comment" : "Label for date field"
@@ -446,9 +452,6 @@
     "FPS Quota" : {
       "comment" : "Tab bar title for FPS session quota tracking"
     },
-    "General" : {
-
-    },
     "GST (10%) will be added to invoices" : {
 
     },
@@ -461,7 +464,13 @@
     "Hours Worked" : {
       "comment" : "Label in earnings summary"
     },
+    "Import Data…" : {
+
+    },
     "Import from Image" : {
+
+    },
+    "Imports locations, assignments, sessions, receipts and documents from a LocumTracker JSON import file. Records already present are skipped." : {
 
     },
     "in %lld-quarter reference period" : {
@@ -495,9 +504,6 @@
 
     },
     "Locations (%lld)" : {
-
-    },
-    "LocumTracker Settings" : {
 
     },
     "Log Call-Out" : {
@@ -763,9 +769,6 @@
 
     },
     "Select a location" : {
-
-    },
-    "Select an assignment" : {
 
     },
     "Select one or more sessions to add" : {

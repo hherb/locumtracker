@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="background" x1="160" y1="96" x2="864" y2="928" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#737373"/>
+      <stop offset="1" stop-color="#202020"/>
+    </linearGradient>
+    <mask id="pinCutout">
+      <rect width="1024" height="1024" fill="black"/>
+      <path d="M512 132C329 132 184 276 184 458c0 194 205 382 328 454 123-72 328-260 328-454 0-182-145-326-328-326Z" fill="white"/>
+      <path d="M470 292c-13 0-24 11-24 24v82h-82c-13 0-24 11-24 24v84c0 13 11 24 24 24h82v82c0 13 11 24 24 24h84c13 0 24-11 24-24v-82h82c13 0 24-11 24-24v-84c0-13-11-24-24-24h-82v-82c0-13-11-24-24-24h-84Z" fill="black"/>
+    </mask>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#background)"/>
+  <rect width="1024" height="1024" fill="#F2F2F2" mask="url(#pinCutout)"/>
+  <circle cx="724" cy="716" r="141" fill="#202020"/>
+  <circle cx="724" cy="716" r="119" fill="#D4D4D4"/>
+  <path d="m657 718 43 43 91-103" fill="none" stroke="#202020" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

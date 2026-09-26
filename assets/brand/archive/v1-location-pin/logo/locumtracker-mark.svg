@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title id="title">LocumTracker brand mark</title>
+  <defs>
+    <mask id="pinCutout">
+      <rect width="1024" height="1024" fill="black"/>
+      <path d="M512 96C304 96 140 260 140 467c0 219 233 432 372 514 139-82 372-295 372-514C884 260 720 96 512 96Z" fill="white"/>
+      <path d="M465 278c-15 0-27 12-27 27v93h-93c-15 0-27 12-27 27v94c0 15 12 27 27 27h93v93c0 15 12 27 27 27h94c15 0 27-12 27-27v-93h93c15 0 27-12 27-27v-94c0-15-12-27-27-27h-93v-93c0-15-12-27-27-27h-94Z" fill="black"/>
+    </mask>
+  </defs>
+  <rect width="1024" height="1024" fill="#087F5B" mask="url(#pinCutout)"/>
+  <circle cx="755" cy="753" r="149" fill="#FFFFFF"/>
+  <circle cx="755" cy="753" r="125" fill="#F5B942"/>
+  <path d="m687 755 43 43 93-105" fill="none" stroke="#064E3B" stroke-width="43" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

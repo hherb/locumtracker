@@ -72,6 +72,11 @@ struct ReceiptListView: View {
                             NavigationLink(value: receipt) {
                                 ReceiptRowView(receipt: receipt)
                             }
+                            .deleteContextMenu {
+                                if let index = group.receipts.firstIndex(where: { $0.id == receipt.id }) {
+                                    deleteReceipts(at: IndexSet(integer: index), from: group.receipts)
+                                }
+                            }
                         }
                         .onDelete { offsets in
                             deleteReceipts(at: offsets, from: group.receipts)

@@ -70,6 +70,11 @@ struct SessionListView: View {
                                     .onTapGesture {
                                         sessionToEdit = session
                                     }
+                                    .deleteContextMenu {
+                                        if let index = recordSessions.firstIndex(where: { $0.id == session.id }) {
+                                            deleteSessions(at: IndexSet(integer: index), from: record)
+                                        }
+                                    }
                             }
                             .onDelete { offsets in
                                 deleteSessions(at: offsets, from: record)

@@ -62,13 +62,11 @@ struct LocumTrackerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            #if os(iOS)
             MainTabView()
+            #if os(iOS)
                 .onAppear {
                     updateAssignmentsCache()
                 }
-            #else
-            ContentView()
             #endif
         }
         .modelContainer(sharedModelContainer)
@@ -85,6 +83,7 @@ struct LocumTrackerApp: App {
         Settings {
             SettingsView()
         }
+        .modelContainer(sharedModelContainer)
         #endif
     }
 
@@ -142,34 +141,19 @@ struct LocumTrackerApp: App {
 // MARK: - macOS Settings
 
 #if os(macOS)
-/// Settings window for macOS
+/// Settings window for macOS (Cmd+,), showing the same profile settings
+/// as the Settings section of the main window
 struct SettingsView: View {
     var body: some View {
-        TabView {
-            GeneralSettingsView()
-                .tabItem {
-                    Label("General", systemImage: "gear")
-                }
+        NavigationStack {
+            ProfileSettingsView()
         }
-        .frame(width: SettingsConstants.windowWidth, height: SettingsConstants.windowHeight)
-    }
-}
-
-/// General settings tab content
-struct GeneralSettingsView: View {
-    var body: some View {
-        Form {
-            Text("LocumTracker Settings")
-                .font(.headline)
-            Text("Configure your preferences here.")
-                .foregroundStyle(.secondary)
-        }
-        .padding()
+        .frame(minWidth: SettingsConstants.minWidth, minHeight: SettingsConstants.minHeight)
     }
 }
 
 private enum SettingsConstants {
-    static let windowWidth: CGFloat = 400
-    static let windowHeight: CGFloat = 300
+    static let minWidth: CGFloat = 520
+    static let minHeight: CGFloat = 600
 }
 #endif

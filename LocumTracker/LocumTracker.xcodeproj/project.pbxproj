@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		6F22420F2F23C70C0051ECF7 /* LocumTrackerOCR in Frameworks */ = {isa = PBXBuildFile; productRef = 6F22420E2F23C70C0051ECF7 /* LocumTrackerOCR */; };
-		6F22429B2F25804B0051ECF7 /* LocumTrackerShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6F2242912F25804B0051ECF7 /* LocumTrackerShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		6F22429B2F25804B0051ECF7 /* LocumTrackerShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6F2242912F25804B0051ECF7 /* LocumTrackerShare.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6F2242A12F258AAA0051ECF7 /* LocumTrackerCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6F2242A22F258AAA0051ECF7 /* LocumTrackerCore */; };
 		6F5748C72F1D0CFB00B07EF1 /* LocumTrackerCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6F5748C62F1D0CFB00B07EF1 /* LocumTrackerCore */; };
 		6F5748CA2F1D0D1000B07EF1 /* LocumTrackerStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 6F5748C92F1D0D1000B07EF1 /* LocumTrackerStorage */; };
@@ -392,6 +392,7 @@
 /* Begin PBXTargetDependency section */
 		6F22429A2F25804B0051ECF7 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
+			platformFilter = ios;
 			target = 6F2242902F25804B0051ECF7 /* LocumTrackerShare */;
 			targetProxy = 6F2242992F25804B0051ECF7 /* PBXContainerItemProxy */;
 		};

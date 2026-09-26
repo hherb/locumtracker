@@ -69,6 +69,11 @@ struct LocationListView: View {
                                 NavigationLink(value: location) {
                                     LocationRowView(location: location)
                                 }
+                                .deleteContextMenu {
+                                    if let index = group.locations.firstIndex(where: { $0.id == location.id }) {
+                                        deleteLocations(at: IndexSet(integer: index), from: group.locations)
+                                    }
+                                }
                             }
                             .onDelete { offsets in
                                 deleteLocations(at: offsets, from: group.locations)

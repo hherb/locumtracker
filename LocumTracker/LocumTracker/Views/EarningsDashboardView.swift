@@ -217,6 +217,12 @@ struct EarningsDashboardView: View {
                 ShareSheet(activityItems: [url])
             }
         }
+        #else
+        .fileMover(isPresented: $showingShareSheet, file: exportedFileURL) { result in
+            if case .failure(let error) = result {
+                print("Failed to save earnings export: \(error)")
+            }
+        }
         #endif
     }
 

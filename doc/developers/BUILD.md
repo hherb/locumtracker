@@ -59,6 +59,34 @@ xcodebuild -scheme LocumTracker \
 xcrun simctl list devices available
 ```
 
+## Building the macOS Installer
+
+The `LocumTracker` target builds natively for macOS (the iOS-only share extension is excluded via a platform filter). `scripts/build_macos_installer.sh` produces a signed drag-to-Applications DMG in `dist/`:
+
+```bash
+scripts/build_macos_installer.sh
+```
+
+It archives a Release build, exports it with **Developer ID** signing (Xcode creates the Developer ID provisioning profile automatically via `-allowProvisioningUpdates`), wraps it in a DMG, and signs the DMG. Requires the `Developer ID Application` certificate for team `X5DWXB4283` in your keychain.
+
+### Notarization
+
+Without notarization, Gatekeeper will warn when the DMG is opened on another Mac. One-time setup (uses an [app-specific password](https://account.apple.com)):
+
+```bash
+xcrun notarytool store-credentials locumtracker-notary --apple-id <apple-id> --team-id X5DWXB4283
+```
+
+Then build with notarization and stapling:
+
+```bash
+NOTARY_PROFILE=locumtracker-notary scripts/build_macos_installer.sh
+```
+
+The DMG is named `LocumTracker-<MARKETING_VERSION>-<CURRENT_PROJECT_VERSION>.dmg`; bump those in the target's build settings before a release.
+
+**CloudKit note:** Developer ID builds use the **Production** CloudKit environment. Debug builds run from Xcode use Development, so the two won't see each other's data.
+
 ## Building Swift Packages
 
 The packages can be built independently for faster iteration and testing.

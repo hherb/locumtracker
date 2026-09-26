@@ -59,7 +59,9 @@ struct AddLocationSheet: View {
 
                 Section("Medicare") {
                     TextField("Provider Number", text: $providerNumber)
+#if os(iOS)
                         .textInputAutocapitalization(.characters)
+#endif
                 }
 
                 Section("MMM Classification") {
